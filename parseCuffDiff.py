@@ -9,6 +9,24 @@ Please see the license file for legal information.
 __author__ = 'chentong & ct586[9]'
 __author_email__ = 'chentong_biology@163.com'
 #=========================================================
+'''
+This transfers Cuffdiff output to normal table format to show the gene
+expression from each sample.
+
+gene    Brain    Hand    Foot
+XLOC_000001     0       0       3.10751
+XLOC_000002     57.6877 68.9117 55.3189
+XLOC_000003     16.53   15.9654 12.2609
+XLOC_000004     0       0.027853        0
+XLOC_000005     5.74841 4.48476 6.52879
+XLOC_000006     0       0.250831        0
+XLOC_000007     0.0109654       0.00795572      2.57567
+XLOC_000008     2499.89 2604.53 7591.29
+XLOC_000009     50.5431 35.8262 69.7913
+'''
+
+
+
 import sys
 
 def main():
