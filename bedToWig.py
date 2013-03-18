@@ -2,13 +2,23 @@
 # -*- coding: utf-8 -*-
 #from __future__ import division, with_statement
 '''
-Copyright 2010, 陈同 (chentong_biology@163.com).  
+Copyright 2013, 陈同 (chentong_biology@163.com).  
 Please see the license file for legal information.
 ===========================================================
 '''
 __author__ = 'chentong & ct586[9]'
 __author_email__ = 'chentong_biology@163.com'
 #=========================================================
+'''
+This transfers BED file to variable step WIG file.
+
+Notice:
+    bdg: zero-based, half-open.
+    wig: 1-based, no strand specific usually
+    bed: zero-based, half-open.
+'''
+
+
 import sys
 
 def output(chr, adict, col):
