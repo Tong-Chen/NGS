@@ -9,6 +9,31 @@ Please see the license file for legal information.
 __author__ = 'chentong & ct586[9]'
 __author_email__ = 'chentong_biology@163.com'
 #=========================================================
+'''
+This is written to transfer BAM file to wig file. 
+Currently this script only focus on Pair-end RNA-Seq reads.
+One feature of this program is that it can recover the coverage for
+<insert regions> between two paired reads.
+
+For example,  we have a properly mapped reads showed below
+
+
+==============================================  Genome
+^^^^^^                                  $$$$$$  Two reads 
+      ++++++++++++++++++++++++++++++++++        Insert regions
+
+Traditionally, the output wig file for regions labeld '+' would be 0.
+Actually,  these regions are also covered by reads. Thus,  using this
+program,  you can get <true> coverage for <insert regions>.
+
+It was also planned to transfer BAM with single-end reads to wig.
+However, this is not finished yet. But other substitutaion tools or 
+combined tools are available in this directory can deal with this type
+of transferation.  
+'''
+
+
+
 
 import sys
 import re
@@ -90,7 +115,7 @@ def computeRegion(start, cigarL, name):
 def computeWigDict(wigDict, pairL):
     #wigDict = {pos:{+:[+,+_e], '-':[ -,-_e]}}
     #pairL   = [[chr,[[start,end],...],xs], [chr,[[start,end],...],xs]]
-    
+       
 #----------END computeWigDict---------------
 def extendWigDict(wigDict,gtf_fh):
     pass
