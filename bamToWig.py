@@ -32,8 +32,6 @@ of transferation.
 '''
 
 
-
-
 import sys
 import re
 from time import localtime, strftime 
@@ -61,17 +59,15 @@ regions."
         metavar="GTF", help="When -t is PE and -e is positive, this \
 GTF should be supplied. It canbe standard GTF downlaoded from UCSC. \
 However, the one outputted by you RNA-Seq would be better (Only with \
-expressed transcripts is preferred). File must be sorted by \
-chromosome.")
+expressed transcripts is preferred). )
     parser.add_option("-n", "--nucleotide-type", dest="nt",
         metavar="RNA/DNA", default="RNA", 
         help="DNA means ChIP-Seq, RNA means RNA-Seq")
     parser.add_option("-t", "--seq-type", dest="seq_Type",
         metavar="PAIREND/SINGLEEND", default="PE", 
         help="PE for pair-end reads and SE for single-end reads.")
-    parser.add_option("-s", "--strand", dest="strand",
-        default=True, action="store_false", 
-        help="True for strand-specific, False for strandless sequenceing")
+    parser.add_option("-l", "--library-type", dest="lt",
+        help="fr-unstranded,fr-firststrand,fr-secondstrand")
     parser.add_option("-e", "--extend", dest="extend", default=0,
         ,type='int', help="A positive number means extending reads to given length \
 for SE data or filling in the blank between two PE reads assisted by \
@@ -111,16 +107,99 @@ def computeRegion(start, cigarL, name):
     #--------------------------------------------------------------------
 #--------END computeRegion-------------------------------------------------
 
-def computeWigDict(wigDict, pairL):
+def computeWigDict(wigDict, pairL, lt):
     #wigDict = {pos:{+:[+,+_e], '-':[ -,-_e]}}
-    #pairL   = [[chr,[[start,end],...],xs], [chr,[[start,end],...],xs]]
-       
+    #pairL   = [[chr,flag,[[start,end],...],xs], [chr,flag,[[start,end],...],xs]]
+    #---Get relative position for two reads--------------
+    # -1 means reads with smaller coordinate (more left  in Genome)
+    #  0 means reads with bigger  coordinate (more right in Genome)
+    # These two numbers are also used for sorting two reads and
+    # extract neighbor mapped regions of two reads.
+    for i in pairL:
+        if i[1] & 0x10 == 0: #mate reverse
+            i[1] = -1 if lt == 'fr-secondstrand' else 0
+        elif i[1] & 0x20 == 0: #self reverse
+            i[1] = -1 if lt == 'fr-secondstrand' else 0
+    #----------------------------------------------------------- 
+    assert pairL[0][0] == pairL[1][0], pairL
+    assert pairL[0][3] == pairL[1][3], pairL
+    xs = pairL[0][3]
+    pairL.sort(key=lambda x:x[1])
+    leftReadsMaxCor = pairL[0][2][-1]
+    rightReadsMinCol = pairL[1][2][0]
+    #--------get covergae for intervals which actually have ---
+    #--coverage but no reads covering---------------------------
+    #only executing when real mate inner dist larger than 0
+    for pos in range(leftReadsMaxCor[1],rightReadsMinCor[0]):
+        if pos not in wigDict:
+            wigDict[pos][xs] = [0,-1]
+        else:
+            if xs not in wigDict[pos]:
+                wigDict[pos][xs] = [0,-1]
+            else:
+                wigDict[pos][xs][1] -= 1
+        #----------------END adding wigDict-----------------
+    #-------END coverage for interval regions---------------
+    #if leftReadsMaxCor[1] < rightReadsMinCor[0]:
+    #-first get coverage for really mapped regions----
+    uniqMappedPosL = [] #urgly unefficient soluable methods
+    for reads in pairL:
+        for region in reads[2]:
+            for pos in range(region[0], region[1]):
+                if pos not in uniqMappedPosL:
+                    uniqMappedPosL.append(pos)
+                else:
+                    continue #ignore enlarge coverage for position
+                             #sequences twice by one frag
+                if pos not in wigDict:
+                    wigDict[pos][xs] = [1,0]
+                else:
+                    if xs not in wigDict[pos]:
+                        wigDict[pos][xs] = [1,0]
+                    else:
+                        wigDict[pos][xs][0] += 1
+                #------------end adding to wigDict---------
+            #----------------end one mapped fragments---
+        #----------------end getting each mapped fragments---
+    #-----------------end mapped coverage of tow reads--------------------------
 #----------END computeWigDict---------------
-def extendWigDict(wigDict,gtf_fh):
-    pass
-
+def extendWigDict(wigDict,exonDict):
+    '''Give coverage to interval regions based on the following two
+    conditions.
+    1.The interval located at an expressed exons.
+    2.The interval has covered by other reads. If this region can not
+    be sequenced randomly, it is no need to add coverage for it. If
+    added,  this is no much change. 
+    GTF: 1-based numbering, both closed'''
+    #---get exon regions of one chromosome----------
+    
 #--------NED extendWigDict---------------------
 
+def readExonRegFromGTF(gtf, lt)
+    '''
+    Get exon regions from GTF for each chromosome. It is such a greedy
+    process that if one NT is exon in one transcript, it will be
+    considered as exon [This does not always mean it will have
+    coverage if interval value less than 0].
+
+    GTF: 1-based numbering, both closed
+    '''
+    exonDict = {} #{chr:[[exon_s,exon_e], [], ...]} 1-based both
+                    #closed
+    for line in open(gtf):
+        lineL = line.split('\t', 7)
+        if lineL[2] == 'exon':
+            xs = lineL[6] if lt != 'fr-unstranded' else '+'
+            chr = lineL[0]
+            if chr not in exonDict:
+                exonDict[chr] = {}
+            if xs not in exonDict[chr]:
+                exonDict[chr][xs] = []
+            exonDict[chr][xs].append([int(lineL)])
+        #-----------end exon-----------
+    #--------End reading file------------
+    return exonDict
+#-----------END read exons from GTF----------
 def main():
     options = {}
     args = []
@@ -130,7 +209,7 @@ def main():
     file = options.filein
     output = options.fileout
     readsType = opions.seq_Type
-    strand = options.strand
+    lt= options.lt
     extend = options.extend
     gtf = options.gtf
     nt = options.nt
@@ -144,7 +223,7 @@ def main():
     #--------------------------------
     #-------------open GTF-----------
     if nt == 'RNA' and extend and readsType == 'PE':
-        gtf_fh = open(gtf)
+        exonDict = readExonRegFromGTF(gtf,lt)   
     #---------------------------------
     chr = ''
     for line in fh:
@@ -153,27 +232,27 @@ def main():
         flag = int(lineL[1])
         if chr and chr != lineL[2]:
             if readsType == 'PE' and extend:
-                extendWigDict(wigDict, gtf_fh)
+                extendWigDict(wigDict, exonDict)
             outputWigDict(wigDict)
             wigDict = ''
         chr = lineL[2]
         start = int(lineL[3]) ##sam and wig are 1-based
         cigar = lineL[5] 
         regionL = computeRegion(start,cigarP.findall(cigara),name) 
-        if strand:
+        if lt != 'fr-unstranded':
             xs = [i[-1] for i in lineL[11:] if i.startswith('XS:A:')]
         else:
             xs = '+'
-        if readsType == 'SE' and strand:
+        if readsType == 'SE' and lt != 'fr-unstranded':
             pass
-        elif readsType == 'SE' and not strand:
+        elif readsType == 'SE' and lt == 'fr-unstranded': 
             pass
         elif readsType == 'PE':
             if flag & 0x2 == 2: #properly paired
                 if name not in pairDict:
-                    pairDict[name] = [[chr,regionL,xs]]
+                    pairDict[name] = [[chr,flag,regionL,xs]]
                 else:
-                    pairDict[name].append([chr,regionL,xs])
+                    pairDict[name].append([chr,flag,regionL,xs])
                     computeWigDict(wigDict, pairDict[name])
                     pairDict.pop(name)
                 #------------------------------
@@ -195,12 +274,10 @@ def main():
     if file != '-':
         fh.close()
     #-----------end close fh-----------
-    if nt == 'RNA' and extend and readsType == 'PE':
-        gtf_fh.close()
     #----last chromosome-------------------------------
     if wigDict:
         if readsType == 'PE' and extend:
-            extendWigDict(wigDict, gtf_fh)
+            extendWigDict(wigDict, exonDict)
         outputWigDict(wigDict)
     #--------------------------------------------------
 if __name__ == '__main__':
