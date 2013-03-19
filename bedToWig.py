@@ -12,6 +12,11 @@ __author_email__ = 'chentong_biology@163.com'
 '''
 This transfers BED file to variable step WIG file.
 
+Attention:
+    1.No strand information is considered
+    2.A known bug for Pair-End data. If paired reads overlapped,
+    overlapped regions will be counted twice.
+
 Notice:
     bdg: zero-based, half-open.
     wig: 1-based, no strand specific usually
