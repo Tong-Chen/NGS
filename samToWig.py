@@ -345,7 +345,7 @@ def main():
         if chr and chr != lineL[2]:
             posL = wigDict.keys()
             posL.sort()
-            if readsType == 'PE' and extend:
+            if readsType == 'PE' and extend and chr in exonDict:
                 if verbose:
                     print >>sys.stderr,\
                         "--Begin extend PE reads for %s--%s" \
@@ -361,6 +361,7 @@ def main():
             else:
                 outputWigDict(wigDict, chr, posL, lt)
             wigDict = {}
+            wigDict = collections.defaultdict(dict)
         chr = lineL[2]
         start = int(lineL[3]) ##sam and wig are 1-based
         cigar = lineL[5] 
@@ -405,7 +406,7 @@ def main():
     if wigDict:
         posL = wigDict.keys()
         posL.sort()
-        if readsType == 'PE' and extend:
+        if readsType == 'PE' and extend and chr in exonDict:
             extendWigDict(wigDict, posL, exonDict[chr])
             exonDict.pop(chr)
         if debug:
