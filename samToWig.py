@@ -69,7 +69,8 @@ expressed transcripts is preferred).")
         default="fr-unstranded", 
         help="fr-unstranded,fr-firststrand,fr-secondstrand")
     parser.add_option("-e", "--extend", dest="extend", default=0,
-        type='int', help="A positive number means extending reads to given length \
+        type='int', help="A positive number means extending reads to \
+give length \
 for SE data or filling in the blank between two PE reads assisted by \
 GTF. 0 means no extending or filling. For PE reads,  any positive \
 number can be used to represent extend.")
@@ -79,6 +80,8 @@ file. This should be given. One can use \
 mysql --user=genome --host=genome-mysql.cse.ucsc.edu -A -e \
 'select chrom, size from mm10.chromInfo' > mm10.genome \
 to extract chromosome size.")
+    parser.add_option("-v", "--verbose", dest="verbose",
+        default=0, help="Show process information")
     (options, args) = parser.parse_args(argv[1:])
     assert options.filein != None, "A filename needed for -f"
     return (options, args)
@@ -109,7 +112,7 @@ def computeRegion(start, cigarL, name):
     #--------------------------------------------------------------------
 #--------END computeRegion-------------------------------------------------
 
-def computeWigDict(wigDict, pairL, lt):
+def computeWigDict(wigDict, pairL):
     #wigDict = {pos:{+:[+,+_e], '-':[ -,-_e]}}
     #pairL   = [[chr,flag,[[start,end],...],xs], [chr,flag,[[start,end],...],xs]]
     #---Get relative position for two reads--------------
@@ -118,21 +121,28 @@ def computeWigDict(wigDict, pairL, lt):
     # These two numbers are also used for sorting two reads and
     # extract neighbor mapped regions of two reads.
     for i in pairL:
-        if i[1] & 0x10 == 0: #mate reverse
-            i[1] = -1 if lt == 'fr-secondstrand' else 0
-        elif i[1] & 0x20 == 0: #self reverse
-            i[1] = -1 if lt == 'fr-secondstrand' else 0
+        i[1] = -1 if i[1] & 0x20 else 0
+        #if i[1] & 0x20: #mate reverse 99(pPR1),163(pPR2)
+        #    i[1] = -1 
+        #elif i[1] & 0x10: #self reverse 147(pPr2), 83(pPr1)
+        #                 #reads that self reversed located right in
+        #                 #Genome
+        #    i[1] = 0
+    #----------------------------------------------------
     #----------------------------------------------------------- 
     assert pairL[0][0] == pairL[1][0], pairL
     assert pairL[0][3] == pairL[1][3], pairL
     xs = pairL[0][3]
-    pairL.sort(key=lambda x:x[1])
+    pairL.sort(key=lambda i:i[1])
+    #print >>sys.stderr, pairL
     leftReadsMaxCor = pairL[0][2][-1]
     rightReadsMinCor = pairL[1][2][0]
     #--------get covergae for intervals which actually have ---
     #--coverage but no reads covering---------------------------
     #only executing when real mate inner dist larger than 0
-    for pos in range(leftReadsMaxCor[1],rightReadsMinCor[0]):
+    interval_l = leftReadsMaxCor[1]
+    interval_r = rightReadsMinCor[0]
+    for pos in range(interval_l,interval_r):
         if pos not in wigDict:
             wigDict[pos] = {}
         if xs not in wigDict[pos]:
@@ -143,12 +153,12 @@ def computeWigDict(wigDict, pairL, lt):
     #-------END coverage for interval regions---------------
     #if leftReadsMaxCor[1] < rightReadsMinCor[0]:
     #-first get coverage for really mapped regions----
-    uniqMappedPosL = [] #urgly unefficient soluable methods
+    uniqMappedPosD = {} #urgly unefficient soluable methods
     for reads in pairL:
         for region in reads[2]:
             for pos in range(region[0], region[1]):
-                if pos not in uniqMappedPosL:
-                    uniqMappedPosL.append(pos)
+                if pos not in uniqMappedPosD:
+                    uniqMappedPosD[pos]=''
                 else:
                     continue #ignore enlarge coverage for position
                              #sequences twice by one frag
@@ -274,6 +284,7 @@ def readExonRegFromGTF(gtf, lt):
     #--------End reading file------------
     return exonDict
 #-----------END read exons from GTF----------
+
 def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
@@ -285,6 +296,7 @@ def main():
     gtf = options.gtf
     nt = options.nt
     cs = options.chromSize
+    verbose = options.verbose
     wigDict = {} #dict = {pos:{+:[+,+_e], '-':[ -,-_e]}}
     pairDict = {}
     if file == '-':
@@ -294,10 +306,23 @@ def main():
     #--------------------------------
     #-------------open GTF-----------
     if nt == 'RNA' and extend and readsType == 'PE':
+        if verbose:
+            print >>sys.stderr, "--Begin readding GTF---%s" \
+                    % strftime(timeformat, localtime())
         exonDict = readExonRegFromGTF(gtf,lt)   
+        if verbose:
+            print >>sys.stderr, "--Finish readding GTF---%s" \
+                    % strftime(timeformat, localtime())
     #---------------------------------
     chr = ''
+    count = 0
     for line in fh:
+        if verbose:
+            count += 1
+            if count % 100000 == 0:
+                print >>sys.stderr, "------Finish %d reads----%s" \
+                    % (count, strftime(timeformat, localtime()))
+        #---------------------------------------------------
         lineL = line.strip().split("\t")
         name = lineL[0]
         flag = int(lineL[1])
@@ -305,10 +330,18 @@ def main():
             posL = wigDict.keys()
             posL.sort()
             if readsType == 'PE' and extend:
+                if verbose:
+                    print >>sys.stderr,\
+                        "--Begin extend PE reads for %s--%s" \
+                        % (chr, strftime(timeformat, localtime()))
                 extendWigDict(wigDict, posL, exonDict[chr])
                 exonDict.pop(chr)
+            if verbose:
+                print >>sys.stderr,\
+                    "--Begin output wig for %s--%s" \
+                        % (chr, strftime(timeformat, localtime()))
             outputWigDict(wigDict, chr, posL, lt)
-            wigDict = ''
+            wigDict = {}
         chr = lineL[2]
         start = int(lineL[3]) ##sam and wig are 1-based
         cigar = lineL[5] 
@@ -327,7 +360,7 @@ def main():
                     pairDict[name] = [[chr,flag,regionL,xs]]
                 else:
                     pairDict[name].append([chr,flag,regionL,xs])
-                    computeWigDict(wigDict, pairDict[name],lt)
+                    computeWigDict(wigDict, pairDict[name])
                     pairDict.pop(name)
                 #------------------------------
             elif flag & 0x2 == 0: #unproperly paired
