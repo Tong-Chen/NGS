@@ -82,6 +82,8 @@ mysql --user=genome --host=genome-mysql.cse.ucsc.edu -A -e \
 to extract chromosome size.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
+    parser.add_option("-d", "--debug", dest="debug",
+        default=False, help="Debug the program")
     (options, args) = parser.parse_args(argv[1:])
     assert options.filein != None, "A filename needed for -f"
     return (options, args)
@@ -297,6 +299,7 @@ def main():
     nt = options.nt
     cs = options.chromSize
     verbose = options.verbose
+    debug = options.debug
     wigDict = {} #dict = {pos:{+:[+,+_e], '-':[ -,-_e]}}
     pairDict = {}
     if file == '-':
@@ -309,7 +312,11 @@ def main():
         if verbose:
             print >>sys.stderr, "--Begin readding GTF---%s" \
                     % strftime(timeformat, localtime())
-        exonDict = readExonRegFromGTF(gtf,lt)   
+        if gtf:
+            exonDict = readExonRegFromGTF(gtf,lt)   
+        else:
+            print >>sys.stderr, "GTF file is needed."
+            sys.exit(1)
         if verbose:
             print >>sys.stderr, "--Finish readding GTF---%s" \
                     % strftime(timeformat, localtime())
@@ -340,7 +347,10 @@ def main():
                 print >>sys.stderr,\
                     "--Begin output wig for %s--%s" \
                         % (chr, strftime(timeformat, localtime()))
-            outputWigDict(wigDict, chr, posL, lt)
+            if debug:
+                outputWigDictTest(wigDict, chr, posL, lt)
+            else:
+                outputWigDict(wigDict, chr, posL, lt)
             wigDict = {}
         chr = lineL[2]
         start = int(lineL[3]) ##sam and wig are 1-based
@@ -361,7 +371,7 @@ def main():
                 else:
                     pairDict[name].append([chr,flag,regionL,xs])
                     computeWigDict(wigDict, pairDict[name])
-                    pairDict.pop(name)
+                    pairDict = {}
                 #------------------------------
             elif flag & 0x2 == 0: #unproperly paired
                 for posL in regionL:
@@ -387,8 +397,11 @@ def main():
         if readsType == 'PE' and extend:
             extendWigDict(wigDict, posL, exonDict[chr])
             exonDict.pop(chr)
-        #outputWigDict(wigDict, chr, posL, lt)
-        outputWigDictTest(wigDict, chr, posL, lt)
+        if debug:
+            outputWigDictTest(wigDict, chr, posL, lt)
+        else:
+            outputWigDict(wigDict, chr, posL, lt)
+
     #--------------------------------------------------
 if __name__ == '__main__':
     startTime = strftime(timeformat, localtime())
