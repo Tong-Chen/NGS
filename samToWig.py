@@ -148,7 +148,7 @@ def computeWigDict(wigDict, pairL):
     interval_l = leftReadsMaxCor[1]
     interval_r = rightReadsMinCor[0]
     overlap = 1 if interval_l > interval_r else 0  
-    for pos in range(interval_l,interval_r):
+    for pos in xrange(interval_l,interval_r):
         #if pos not in wigDict:
         #    wigDict[pos] = {}
         if xs not in wigDict[pos]:
@@ -162,7 +162,7 @@ def computeWigDict(wigDict, pairL):
     uniqMappedPosD = {} #urgly unefficient soluable methods
     for reads in pairL:
         for region in reads[2]:
-            for pos in range(region[0], region[1]):
+            for pos in xrange(region[0], region[1]):
                 if overlap:
                     if pos not in uniqMappedPosD:
                         uniqMappedPosD[pos]=''
@@ -386,7 +386,7 @@ def main():
                 #------------------------------
             elif flag & 0x2 == 0: #unproperly paired
                 for posL in regionL:
-                    for pos in range(posL[0], posL[1]):
+                    for pos in xrange(posL[0], posL[1]):
                         #if pos not in wigDict:
                         #    wigDict[pos] = {}
                         if xs not in wigDict[pos]:
