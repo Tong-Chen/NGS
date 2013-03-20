@@ -31,7 +31,7 @@ combined tools are available in this directory can deal with this type
 of transferation.  
 '''
 
-
+import collections
 import sys
 import re
 import os
@@ -92,11 +92,12 @@ to extract chromosome size.")
 def computeRegion(start, cigarL, name): 
     # cigarL:  [('20','M'),('1000','N'),('80','M')]
     regionL = []
+    append = regionL.append
     len = 0
     for i in cigarL:
         if i[1] == 'N': #begin settle counts
             assert len > 0, "Unexpected cigarL %s " % name
-            regionL.append([start, start+len])
+            append([start, start+len])
             start = start + len + int(i[0])
             len = 0
         else:
@@ -109,12 +110,14 @@ def computeRegion(start, cigarL, name):
         #------------------------------------
     #--------------END for-------------------
     #------If no 'N' or deal with the part after the last 'N'--
-    regionL.append([start, start+len])
+    append([start, start+len])
     return regionL
     #--------------------------------------------------------------------
 #--------END computeRegion-------------------------------------------------
 
 def computeWigDict(wigDict, pairL):
+    pairL = pairL
+    #wigDict = wigDict
     #wigDict = {pos:{+:[+,+_e], '-':[ -,-_e]}}
     #pairL   = [[chr,flag,[[start,end],...],xs], [chr,flag,[[start,end],...],xs]]
     #---Get relative position for two reads--------------
@@ -144,9 +147,10 @@ def computeWigDict(wigDict, pairL):
     #only executing when real mate inner dist larger than 0
     interval_l = leftReadsMaxCor[1]
     interval_r = rightReadsMinCor[0]
+    overlap = 1 if interval_l > interval_r else 0  
     for pos in range(interval_l,interval_r):
-        if pos not in wigDict:
-            wigDict[pos] = {}
+        #if pos not in wigDict:
+        #    wigDict[pos] = {}
         if xs not in wigDict[pos]:
             wigDict[pos][xs] = [0,-1]
         else:
@@ -159,13 +163,14 @@ def computeWigDict(wigDict, pairL):
     for reads in pairL:
         for region in reads[2]:
             for pos in range(region[0], region[1]):
-                if pos not in uniqMappedPosD:
-                    uniqMappedPosD[pos]=''
-                else:
-                    continue #ignore enlarge coverage for position
-                             #sequences twice by one frag
-                if pos not in wigDict:
-                    wigDict[pos] = {}
+                if overlap:
+                    if pos not in uniqMappedPosD:
+                        uniqMappedPosD[pos]=''
+                    else:
+                        continue #ignore enlarge coverage for position
+                                 #sequences twice by one frag
+                #if pos not in wigDict:
+                #    wigDict[pos] = {}
                 if xs not in wigDict[pos]:
                     wigDict[pos][xs] = [1,0]
                 else:
@@ -174,7 +179,9 @@ def computeWigDict(wigDict, pairL):
             #----------------end one mapped fragments---
         #----------------end getting each mapped fragments---
     #-----------------end mapped coverage of tow reads--------------------------
+    #return wigDict
 #----------END computeWigDict---------------
+
 def extendWigDict(wigDict, posKeyL, exonDictChr):
     '''Give coverage to interval regions based on the following two
     conditions.
@@ -224,6 +231,7 @@ def outputWigDict(wigDict, chr, posL, lt):
     '''
     Output variableStep wig.
     '''
+    #wigDict = wigDict
     if lt == 'fr-unstranded':
         print 'variableStep chrom=%s' % chr
         for i in posL:
@@ -300,7 +308,8 @@ def main():
     cs = options.chromSize
     verbose = options.verbose
     debug = options.debug
-    wigDict = {} #dict = {pos:{+:[+,+_e], '-':[ -,-_e]}}
+    #wigDict = {} #dict = {pos:{+:[+,+_e], '-':[ -,-_e]}}
+    wigDict = collections.defaultdict(dict)
     pairDict = {}
     if file == '-':
         fh = sys.stdin
@@ -371,13 +380,15 @@ def main():
                 else:
                     pairDict[name].append([chr,flag,regionL,xs])
                     computeWigDict(wigDict, pairDict[name])
-                    pairDict = {}
+                    pairDict.pop(name) #here only pop is right. clear
+                    #out whole dict will give wrong results when two
+                    #paired reads are nor neighbors.
                 #------------------------------
             elif flag & 0x2 == 0: #unproperly paired
                 for posL in regionL:
                     for pos in range(posL[0], posL[1]):
-                        if pos not in wigDict:
-                            wigDict[pos] = {}
+                        #if pos not in wigDict:
+                        #    wigDict[pos] = {}
                         if xs not in wigDict[pos]:
                             wigDict[pos][xs] = [1,0]
                         else:
