@@ -29,6 +29,11 @@ It was also planned to transfer BAM with single-end reads to wig.
 However, this is not finished yet. But other substitutaion tools or 
 combined tools are available in this directory can deal with this type
 of transferation.  
+
+STH unexpected:
+1.Mapped reads with flag 83 even when two reads mapped to different
+chromosomes.
+
 '''
 
 import collections
@@ -375,7 +380,7 @@ def main():
         elif readsType == 'SE' and lt == 'fr-unstranded': 
             pass
         elif readsType == 'PE':
-            if flag & 0x2 == 2: #properly paired
+            if flag & 0x2 == 2 and lineL[6] == '=': #properly paired
                 if name not in pairDict:
                     pairDict[name] = [[chr,flag,regionL,xs]]
                 else:
@@ -385,7 +390,7 @@ def main():
                     #out whole dict will give wrong results when two
                     #paired reads are nor neighbors.
                 #------------------------------
-            elif flag & 0x2 == 0: #unproperly paired
+            elif flag & 0x2 == 0 or lineL[6] != '=': #unproperly paired
                 for posL in regionL:
                     for pos in xrange(posL[0], posL[1]):
                         #if pos not in wigDict:
@@ -397,6 +402,9 @@ def main():
                     #----------finish on region-----------
                 #-----------finish all regions-------
             #--------END unproperly paired---------
+            else:
+                print >>sys.stderr, "Unknown %s" % line
+
     #-------------END reading file----------
     #----close file handle for files-----
     if file != '-':
@@ -406,15 +414,26 @@ def main():
     if wigDict:
         posL = wigDict.keys()
         posL.sort()
+        if verbose:
+            print >>sys.stderr,\
+                "--Begin extend PE reads for %s--%s" \
+                % (chr, strftime(timeformat, localtime()))
         if readsType == 'PE' and extend and chr in exonDict:
             extendWigDict(wigDict, posL, exonDict[chr])
-            exonDict.pop(chr)
+            #exonDict.pop(chr)
+        if verbose:
+            print >>sys.stderr,\
+                "--Begin output wig for %s--%s" \
+                    % (chr, strftime(timeformat, localtime()))
         if debug:
             outputWigDictTest(wigDict, chr, posL, lt)
         else:
             outputWigDict(wigDict, chr, posL, lt)
 
     #--------------------------------------------------
+    if verbose:
+        print >>sys.stderr,\
+            "--Successful %s--%s"
 if __name__ == '__main__':
     startTime = strftime(timeformat, localtime())
     main()
