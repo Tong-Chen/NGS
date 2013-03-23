@@ -157,21 +157,23 @@ def main():
         chr   = lineL[0]
         start = int(lineL[1])
         end   = int(lineL[2])
-        strand_in = lineL[5]
         innerD = wigDict[chr]
         if strand:
-            tmpL = [lineL[3]+'@'+ strand_in]
+            strand_in = lineL[5]
+            name = lineL[3]+'@'+ strand_in
             strand_num = 0 if strand_in=='+' else 1
             valueL = np_array([innerD.get(i,[0,0])[strand_num] \
                 for i in xrange(start,end)])
         else:
-            tmpL = [lineL[3]]
+            name = lineL[3]
             valueL = np_array([innerD.get(i,0) \
                 for i in xrange(start,end)])
         #----------------------------------------------
-        for op in opL:
-            tmpL.append(str(opDict[op](valueL)))
-        print "\t".join(tmpL)
+        #print valueL
+        #for op in opL:
+        #    tmpL.append(str(opDict[op](valueL)))
+        print "%s\t%s" % (name, \
+            '\t'.join([str(opDict[op](valueL)) for op in opL]))
     #-------------END reading file----------
     #----close file handle for files-----
     if file != '-':
