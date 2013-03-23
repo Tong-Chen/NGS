@@ -90,7 +90,7 @@ to extract chromosome size.")
     parser.add_option("-d", "--debug", dest="debug",
         default=False, help="Debug the program")
     (options, args) = parser.parse_args(argv[1:])
-    assert options.filein != None, "A filename needed for -f"
+    assert options.filein != None, "A filename needed for -i"
     return (options, args)
 #--------------------------------------------------------------------
 
