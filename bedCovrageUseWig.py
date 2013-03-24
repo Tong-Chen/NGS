@@ -13,7 +13,7 @@ Compute the average read coverage of given bed file using wig.
 '''
 
 import collections
-from numpy import mean,median,max,min
+from numpy import mean,median,max,min,sum
 from numpy import array as np_array
 from array import array
 import sys
@@ -36,7 +36,7 @@ BY chromsome.***")
     parser.add_option("-w", "--wig", dest="wig",
         metavar="WIG", help="Regions in wig file format.***")
     parser.add_option("-o", "--op", dest="op",
-        metavar="OPERATOR", help="Several choice, mean,median,max,min.\
+        metavar="OPERATOR", help="Several choice, sum,mean,median,max,min.\
         Multiple ones can be given in ',' connected formatsi, lke \
         <mean, max>.")
     parser.add_option("-s", "--strand", dest="strand",
@@ -44,6 +44,10 @@ BY chromsome.***")
 strand specific coverage for bed regions. This assumes, the seond \
 column in wig is positive strand while the third column in wig is \
 nagative strand." )
+    parser.add_option("-n", "--name", dest="name", default=1,
+        metavar="All column/Name column", help="Default the \
+column output before coverage data is the forth column of bed file. If\
+position information or all columns are also required,  please give <0>.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -144,14 +148,19 @@ def main():
     debug = options.debug
     wigDict = readWig(wig, strand)
     opL = options.op.split(',')
+    name_mode = int(options.name)
     #-----------------------------------
-    opDict = {'mean':mean, 'median':median, 'max':max, 'min':min}
+    opDict = {'mean':mean, 'median':median, \
+            'max':max, 'min':min, 'sum':sum}
     if file == '-':
         fh = sys.stdin
     else:
         fh = open(bed)
     #--------------------------------
-    print "#name\t%s" % '\t'.join(opL)
+    if name_mode:
+        print "#name\t%s" % '\t'.join(opL)
+    else:
+        print "#%s" % '\t'.join(opL)
     for line in fh:
         lineL = line.strip().split('\t')
         chr   = lineL[0]
@@ -160,12 +169,18 @@ def main():
         innerD = wigDict[chr]
         if strand:
             strand_in = lineL[5]
-            name = lineL[3]+'@'+ strand_in
+            if name_mode:
+                name = lineL[3]+'@'+ strand_in
+            else:
+                name = line.strip()
             strand_num = 0 if strand_in=='+' else 1
             valueL = np_array([innerD.get(i,[0,0])[strand_num] \
                 for i in xrange(start,end)])
         else:
-            name = lineL[3]
+            if name_mode:
+                name = lineL[3]
+            else:
+                name = line.strip()
             valueL = np_array([innerD.get(i,0) \
                 for i in xrange(start,end)])
         #----------------------------------------------
