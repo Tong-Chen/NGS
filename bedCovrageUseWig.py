@@ -180,6 +180,7 @@ def main():
     else:
         print "#%s" % '\t'.join(opL)
     label = ''
+    valueL = np_array([])
     for line in fh:
         lineL = line.strip().split('\t')
         chr   = lineL[0]
@@ -187,11 +188,11 @@ def main():
         end   = int(lineL[2])
         innerD = wigDict[chr]
         if label and label != lineL[3]:
-            label = lineL[3]
             print "%s\t%s" % (name, \
                 '\t'.join([str(opDict[op](valueL)) for op in opL]))
             valueL = np_array([])
         #---------------------------------------------------------
+        label = lineL[3]
         if strand:
             strand_in = lineL[5]
             if name_mode:
