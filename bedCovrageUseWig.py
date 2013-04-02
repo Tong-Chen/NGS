@@ -10,11 +10,29 @@ __author_email__ = 'chentong_biology@163.com'
 #=========================================================
 '''
 Compute the average read coverage of given bed file using wig. 
+
+Bed file:
+chr7    52823164        52823749        0610005C13Rik   -
+chr7    52826355        52826562        0610005C13Rik   -
+chr7    52829782        52829892        0610005C13Rik   -
+chr7    52829977        52830147        0610005C13Rik   -
+chr7    52830496        52830546        0610005C13Rik   -
+chr5    31351012        31351129        0610007C21Rik   +
+chr5    31351834        31351953        0610007C21Rik   +
+chr5    31354569        31354641        0610007C21Rik   +
+chr5    31354834        31354906        0610007C21Rik   +
+chr5    31355135        31355257        0610007C21Rik   +
+chr5    31356333        31356431        0610007C21Rik   +
+
+The forth column may have same name or different names. Neighbor lines
+with same names will be merged together to compute sum,mean,median,
+max,min
 '''
 
 import collections
 from numpy import mean,median,max,min,sum
 from numpy import array as np_array
+from numpy import append as np_append
 from array import array
 import sys
 import os
@@ -161,35 +179,44 @@ def main():
         print "#name\t%s" % '\t'.join(opL)
     else:
         print "#%s" % '\t'.join(opL)
+    label = ''
     for line in fh:
         lineL = line.strip().split('\t')
         chr   = lineL[0]
         start = int(lineL[1])
         end   = int(lineL[2])
         innerD = wigDict[chr]
+        if label and label != lineL[3]:
+            label = lineL[3]
+            print "%s\t%s" % (name, \
+                '\t'.join([str(opDict[op](valueL)) for op in opL]))
+            valueL = np_array([])
+        #---------------------------------------------------------
         if strand:
             strand_in = lineL[5]
             if name_mode:
-                name = lineL[3]+'@'+ strand_in
+                name = label+'@'+ strand_in
             else:
                 name = line.strip()
             strand_num = 0 if strand_in=='+' else 1
-            valueL = np_array([innerD.get(i,[0,0])[strand_num] \
+            valueL = np_append(valueL, [innerD.get(i,[0,0])[strand_num] \
                 for i in xrange(start,end)])
         else:
             if name_mode:
                 name = lineL[3]
             else:
                 name = line.strip()
-            valueL = np_array([innerD.get(i,0) \
+            valueL = np_append(valueL, [innerD.get(i,0) \
                 for i in xrange(start,end)])
         #----------------------------------------------
         #print valueL
         #for op in opL:
         #    tmpL.append(str(opDict[op](valueL)))
+    #-------------END reading file----------
+    #------for the last name-----------------
+    if label:
         print "%s\t%s" % (name, \
             '\t'.join([str(opDict[op](valueL)) for op in opL]))
-    #-------------END reading file----------
     #----close file handle for files-----
     if file != '-':
         fh.close()
