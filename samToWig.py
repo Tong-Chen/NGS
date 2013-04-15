@@ -30,6 +30,8 @@ However, this is not finished yet. But other substitutaion tools or
 combined tools are available in this directory can deal with this type
 of transferation.  
 
+1.PE extend-unextend strand-unstrand finished
+2.SE unextend strand-unstrand finished
 STH unexpected:
 1.Mapped reads with flag 83 even when two reads mapped to different
 chromosomes.
@@ -66,15 +68,15 @@ However, the one outputted by you RNA-Seq would be better (Only with \
 expressed transcripts is preferred).")
     parser.add_option("-n", "--nucleotide-type", dest="nt",
         metavar="RNA/DNA", default="RNA", 
-        help="DNA means ChIP-Seq, RNA means RNA-Seq")
+        help="Default RNA. DNA means ChIP-Seq, RNA means RNA-Seq")
     parser.add_option("-t", "--seq-type", dest="seq_Type",
         metavar="PE/SE", default="PE", 
-        help="PE for pair-end reads and SE for single-end reads.")
+        help="Default PE. PE for pair-end reads and SE for single-end reads.")
     parser.add_option("-l", "--library-type", dest="lt",
         default="fr-unstranded", 
-        help="fr-unstranded,fr-firststrand,fr-secondstrand")
+        help="Default fr-unstranded. fr-unstranded,fr-firststrand,fr-secondstrand")
     parser.add_option("-e", "--extend", dest="extend", default=0,
-        type='int', help="A positive number means extending reads to \
+        type='int', help="Default 0 means no extend. A positive number means extending reads to \
 give length \
 for SE data or filling in the blank between two PE reads assisted by \
 GTF. 0 means no extending or filling. For PE reads,  any positive \
@@ -120,7 +122,7 @@ def computeRegion(start, cigarL, name):
     #--------------------------------------------------------------------
 #--------END computeRegion-------------------------------------------------
 
-def computeWigDict(wigDict, pairL):
+def computeWigDict(wigDict, pairL, extend):
     pairL = pairL
     #wigDict = wigDict
     #wigDict = {pos:{+:[+,+_e], '-':[ -,-_e]}}
@@ -148,19 +150,20 @@ def computeWigDict(wigDict, pairL):
     leftReadsMaxCor = pairL[0][2][-1]
     rightReadsMinCor = pairL[1][2][0]
     #--------get covergae for intervals which actually have ---
-    #--coverage but no reads covering---------------------------
+    #--------coverage but no reads covering--------------------
     #only executing when real mate inner dist larger than 0
     interval_l = leftReadsMaxCor[1]
     interval_r = rightReadsMinCor[0]
     overlap = 1 if interval_l > interval_r else 0  
-    for pos in xrange(interval_l,interval_r):
-        #if pos not in wigDict:
-        #    wigDict[pos] = {}
-        if xs not in wigDict[pos]:
-            wigDict[pos][xs] = [0,-1]
-        else:
-            wigDict[pos][xs][1] -= 1
-        #----------------END adding wigDict-----------------
+    if extend:
+        for pos in xrange(interval_l,interval_r):
+            #if pos not in wigDict:
+            #    wigDict[pos] = {}
+            if xs not in wigDict[pos]:
+                wigDict[pos][xs] = [0,-1]
+            else:
+                wigDict[pos][xs][1] -= 1
+            #----------------END adding wigDict-----------------
     #-------END coverage for interval regions---------------
     #if leftReadsMaxCor[1] < rightReadsMinCor[0]:
     #-first get coverage for really mapped regions----
@@ -273,6 +276,29 @@ def outputWigDictTest(wigDict, chr, posL, lt):
                 print "%d\t%d\t%d" % (i,posCov,negCov)
 #--------------output wig by chr----------------------
 
+def outputWigDictSE(wigDict, chr, posL, lt):
+    '''
+    Output variableStep wig.
+    '''
+    #wigDict = wigDict
+    if lt == 'fr-unstranded':
+        print 'variableStep chrom=%s' % chr
+        for i in posL:
+            posCov = wigDict[i]['+'][0]
+            if posCov:
+                print "%d\t%d" % (i,posCov)
+    else:
+        print "#Columns: Pos, Positive Strand, Negative Strand"
+        print 'variableStep chrom=%s' % chr
+        for i in posL:
+            posCov = wigDict[i]['+'][0]
+            negCov = wigDict[i]['-'][0]
+            if posCov or negCov:
+                print "%d\t%d\t%d" % (i,posCov,negCov)
+#--------------output wig by chr----------------------
+
+
+
 
 def readExonRegFromGTF(gtf, lt):
     '''
@@ -315,6 +341,7 @@ def main():
     debug = options.debug
     #wigDict = {} #dict = {pos:{+:[+,+_e], '-':[ -,-_e]}}
     wigDict = collections.defaultdict(dict)
+    wigDictSE = {}
     pairDict = {}
     if file == '-':
         fh = sys.stdin
@@ -347,6 +374,7 @@ def main():
         lineL = line.strip().split("\t")
         name = lineL[0]
         flag = int(lineL[1])
+        #----------------------START output one chr----------------
         if chr and chr != lineL[2]:
             posL = wigDict.keys()
             posL.sort()
@@ -367,6 +395,7 @@ def main():
                 outputWigDict(wigDict, chr, posL, lt)
             wigDict = {}
             wigDict = collections.defaultdict(dict)
+        #----------------------END output one chr----------------
         chr = lineL[2]
         start = int(lineL[3]) ##sam and wig are 1-based
         cigar = lineL[5] 
@@ -375,17 +404,23 @@ def main():
             xs = [i[-1] for i in lineL[11:] if i.startswith('XS:A:')]
         else:
             xs = '+'
-        if readsType == 'SE' and lt != 'fr-unstranded':
-            pass
-        elif readsType == 'SE' and lt == 'fr-unstranded': 
-            pass
+        if readsType == 'SE':
+            for posL in regionL:
+                for pos in xrange(posL[0], posL[1]):
+                    if xs not in wigDict[pos]:
+                        wigDict[pos][xs] = [1,0]
+                    else:
+                        wigDict[pos][xs][0] += 1
+                #----------finish on region-----------
+            #-----------finish all regions-------
+        #---------------END SE----------------------
         elif readsType == 'PE':
             if flag & 0x2 == 2 and lineL[6] == '=': #properly paired
                 if name not in pairDict:
                     pairDict[name] = [[chr,flag,regionL,xs]]
                 else:
                     pairDict[name].append([chr,flag,regionL,xs])
-                    computeWigDict(wigDict, pairDict[name])
+                    computeWigDict(wigDict, pairDict[name], extend)
                     pairDict.pop(name) #here only pop is right. clear
                     #out whole dict will give wrong results when two
                     #paired reads are nor neighbors.
@@ -404,7 +439,6 @@ def main():
             #--------END unproperly paired---------
             else:
                 print >>sys.stderr, "Unknown %s" % line
-
     #-------------END reading file----------
     #----close file handle for files-----
     if file != '-':
@@ -414,17 +448,17 @@ def main():
     if wigDict:
         posL = wigDict.keys()
         posL.sort()
-        if verbose:
-            print >>sys.stderr,\
-                "--Begin extend PE reads for %s--%s" \
-                % (chr, strftime(timeformat, localtime()))
         if readsType == 'PE' and extend and chr in exonDict:
-            extendWigDict(wigDict, posL, exonDict[chr])
-            #exonDict.pop(chr)
-        if verbose:
-            print >>sys.stderr,\
-                "--Begin output wig for %s--%s" \
+            if verbose:
+                print >>sys.stderr,\
+                    "--Begin extend PE reads for %s--%s" \
                     % (chr, strftime(timeformat, localtime()))
+            extendWigDict(wigDict, posL, exonDict[chr])
+            if verbose:
+                print >>sys.stderr,\
+                    "--Begin output wig for %s--%s" \
+                        % (chr, strftime(timeformat, localtime()))
+            #exonDict.pop(chr)
         if debug:
             outputWigDictTest(wigDict, chr, posL, lt)
         else:
