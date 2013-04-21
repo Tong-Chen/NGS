@@ -11,7 +11,7 @@ __author_email__ = 'chentong_biology@163.com'
 '''
 Compute the average read coverage of given bed file using wig. 
 
-Bed file:
+Bed file (other lines are not allowed):
 chr7    52823164        52823749        0610005C13Rik   -
 chr7    52826355        52826562        0610005C13Rik   -
 chr7    52829782        52829892        0610005C13Rik   -
@@ -24,9 +24,21 @@ chr5    31354834        31354906        0610007C21Rik   +
 chr5    31355135        31355257        0610007C21Rik   +
 chr5    31356333        31356431        0610007C21Rik   +
 
-The forth column may have same name or different names. Neighbor lines
+The forth column may have same name or different names. Lines
 with same names will be merged together to compute sum,mean,median,
-max,min
+max,min. Howeveer, Only the last line will be outputed.
+
+Wig file:
+track type=wig nanme=""
+variableStep chrom=chr1 span=10
+3001321 0.023209
+3001331 0.023209
+3001341 0.023209
+3001351 0.023209
+3001361 0.023209
+3001371 0.023209
+3001381 0.023209
+""""
 '''
 
 import collections
@@ -49,10 +61,12 @@ def cmdparameter(argv):
     usages = "%prog -i bed -w wig -o operator -s True"
     parser = OP(usage=usages)
     parser.add_option("-i", "--bed", dest="bed",
-        metavar="BED_REGION", help="Regions in bed file format, SORT \
-BY chromsome.***")
+        metavar="BED_REGION", help="Regions in bed file format, \
+Bed will be read in memory wholely. - can be used as STDIN.***")
     parser.add_option("-w", "--wig", dest="wig",
-        metavar="WIG", help="Regions in wig file format.***")
+        metavar="WIG", help="Regions in wig file format. Each position \
+of same chromsome in wig must be sorted numerically. All legal wig \
+obeys this rule.***")
     parser.add_option("-o", "--op", dest="op",
         metavar="OPERATOR", help="Several choice, sum,mean,median,max,min.\
         Multiple ones can be given in ',' connected formatsi, lke \
@@ -76,14 +90,41 @@ position information or all columns are also required,  please give <0>.")
     return (options, args)
 #--------------------------------------------------------------------
 
-def readWig(wig, strand):
-    array_i = array
+
+def readBed(bed_fh):
+    '''
+    Read bed into a dicat indexed by chromosome name.
+
+    additional = [0, 0, 0] length of additional is the same as length for
+    opL.
+
+    bedDict = {chr:[[chr, int_start, int_end, name, other, additional], \
+        [], []]}
+    '''
+    bedDict = {}
+    for line in bed_fh:
+        lineL = line.strip().split('\t')
+        #lineL[1] = int(lineL[1])
+        #lineL[2] = int(lineL[2])
+        chr = lineL[0]
+        #lineL.extend(additional)
+        if chr not in bedDict:
+            bedDict[chr] = []
+        bedDict[chr].append(lineL)
+    return bedDict
+#-------------------------------------------------
+
+#--------------------------------------------
+def computeCoverage(bedDict, wig, opL, name_mode, strand):
+    #array_i = array
     chr = ''
     span = 0
     step = 0
-    wigDict = collections.defaultdict(dict)
+    #wigDict = collections.defaultdict(dict)
     #wigDict = {} #unstrand wigDict = {pos:value}
                 #strand wigDicr = {pos:[pos value, neg value]}
+    bedDictChr = []
+    valDict = {}
     pos_fixed = 0
     for i in open(wig):
         if i.startswith('track'):
@@ -93,19 +134,32 @@ def readWig(wig, strand):
         elif i.startswith('browse'):
             continue
         elif i.startswith('variableStep'):
+            saveWig = 1
+            if chr and chr in bedDict and wigChrDict:
+                outputCoverage(wigChrDict,bedDict[chr],opL,name_mode,strand)
+            wigChrDict = {}
             pos_fixed = 0
             chromi = i.rfind('chrom=')
             assert chromi != -1, "Wrong format no chr %s" % i
             chr = i[chromi+6:].strip().split()[0]
+            if chr not in bedDict:
+                saveWig = 0
             spani = i.rfind("span=")
             span = 1 if spani == -1 else \
                 int(i[spani+5:].strip().split()[0])
             pos = 1
             neg = 2
+        #-unckecked for less of data-------------
         elif i.startswith("fixedStep"):
+            saveWig = 1
+            if chr and chr in bedDict and wigChrDict:
+                outputCoverage(wigChrDict,bedDict[chr],opL,name_mode,strand)
+            wigChrDict = {}
             chromi = i.rfind('chrom=')
             assert chromi != -1, "Wrong format no chr %s" % i
             chr = i[chromi+6:].strip().split()[0]
+            if chr not in bedDict:
+                saveWig = 0
             starti = i.rfind('start=')
             assert starti != -1, "Must have start %s" % i
             pos_fixed = int(i[starti+6:].strip().split()[0])
@@ -121,6 +175,8 @@ def readWig(wig, strand):
             pos = 0
             neg = 1
         else:
+            if not saveWig:
+                continue
             lineL = i.strip().split()
             if pos_fixed: #fixedStep each position is the last
                         #position plus step. 
@@ -130,30 +186,118 @@ def readWig(wig, strand):
                 start = int(lineL[0])-1
                 end = start + span
             #-------------------------------------------
-            for position in xrange(start, start+span):
-                if not strand:
-                    wigDict[chr][position] = float(lineL[pos])
-                else:
-                    wigDict[chr][position] = array('f', \
-                        [float(lineL[pos]), float(lineL[neg])])
-                #--------------------------------------
-            #-----------------------------------------
+            if strand:
+                for position in xrange(start,end):
+                    wigChrDict[position] = \
+                        [float(lineL[pos]),float(lineL[neg])] 
+            else:
+                for position in xrange(start,end):
+                    wigChrDict[position] = float(lineL[pos]) 
+            #-------------------------------------------------
         #--------end processing one line ----------------------
     #----------------END reading whole file-------------------
-    return wigDict
+    if chr and chr in bedDict and wigChrDict:
+        outputCoverage(wigChrDict,bedDict[chr],opL,name_mode,strand)
 #---------------------------------------------------
 
-def outputWig(wigDict, strand):
-    keyL = wigDict.keys()
-    keyL.sort()
-    for key in keyL:
-        chrD = wigDict[key]
-        chrD_keys = chrD.keys()
-        chrD_keys.sort()
-        print key
-        for i in chrD_keys:
-            print "%d\t%f" % (i,chrD[i])
-#----------------------------------------
+def outputCoverage(wigChrDict,bedLineL,opL,name_mode,strand):
+    label = ''
+    valueL = np_array([])
+    for lineL in bedLineL:
+        start = int(lineL[1])
+        end   = int(lineL[2])
+        if label and label != lineL[3]:
+            print "%s\t%s" % (name, \
+                '\t'.join([str(op(valueL)) for op in opL]))
+            valueL = np_array([])
+        label = lineL[3]
+        if strand:
+            strand_in = lineL[5]
+            strand_num = 0 if strand_in == '+' else 1
+            if name_mode:
+                name = label + '@' + strand_in
+            else:
+                name = '\t'.join(lineL)
+            valueL = np_appedn(valueL, \
+                [wigChrDict.get(i,[0,0])[strand_num] for i in xrange(start, end)])
+        else:
+            if name_mode:
+                name = label
+            else:
+                name = '\t'.join(lineL)
+            valueL = np_append(valueL, \
+                [wigChrDict.get(i,0) for i in xrange(start, end)])
+    #---------------------------------------------------------------------
+    if label:
+        print "%s\t%s" % (name, \
+            '\t'.join([str(op(valueL)) for op in opL]))
+        valueL = np_array([])
+
+#---------------------------------------------------
+#
+#def output_new(bedLineL, valList, opL, opDict, name_mode, strand):
+#    regionL = bedLineL[2]-bedLineL[1]
+#    bedLineL[1] = str(bedLineL[1])
+#    bedLineL[2] = str(bedLineL[2])
+#    #print bedLineL
+#    name = bedLineL[3]
+#    LenvalList = len(valList)
+#    diff = regionL - LenvalList
+#    if strand:
+#        valList.extend([(0,0) for j in range(diff)])
+#        posValL = [vp[0] for vp in valList]
+#        negValL = [vp[1] for vp in valList]
+#        output = '\t'.join([\
+#            '\t'.join([str(opDict[op](posValL)) for op in opL]), \
+#            '\t'.join([str(opDict[op](negValL)) for op in opL])])
+#    else:
+#        valList.extend([0 for j in range(diff)])
+#        output = '\t'.join([str(opDict[op](valList)) for op in opL])
+#    #----------------------------------------------
+#    if name_mode:
+#        print "%s\t%s" % (name, output)
+#    else:
+#        print "%s\t%s" % ('\t'.join(bedLineL), output)
+#
+##--------------------------------------------------------------------
+#def output(bedDictChr, valDict, opL, opDict, name_mode, strand):
+#    for bedLineL in bedDictChr:
+#        regionL = bedLineL[2]-bedLineL[1]
+#        bedLineL[1] = str(bedLineL[1])
+#        bedLineL[2] = str(bedLineL[2])
+#        #print bedLineL
+#        name = bedLineL[3]
+#        valList = valDict[name]
+#        LenvalList = len(valList)
+#        diff = regionL - LenvalList
+#        if strand:
+#            valList.extend([(0,0) for j in range(diff)])
+#            posValL = [vp[0] for vp in valList]
+#            negValL = [vp[1] for vp in valList]
+#            output = '\t'.join([\
+#                '\t'.join([str(opDict[op](posValL)) for op in opL]), \
+#                '\t'.join([str(opDict[op](negValL)) for op in opL])])
+#        else:
+#            valList.extend([0 for j in range(diff)])
+#            output = '\t'.join([str(opDict[op](valList)) for op in opL])
+#        #----------------------------------------------
+#        if name_mode:
+#            print "%s\t%s" % (name, output)
+#        else:
+#            print "%s\t%s" % ('\t'.join(bedLineL), output)
+#    #--------------------------------------------------------------
+#
+#def outputWig(wigDict, strand):
+#    keyL = wigDict.keys()
+#    keyL.sort()
+#    for key in keyL:
+#        chrD = wigDict[key]
+#        chrD_keys = chrD.keys()
+#        chrD_keys.sort()
+#        print key
+#        for i in chrD_keys:
+#            print "%d\t%f" % (i,chrD[i])
+##----------------------------------------
 
 
 def main():
@@ -164,62 +308,28 @@ def main():
     strand = options.strand
     verbose = options.verbose
     debug = options.debug
-    wigDict = readWig(wig, strand)
-    opL = options.op.split(',')
+    #wigDict = readWig(wig, strand)
+    #addL = [0 for i in opL]
     name_mode = int(options.name)
     #-----------------------------------
     opDict = {'mean':mean, 'median':median, \
             'max':max, 'min':min, 'sum':sum}
-    if file == '-':
+    opL = [opDict[i] for i in options.op.split(',')]
+    if bed == '-':
         fh = sys.stdin
     else:
         fh = open(bed)
     #--------------------------------
     if name_mode:
-        print "#name\t%s" % '\t'.join(opL)
+        print "#name\t%s" % '\t'.join([i for i in options.op.split(',')])
     else:
-        print "#%s" % '\t'.join(opL)
-    label = ''
-    valueL = np_array([])
-    for line in fh:
-        lineL = line.strip().split('\t')
-        chr   = lineL[0]
-        start = int(lineL[1])
-        end   = int(lineL[2])
-        innerD = wigDict[chr]
-        if label and label != lineL[3]:
-            print "%s\t%s" % (name, \
-                '\t'.join([str(opDict[op](valueL)) for op in opL]))
-            valueL = np_array([])
-        #---------------------------------------------------------
-        label = lineL[3]
-        if strand:
-            strand_in = lineL[5]
-            if name_mode:
-                name = label+'@'+ strand_in
-            else:
-                name = line.strip()
-            strand_num = 0 if strand_in=='+' else 1
-            valueL = np_append(valueL, [innerD.get(i,[0,0])[strand_num] \
-                for i in xrange(start,end)])
-        else:
-            if name_mode:
-                name = lineL[3]
-            else:
-                name = line.strip()
-            valueL = np_append(valueL, [innerD.get(i,0) \
-                for i in xrange(start,end)])
-        #----------------------------------------------
-        #print valueL
-        #for op in opL:
-        #    tmpL.append(str(opDict[op](valueL)))
-    #-------------END reading file----------
-    #------for the last name-----------------
-    if label:
-        print "%s\t%s" % (name, \
-            '\t'.join([str(opDict[op](valueL)) for op in opL]))
+        print "#%s" % '\t'.join([i for i in options.op.split(',')])
+    bedDict = readBed(fh)
+    computeCoverage(bedDict, wig, opL, name_mode, strand)
+
+
     #----close file handle for files-----
-    if file != '-':
+    if bed != '-':
         fh.close()
     #-----------end close fh-----------
     if verbose:
