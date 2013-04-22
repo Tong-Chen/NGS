@@ -339,16 +339,16 @@ def main():
     for key in bedDict.keys():
         if key not in overlappedChr:
             for lineL in bedDict[key]:
-                label = lineL[4]
-                strand_in = lineL[5]
+                label = lineL[3]
                 if name_mode:
                     if strand:
+                        strand_in = lineL[5]
                         name = ''.join(label, '@', strand_in)
                     else:
                         name = label
                 else:
                     name = '\t'.join(lineL)
-                print '%s\t$s' % (name, valuL)
+                print '%s\t%s' % (name, valuL)
             #--------------------------------------
         #----------------------------------------
     #-----------------------------------------------
