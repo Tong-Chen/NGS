@@ -28,7 +28,8 @@ The forth column may have same name or different names. Lines
 with same names will be merged together to compute sum,mean,median,
 max,min. Howeveer, Only the last line will be outputed.
 
-Wig file:
+Wig file (all regions belong to one chromosome must be under one
+'variableStep' type line):
 track type=wig nanme=""
 variableStep chrom=chr1 span=10
 3001321 0.023209
@@ -138,6 +139,7 @@ def computeCoverage(bedDict, wig, opL, name_mode, strand):
             saveWig = 1
             if chr and chr in bedDict and wigChrDict:
                 outputCoverage(wigChrDict,bedDict[chr],opL,name_mode,strand)
+                bedDict.pop(chr)
             wigChrDict = {}
             pos_fixed = 0
             chromi = i.rfind('chrom=')
@@ -156,6 +158,7 @@ def computeCoverage(bedDict, wig, opL, name_mode, strand):
             saveWig = 1
             if chr and chr in bedDict and wigChrDict:
                 outputCoverage(wigChrDict,bedDict[chr],opL,name_mode,strand)
+                bedDict.pop(chr)
             wigChrDict = {}
             chromi = i.rfind('chrom=')
             assert chromi != -1, "Wrong format no chr %s" % i
@@ -201,6 +204,7 @@ def computeCoverage(bedDict, wig, opL, name_mode, strand):
     #----------------END reading whole file-------------------
     if chr and chr in bedDict and wigChrDict:
         outputCoverage(wigChrDict,bedDict[chr],opL,name_mode,strand)
+        bedDict.pop(chr)
     return overlappedChr
 #---------------------------------------------------
 
