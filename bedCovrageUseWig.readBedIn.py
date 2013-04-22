@@ -126,6 +126,7 @@ def computeCoverage(bedDict, wig, opL, name_mode, strand):
     bedDictChr = []
     valDict = {}
     pos_fixed = 0
+    overlappedChr = []
     for i in open(wig):
         if i.startswith('track'):
             continue
@@ -142,6 +143,7 @@ def computeCoverage(bedDict, wig, opL, name_mode, strand):
             chromi = i.rfind('chrom=')
             assert chromi != -1, "Wrong format no chr %s" % i
             chr = i[chromi+6:].strip().split()[0]
+            overlappedChr.append(chr)
             if chr not in bedDict:
                 saveWig = 0
             spani = i.rfind("span=")
@@ -158,6 +160,7 @@ def computeCoverage(bedDict, wig, opL, name_mode, strand):
             chromi = i.rfind('chrom=')
             assert chromi != -1, "Wrong format no chr %s" % i
             chr = i[chromi+6:].strip().split()[0]
+            overlappedChr.append(chr)
             if chr not in bedDict:
                 saveWig = 0
             starti = i.rfind('start=')
@@ -198,6 +201,7 @@ def computeCoverage(bedDict, wig, opL, name_mode, strand):
     #----------------END reading whole file-------------------
     if chr and chr in bedDict and wigChrDict:
         outputCoverage(wigChrDict,bedDict[chr],opL,name_mode,strand)
+    return overlappedChr
 #---------------------------------------------------
 
 def outputCoverage(wigChrDict,bedLineL,opL,name_mode,strand):
@@ -215,7 +219,7 @@ def outputCoverage(wigChrDict,bedLineL,opL,name_mode,strand):
             strand_in = lineL[5]
             strand_num = 0 if strand_in == '+' else 1
             if name_mode:
-                name = label + '@' + strand_in
+                name = ''.join(label, '@', strand_in)
             else:
                 name = '\t'.join(lineL)
             valueL = np_appedn(valueL, \
@@ -325,9 +329,25 @@ def main():
     else:
         print "#%s" % '\t'.join([i for i in options.op.split(',')])
     bedDict = readBed(fh)
-    computeCoverage(bedDict, wig, opL, name_mode, strand)
-
-
+    overlappedChr = computeCoverage(bedDict, wig, opL, name_mode, strand)
+    #-------output regions which do not exist in wig---
+    valuL = '\t'.join(['0' for i in opL])
+    for key in bedDict.keys():
+        if key not in overlappedChr:
+            for lineL in bedDict[key]:
+                label = lineL[4]
+                strand_in = lineL[5]
+                if name_mode:
+                    if strand:
+                        name = ''.join(label, '@', strand_in)
+                    else:
+                        name = label
+                else:
+                    name = '\t'.join(lineL)
+                print '%s\t$s' % (name, valuL)
+            #--------------------------------------
+        #----------------------------------------
+    #-----------------------------------------------
     #----close file handle for files-----
     if bed != '-':
         fh.close()
