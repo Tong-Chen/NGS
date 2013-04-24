@@ -95,7 +95,7 @@ grpNum diff[evenL, evenN]' % sys.argv[0]
                 rangeL.append(value)
                 i = i + 1
         #-----------------------------------
-        #print rangeL
+        assert len(rangeL) == grpNumMinus1, rangeL
     #--------------------------------------------
     output(file, aDict, keyL, rangeL, grpNum, type)
 #------------------------------------------------------------------------------
