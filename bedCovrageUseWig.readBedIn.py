@@ -43,7 +43,7 @@ variableStep chrom=chr1 span=10
 '''
 
 import collections
-from numpy import mean,median,max,min,sum
+from numpy import mean,median,max,min,sum,argsort
 from numpy import array as np_array
 from numpy import append as np_append
 from array import array
@@ -63,7 +63,8 @@ def cmdparameter(argv):
     parser = OP(usage=usages)
     parser.add_option("-i", "--bed", dest="bed",
         metavar="BED_REGION", help="Regions in bed file format, \
-Bed will be read in memory wholely. - can be used as STDIN.***")
+Bed will be read in memory wholely. - can be used as STDIN.\
+When -m is TRUE, no duplicate names allowed in bed.***")
     parser.add_option("-w", "--wig", dest="wig",
         metavar="WIG", help="Regions in wig file format. Each position \
 of same chromsome in wig must be sorted numerically. All legal wig \
@@ -71,7 +72,11 @@ obeys this rule.***")
     parser.add_option("-o", "--op", dest="op",
         metavar="OPERATOR", help="Several choice, sum,mean,median,max,min.\
         Multiple ones can be given in ',' connected formatsi, lke \
-        <mean, max>.")
+        <mean, max>. This parameter is exclusive with -m.")
+    parser.add_option("-m", "--maximum-pos", dest="mp",
+        metavar="1/0", help="Get the position with the largest \
+value. If multiple maximum positions are found, the one nearest the \
+middle will be chosed. This parameter is exclusive with -o.")
     parser.add_option("-s", "--strand", dest="strand",
         metavar="1/0", default=0, help="When 1 is given, compute \
 strand specific coverage for bed regions. This assumes, the seond \
@@ -112,11 +117,17 @@ def readBed(bed_fh):
         if chr not in bedDict:
             bedDict[chr] = []
         bedDict[chr].append(lineL)
-    return bedDict
+    #-------------------------------
+    chrRegion= {} # chrRegion = {chr:(start, end)}
+    for chr, valueL in bedDict.items():
+        start = [int(i[1]) for i in valueL]
+        end   = [int(i[2]) for i in valueL]
+        chrRegion[chr] = (min(start), max(end))
+    return bedDict, chrRegion
 #-------------------------------------------------
 
 #--------------------------------------------
-def computeCoverage(bedDict, wig, opL, name_mode, strand):
+def computeCoverage(bedDict, wig, opL, name_mode, strand, chrRegion, mp):
     #array_i = array
     chr = ''
     span = 0
@@ -137,8 +148,9 @@ def computeCoverage(bedDict, wig, opL, name_mode, strand):
             continue
         elif i.startswith('variableStep'):
             saveWig = 1
-            if chr and chr in bedDict and wigChrDict:
-                outputCoverage(wigChrDict,bedDict[chr],opL,name_mode,strand)
+            if chr and chr in bedDict:
+                outputCoverage(wigChrDict,bedDict[chr],opL,name_mode,\
+                    strand, mp)
                 bedDict.pop(chr)
             wigChrDict = {}
             pos_fixed = 0
@@ -148,16 +160,21 @@ def computeCoverage(bedDict, wig, opL, name_mode, strand):
             overlappedChr.append(chr)
             if chr not in bedDict:
                 saveWig = 0
-            spani = i.rfind("span=")
-            span = 1 if spani == -1 else \
-                int(i[spani+5:].strip().split()[0])
-            pos = 1
-            neg = 2
+            else:
+                spani = i.rfind("span=")
+                span = 1 if spani == -1 else \
+                    int(i[spani+5:].strip().split()[0])
+                pos = 1
+                neg = 2
+                min_start = chrRegion[chr][0]
+                max_end   = chrRegion[chr][1]
         #-unckecked for less of data-------------
         elif i.startswith("fixedStep"):
             saveWig = 1
-            if chr and chr in bedDict and wigChrDict:
-                outputCoverage(wigChrDict,bedDict[chr],opL,name_mode,strand)
+            #if chr and chr in bedDict and wigChrDict:
+            if chr and chr in bedDict:
+                outputCoverage(wigChrDict,bedDict[chr],opL,\
+                    name_mode,strand,mp)
                 bedDict.pop(chr)
             wigChrDict = {}
             chromi = i.rfind('chrom=')
@@ -166,20 +183,24 @@ def computeCoverage(bedDict, wig, opL, name_mode, strand):
             overlappedChr.append(chr)
             if chr not in bedDict:
                 saveWig = 0
-            starti = i.rfind('start=')
-            assert starti != -1, "Must have start %s" % i
-            pos_fixed = int(i[starti+6:].strip().split()[0])
-            assert pos_fixed > 0, \
-                "fixedStep must have start bigger than 0 %s" % i
-            stepi = i.rfind('step=')
-            assert stepi != -1, "Must have step %s" % i
-            step = int(i[stepi+5:].strip().split()[0])
-            start = pos_fixed - step - 1 #feasible add <step> each
-            spani = i.rfind('span=')
-            span = 1 if spani == -1 else \
-                int(i[spani+5:].strip().split()[0])
-            pos = 0
-            neg = 1
+            else:
+                starti = i.rfind('start=')
+                assert starti != -1, "Must have start %s" % i
+                pos_fixed = int(i[starti+6:].strip().split()[0])
+                assert pos_fixed > 0, \
+                    "fixedStep must have start bigger than 0 %s" % i
+                stepi = i.rfind('step=')
+                assert stepi != -1, "Must have step %s" % i
+                step = int(i[stepi+5:].strip().split()[0])
+                start = pos_fixed - step - 1 #feasible add <step> each
+                spani = i.rfind('span=')
+                span = 1 if spani == -1 else \
+                    int(i[spani+5:].strip().split()[0])
+                pos = 0
+                neg = 1
+                min_start = chrRegion[chr][0]
+                max_end   = chrRegion[chr][1]
+            #--------------------------------------------------
         else:
             if not saveWig:
                 continue
@@ -192,6 +213,12 @@ def computeCoverage(bedDict, wig, opL, name_mode, strand):
                 start = int(lineL[0])-1
                 end = start + span
             #-------------------------------------------
+            #skip coverage for regions not located in bed
+            if end <= min_start:
+                continue
+            if start > max_end:
+                continue
+            #---------------------------------------------
             if strand:
                 for position in xrange(start,end):
                     wigChrDict[position] = \
@@ -202,23 +229,63 @@ def computeCoverage(bedDict, wig, opL, name_mode, strand):
             #-------------------------------------------------
         #--------end processing one line ----------------------
     #----------------END reading whole file-------------------
-    if chr and chr in bedDict and wigChrDict:
-        outputCoverage(wigChrDict,bedDict[chr],opL,name_mode,strand)
+    if chr and chr in bedDict:
+        outputCoverage(wigChrDict,bedDict[chr],opL,\
+            name_mode,strand,mp)
         bedDict.pop(chr)
     return overlappedChr
 #---------------------------------------------------
 
-def outputCoverage(wigChrDict,bedLineL,opL,name_mode,strand):
+def outputCoverage(wigChrDict,bedLineL,opL,name_mode,strand,mp):
     label = ''
     valueL = np_array([])
+    other = ''
     for lineL in bedLineL:
+        if label and label != lineL[3]:
+            #---------------get the position with maximum value-------
+            if mp:
+                sort_indexL = argsort(valueL)
+                #print valueL
+                #print sort_indexL
+                maxP = sort_indexL[-1]
+                #print 'ORiginal maxP:', maxP
+                diff = abs(sort_indexL[-1]-mid)
+                maxV = valueL[maxP]
+                #print 'Total length:', length
+                for i in xrange(-2,length,-1):
+                    if valueL[sort_indexL[i]] == maxV:
+                        if diff > abs(sort_indexL[i]-mid):
+                            diff = abs(sort_indexL[i]-mid)
+                            maxP = sort_indexL[i]
+                            maxV = valueL[maxP]
+                            #print 'Iterated maxP:', maxP
+                    else:
+                        break
+                #----------------------------
+                if other:
+                    print '%s\t%s\t%s\t%s\t%s\t%s' % (chr, str(maxP+start),
+                            str(maxP+start+1), name, str(maxV),
+                            '\t'.join(other))
+                    other = ''
+                else:
+                    print '%s\t%s\t%s\t%s\t%s' % (chr, str(maxP+start),
+                            str(maxP+start+1), name, str(maxV))
+            #---------------get the position with maximum value-------
+            else:
+                print "%s\t%s" % (name, \
+                    '\t'.join([str(op(valueL)) for op in opL]))
+            valueL = np_array([])
+        #----------output ----------------------------------
+        #---------------begin process--------------------
+        chr = lineL[0]
         start = int(lineL[1])
         end   = int(lineL[2])
-        if label and label != lineL[3]:
-            print "%s\t%s" % (name, \
-                '\t'.join([str(op(valueL)) for op in opL]))
-            valueL = np_array([])
+        length = start - end - 1 #used for xrange, -1 means include
+                                #start-end
+        mid = (end-start)/2.0
         label = lineL[3]
+        if len(lineL) >= 6:
+            other = '\t'.join(lineL[5:])
         if strand:
             strand_in = lineL[5]
             strand_num = 0 if strand_in == '+' else 1
@@ -226,7 +293,7 @@ def outputCoverage(wigChrDict,bedLineL,opL,name_mode,strand):
                 name = ''.join(label, '@', strand_in)
             else:
                 name = '\t'.join(lineL)
-            valueL = np_appedn(valueL, \
+            valueL = np_append(valueL, \
                 [wigChrDict.get(i,[0,0])[strand_num] for i in xrange(start, end)])
         else:
             if name_mode:
@@ -237,8 +304,37 @@ def outputCoverage(wigChrDict,bedLineL,opL,name_mode,strand):
                 [wigChrDict.get(i,0) for i in xrange(start, end)])
     #---------------------------------------------------------------------
     if label:
-        print "%s\t%s" % (name, \
-            '\t'.join([str(op(valueL)) for op in opL]))
+        #---------------get the position with maximum value-------
+        if mp:
+            sort_indexL = argsort(valueL)
+            #print valueL
+            #print sort_indexL
+            maxP = sort_indexL[-1]
+            #print 'ORiginal maxP:', maxP
+            diff = abs(sort_indexL[-1]-mid)
+            maxV = valueL[maxP]
+            #print 'Total length:', length
+            for i in xrange(-2,length,-1):
+                if valueL[sort_indexL[i]] == maxV:
+                    if diff > abs(sort_indexL[i]-mid):
+                        diff = abs(sort_indexL[i]-mid)
+                        maxP = sort_indexL[i]
+                        #print maxP
+                else:
+                    break
+            #----------------------------
+            if other:
+                print '%s\t%s\t%s\t%s\t%s\t%s' % (chr, str(maxP+start),
+                        str(maxP+start+1), name, str(maxV),
+                        '\t'.join(other))
+            else:
+                print '%s\t%s\t%s\t%s\t%s' % (chr, str(maxP+start),
+                        str(maxP+start+1), name, str(maxV))
+            #print "%s\t%s" % (name, str(maxP+start))
+        #---------------get the position with maximum value-------
+        else:
+            print "%s\t%s" % (name, \
+                '\t'.join([str(op(valueL)) for op in opL]))
         valueL = np_array([])
 
 #---------------------------------------------------
@@ -316,42 +412,50 @@ def main():
     strand = options.strand
     verbose = options.verbose
     debug = options.debug
+    mp = options.mp
     #wigDict = readWig(wig, strand)
     #addL = [0 for i in opL]
     name_mode = int(options.name)
     #-----------------------------------
     opDict = {'mean':mean, 'median':median, \
             'max':max, 'min':min, 'sum':sum}
-    opL = [opDict[i] for i in options.op.split(',')]
+    if options.op:
+        opL = [opDict[i] for i in options.op.split(',')]
+    else:
+        opL = []
+        assert options.mp
     if bed == '-':
         fh = sys.stdin
     else:
         fh = open(bed)
     #--------------------------------
-    if name_mode:
-        print "#name\t%s" % '\t'.join([i for i in options.op.split(',')])
-    else:
-        print "#%s" % '\t'.join([i for i in options.op.split(',')])
-    bedDict = readBed(fh)
-    overlappedChr = computeCoverage(bedDict, wig, opL, name_mode, strand)
+    if options.op:
+        if name_mode:
+            print "#name\t%s" % '\t'.join([i for i in options.op.split(',')])
+        else:
+            print "#%s" % '\t'.join([i for i in options.op.split(',')])
+    bedDict, chrRegion = readBed(fh)
+    overlappedChr = computeCoverage(bedDict, wig, opL, name_mode,
+            strand, chrRegion, mp)
     #-------output regions which do not exist in wig---
-    valuL = '\t'.join(['0' for i in opL])
-    for key in bedDict.keys():
-        if key not in overlappedChr:
-            for lineL in bedDict[key]:
-                label = lineL[3]
-                if name_mode:
-                    if strand:
-                        strand_in = lineL[5]
-                        name = ''.join(label, '@', strand_in)
+    if options.op:
+        valuL = '\t'.join(['0' for i in opL])
+        for key in bedDict.keys():
+            if key not in overlappedChr:
+                for lineL in bedDict[key]:
+                    label = lineL[3]
+                    if name_mode:
+                        if strand:
+                            strand_in = lineL[5]
+                            name = ''.join(label, '@', strand_in)
+                        else:
+                            name = label
                     else:
-                        name = label
-                else:
-                    name = '\t'.join(lineL)
-                print '%s\t%s' % (name, valuL)
-            #--------------------------------------
-        #----------------------------------------
-    #-----------------------------------------------
+                        name = '\t'.join(lineL)
+                    print '%s\t%s' % (name, valuL)
+                #--------------------------------------
+            #----------------------------------------
+        #-----------------------------------------------
     #----close file handle for files-----
     if bed != '-':
         fh.close()
