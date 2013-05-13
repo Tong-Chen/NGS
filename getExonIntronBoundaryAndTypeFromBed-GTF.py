@@ -15,8 +15,9 @@ AI: alternative intron
 AE: alternative exon
 NAE: single transcript
 NAI: single transcript
+#only length of element larger than 2*length of boundary
 LB: Left boundary
-RB: Right boundary
+RB: Right boundary 
 '''
 
 if False:
