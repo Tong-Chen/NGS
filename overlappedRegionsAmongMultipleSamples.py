@@ -50,7 +50,9 @@ comma only, like 'file1.bed,file2.bed,file3.bed'")
     parser.add_option("-l", "--label", dest="label",
         metavar="FILEIN", help="Unique string to represent \
 input files, like 'file1,file2,file3'. Label must be consistent with \
-file name. Default using filenmae as labels.")
+file name. Default using filenmae as labels. If the length of label \
+less than the length of filenames, the filenames will be trunctated to \
+from tail.")
     parser.add_option("-t", "--type", dest="type",
         metavar="Region/Name", 
         default='Region', help="This indicates the type of data. \
@@ -63,6 +65,11 @@ Default Region.")
         metavar="Number/Percentage", 
         default="Percentage", help="The type of data one want to get in \
 the output file. Default Percentage.")
+    parser.add_option("-n", "--na", dest="NA",
+        metavar="1/0", 
+        default="1", help="Us NA value for diagonal (left-bottom to \
+right-top). When -r is percentage,  default NA value is used. When -r \
+is number,  no NA will be used.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -89,11 +96,20 @@ def main():
         labeL = fileL
     else:
         labeL = label.split(',')
+        lenLabel = len(labeL)
+        if lenLabel < lenFileL:
+            lenFileL = lenLabel
+            print >>sys.stderr, "Truncated file list for less labels \
+are given. This may be an error if you do not mean to do this."
+            fileL = fileL[:lenFileL]
     labelDict = dict(zip(fileL, labeL))
     verbose = options.verbose
     debug = options.debug
     type = options.type
     returnType = options.returnType
+    na = options.NA
+    if returnType == 'Percentage' and not na:
+        na = 1
     opDict = {'Region':'intersectBed', 'Name':'diffComMultiple.py'}
     aDict = {}
     #-----------------------------------
@@ -115,6 +131,8 @@ def main():
                 value = aDict[(i,j)]
             else:
                 value = aDict[(i,j)]*1.0/total
+                if na and i==j:
+                    value = 'NA'
             tmpL.append(str(value))
         #----------------------------------
         print '\t'.join(tmpL)
