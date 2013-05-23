@@ -21,15 +21,20 @@ was first planned for extract unmapped sequences and delete adaptor."
     #-----------------------------------------------------------
     aDict = {}
     for name in open(sys.argv[2]):
-        aDict[name.rstrip()] = 1
+        aDict[name.strip()] = 1
     #--------------------------------
     output = 0
     i = 1
     for line in open(sys.argv[1]):
         if i % 4 == 1:
+            if len(aDict) == 0:
+                break
             key=line.split()[0].replace('@', '', 1)
             if key in aDict:
                 output = 1
+                aDict.pop(key)
+            #else:
+            #    print >>sys.stderr, key
         elif i % 4 == 0:
             if output:
                 print line,
