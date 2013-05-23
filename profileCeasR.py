@@ -112,6 +112,8 @@ def main():
     outputProfile(adict, keyL, 'TSS', prefix)
     outputProfile(adict, keyL, 'TTS', prefix)
     outputProfile(adict, keyL, 'Gene', prefix)
+    
+#------------------------------------------------
 if __name__ == '__main__':
     startTime = strftime(timeformat, localtime())
     #startTime = localtime()
