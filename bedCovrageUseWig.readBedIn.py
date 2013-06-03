@@ -64,15 +64,17 @@ def cmdparameter(argv):
     parser.add_option("-i", "--bed", dest="bed",
         metavar="BED_REGION", help="Regions in bed file format, \
 Bed will be read in memory wholely. - can be used as STDIN.\
-When -m is TRUE, no duplicate names allowed in bed.***")
+When -m is TRUE, no duplicate names allowed in bed. Otherwise \
+neighbor lines \
+with same name in the forth column will be taken as one regions.***")
     parser.add_option("-w", "--wig", dest="wig",
         metavar="WIG", help="Regions in wig file format. Each position \
 of same chromsome in wig must be sorted numerically. All legal wig \
 obeys this rule.***")
     parser.add_option("-o", "--op", dest="op",
         metavar="OPERATOR", help="Several choice, sum,mean,median,max,min.\
-        Multiple ones can be given in ',' connected formatsi, lke \
-        <mean, max>. This parameter is exclusive with -m.")
+Multiple ones can be given in ',' connected in formats like \
+<mean, max>. This parameter is exclusive with -m.")
     parser.add_option("-m", "--maximum-pos", dest="mp",
         metavar="1/0", help="Get the position with the largest \
 value. If multiple maximum positions are found, the one nearest the \
