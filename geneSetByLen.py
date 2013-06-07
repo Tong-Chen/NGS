@@ -42,6 +42,7 @@ This \
 also can deal with expression data or any other data with the \
 first column as label, the second column as value."
     print >>sys.stderr, "Print the result to screen"
+    print >>sys.stderr, "********Please use geneSetByValue.py instead.**************"
     lensysargv = len(sys.argv)
     if lensysargv != 4:
         print >>sys.stderr, 'Using python %s filename[two column file] \
