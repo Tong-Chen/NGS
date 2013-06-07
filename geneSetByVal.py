@@ -20,7 +20,7 @@ def output(file, aDict, keyL, rangeL, grpNum, type, outputdir):
     else:
         os.mkdir(outputdir)
     filename = os.path.basename(file)
-    print outputdir, filename
+    #print outputdir, filename
     fhL = [open(outputdir +'/' + filename+'.'+type+'.'+str(grpNum)+'_'+str(i+1),'w') for i in range(grpNum)]
     for value in keyL:
         for i in range(grpNum):
