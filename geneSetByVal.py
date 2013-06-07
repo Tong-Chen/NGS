@@ -20,6 +20,7 @@ def output(file, aDict, keyL, rangeL, grpNum, type, outputdir):
     else:
         os.mkdir(outputdir)
     filename = os.path.basename(file)
+    print outputdir, filename
     fhL = [open(outputdir +'/' + filename+'.'+type+'.'+str(grpNum)+'_'+str(i+1),'w') for i in range(grpNum)]
     for value in keyL:
         for i in range(grpNum):
@@ -35,7 +36,9 @@ def output(file, aDict, keyL, rangeL, grpNum, type, outputdir):
 
 
 def main():
-    print >>sys.stderr, "This separate genes into given number sets by \
+    lensysargv = len(sys.argv)
+    if lensysargv < 4:
+        print >>sys.stderr, "This separate genes into given number sets by \
 its length by two methods. One way, get the minimum and maximum number, \
 use the quotient as the ranges for each gene set (diff). The other way is \
 get unique gene length in a list, then separate the list to the given \
@@ -47,21 +50,18 @@ they will be moved to the second set instead of first (evenN). \
 This \
 also can deal with expression data or any other data with the \
 first column as label, the second column as value."
-    print >>sys.stderr, "Print the result to screen"
-    lensysargv = len(sys.argv)
-    if lensysargv < 4:
         print >>sys.stderr, 'Using python %s filename[two column file] \
-grpNum diff[evenL, evenN] outputdir[./, last slash is needed] headLine[default 0]' % sys.argv[0]
+grpNum diff[evenL, evenN] outputdir[./, last slash is optional] headLine[default 0]' % sys.argv[0]
         sys.exit(0)
     #-----------------------------------
     file = sys.argv[1]
     grpNum = int(sys.argv[2])
     type = sys.argv[3]
-    if lensysargv == 5:
+    if lensysargv > 4:
         outputdir = sys.argv[4]
     else:
         outputdir = "./"
-    if lensysargv == 6:
+    if lensysargv > 5:
         head = int(sys.argv[5])
     else:
         head = 0
