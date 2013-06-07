@@ -10,11 +10,17 @@ __author__ = 'chentong & ct586[9]'
 __author_email__ = 'chentong_biology@163.com'
 #=========================================================
 import sys
+import os
 from time import localtime, strftime 
 timeformat = "%Y-%m-%d %H:%M:%S"
 
-def output(file, aDict, keyL, rangeL, grpNum, type):
-    fhL = [open(file+'.'+type+'.'+str(grpNum)+'_'+str(i+1),'w') for i in range(grpNum)]
+def output(file, aDict, keyL, rangeL, grpNum, type, outputdir):
+    if os.path.exists(outputdir):
+        pass
+    else:
+        os.mkdir(outputdir)
+    filename = os.path.basename(file)
+    fhL = [open(outputdir +'/' + filename+'.'+type+'.'+str(grpNum)+'_'+str(i+1),'w') for i in range(grpNum)]
     for value in keyL:
         for i in range(grpNum):
             if i == grpNum-1:
@@ -43,17 +49,29 @@ also can deal with expression data or any other data with the \
 first column as label, the second column as value."
     print >>sys.stderr, "Print the result to screen"
     lensysargv = len(sys.argv)
-    if lensysargv != 4:
+    if lensysargv < 4:
         print >>sys.stderr, 'Using python %s filename[two column file] \
-grpNum diff[evenL, evenN]' % sys.argv[0]
+grpNum diff[evenL, evenN] outputdir[./, last slash is needed] headLine[default 0]' % sys.argv[0]
         sys.exit(0)
     #-----------------------------------
     file = sys.argv[1]
     grpNum = int(sys.argv[2])
     type = sys.argv[3]
+    if lensysargv == 5:
+        outputdir = sys.argv[4]
+    else:
+        outputdir = "./"
+    if lensysargv == 6:
+        head = int(sys.argv[5])
+    else:
+        head = 0
+    #--------------------------------
     aDict = {}
     count = 0 #This is only used for type 'evenN'
     for line in open(file):
+        if head:
+            head -= 1
+            continue
         count += 1 #This is only used for type 'evenN'
         value, key = line.strip().split()
         key = float(key)
@@ -97,7 +115,7 @@ grpNum diff[evenL, evenN]' % sys.argv[0]
         #-----------------------------------
         assert len(rangeL) == grpNumMinus1, rangeL
     #--------------------------------------------
-    output(file, aDict, keyL, rangeL, grpNum, type)
+    output(file, aDict, keyL, rangeL, grpNum, type, outputdir)
 #------------------------------------------------------------------------------
 if __name__ == '__main__':
     startTime = strftime(timeformat, localtime())
