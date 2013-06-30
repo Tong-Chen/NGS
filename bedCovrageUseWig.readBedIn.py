@@ -70,20 +70,25 @@ with same name in the forth column will be taken as one regions.***")
     parser.add_option("-w", "--wig", dest="wig",
         metavar="WIG", help="Regions in wig file format. Each position \
 of same chromsome in wig must be sorted numerically. All legal wig \
-obeys this rule.***")
+obeys this rule. Tested for variable step and fixed step wig. \
+All positions of one chromosome must under one header line when using \
+variable step wig. For fixed step wig, all separated regions of one \
+chromosome must near each other and should not be interrupted by \
+regions in other chromosomes.***")
     parser.add_option("-o", "--op", dest="op",
         metavar="OPERATOR", help="Several choice, sum,mean,median,max,min.\
 Multiple ones can be given in ',' connected in formats like \
 <mean, max>. This parameter is exclusive with -m.")
     parser.add_option("-m", "--maximum-pos", dest="mp",
-        metavar="1/0", help="Get the position with the largest \
+        metavar="1/0", default=0, help="Get the position with the largest \
 value. If multiple maximum positions are found, the one nearest the \
-middle will be chosed. This parameter is exclusive with -o.")
+middle will be chosed. This parameter is exclusive with -o. Default 0 \
+means do not get max value.")
     parser.add_option("-s", "--strand", dest="strand",
         metavar="1/0", default=0, help="When 1 is given, compute \
 strand specific coverage for bed regions. This assumes, the seond \
 column in wig is positive strand while the third column in wig is \
-nagative strand." )
+nagative strand. Default 0, means unstranded." )
     parser.add_option("-n", "--name", dest="name", default=1,
         metavar="All column/Name column", help="Default the \
 column output before coverage data is the forth column of bed file. If\
@@ -174,15 +179,18 @@ def computeCoverage(bedDict, wig, opL, name_mode, strand, chrRegion, mp):
         elif i.startswith("fixedStep"):
             saveWig = 1
             #if chr and chr in bedDict and wigChrDict:
-            if chr and chr in bedDict:
+            chromi = i.rfind('chrom=')
+            assert chromi != -1, "Wrong format no chr %s" % i
+            newchr = i[chromi+6:].strip().split()[0]
+            if chr and chr != newchr and chr in bedDict:
                 outputCoverage(wigChrDict,bedDict[chr],opL,\
                     name_mode,strand,mp)
                 bedDict.pop(chr)
-            wigChrDict = {}
-            chromi = i.rfind('chrom=')
-            assert chromi != -1, "Wrong format no chr %s" % i
-            chr = i[chromi+6:].strip().split()[0]
-            overlappedChr.append(chr)
+                wigChrDict = {}
+                overlappedChr.append(chr)
+            if not chr:
+                wigChrDict = {}
+            chr = newchr
             if chr not in bedDict:
                 saveWig = 0
             else:
