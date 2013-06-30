@@ -41,50 +41,119 @@ regions")
     return (options, args)
 #--------------------------------------------------------------------
 
-def getBinsType(innerD, type, nBin, gene):
+def getBinsType(innerD, type, nBin, gene, strand):
     typeL = innerD[type]
+    #add sort operation
+    typeL.sort(key=lambda x:int(x[1]))
     type_len = sum([int(i[2])-int(i[1]) for i in typeL])
     size = type_len / nBin
-    if size == 0:
-        size = 1
-    cnt = 0
-    for i in typeL:
-        #print i[1], i[2], size
-        for j in range(int(i[1]), int(i[2]), size):      
-            cnt += 1
-            end = j + size
-            #print j, end
-            if end + size <= int(i[2]):
-                tmpL = [i[0], str(j), str(end), \
-                    gene+'.'+type+'.'+str(cnt), i[4], i[5]]
-                print '\t'.join(tmpL)
+    #if size < 2:
+    size = size + 1
+    #if size == 1:
+    #    size = 2
+    #elif size == 0:
+    #    size = 1
+    if strand == '+':
+        cnt = 0
+        time = 1
+    elif strand == '-':
+        cnt = nBin + 1
+        time = -1
+    else:
+        print >>sys.stderr, "Wrong strand type %s" % strand
+    remain = 0
+    lenTypeL = len(typeL)
+    for index in range(lenTypeL):
+        i = typeL[index]
+        start = int(i[1])
+        while True:
+            if remain == 0:
+                cnt += 1 * time
+                end = start + size
             else:
-                tmpL = [i[0], str(j), i[2], \
+                end = start + remain
+                remain = 0
+            #if index != lenTypeL -1: 
+            if end  <= int(i[2]):
+                tmpL = [i[0], str(start), str(end), \
                     gene+'.'+type+'.'+str(cnt), i[4], i[5]]
                 print '\t'.join(tmpL)
-                #cnt += 1
+                start = end
+            else:
+                remain = end - int(i[2])
+                tmpL = [i[0], str(start), i[2], \
+                    gene+'.'+type+'.'+str(cnt), i[4], i[5]]
+                print '\t'.join(tmpL)
+                start = int(i[2])
                 break
+            #else:
+            #    if end + size <= int(i[2]):
+            #        tmpL = [i[0], str(start), str(end), \
+            #            gene+'.'+type+'.'+str(cnt), i[4], i[5]]
+            #        print '\t'.join(tmpL)
+            #        start = end
+            #    else:
+            #        tmpL = [i[0], str(start), i[2], \
+            #            gene+'.'+type+'.'+str(cnt), i[4], i[5]]
+            #        print '\t'.join(tmpL)
+            #        start = int(i[2])
+            #        break
+
+            #------------------------------------------------
+            if start >= int(i[2]):
+                break
+        #--------------------------------------------------
+            #--For the last one------------------
+            #if (strand == '+' and cnt == nBin) or \
+            #    (strand == '-' and cnt == 1):
+            #    tmpL = [i[0], str(j), i[2], \
+            #        gene+'.'+type+'.'+str(cnt), i[4], i[5]]
+            #    print '\t'.join(tmpL)
+            #    break
+            #---------------------------------------------------
+            #print j, end
+            #if end + size <= int(i[2]):
+            #    tmpL = [i[0], str(j), str(end), \
+            #        gene+'.'+type+'.'+str(cnt), i[4], i[5]]
+            #    print '\t'.join(tmpL)
+            #else:
+            #    tmpL = [i[0], str(j), i[2], \
+            #        gene+'.'+type+'.'+str(cnt), i[4], i[5]]
+            #    print '\t'.join(tmpL)
+            #    remain = end+size-int(i[2])
+            #    #cnt += 1
+            #    break
                 #------------------------------
             #print '\t'.join(tmpL)
             #cnt += 1
     #--------------------------------------------------
-    for i in range (cnt, nBin):
-        lastCnt = int(tmpL[3].split('.')[2])
-        lastCnt += 1
-        tmpL[3] = gene+'.'+type+'.'+str(lastCnt)
-        print '\t'.join(tmpL)
+    if strand == '+':
+        for i in range (cnt, nBin):
+            lastCnt = int(tmpL[3].split('.')[2])
+            lastCnt += 1
+            tmpL[3] = gene+'.'+type+'.'+str(lastCnt)
+            print '\t'.join(tmpL)
+    else:
+        for i in range (cnt, 1, -1):
+            lastCnt = int(tmpL[3].split('.')[2])
+            lastCnt -= 1
+            assert lastCnt >= 1, "%s\t%d\t%d" % (type, cnt, lastCnt)
+            tmpL[3] = gene+'.'+type+'.'+str(lastCnt)
+            print '\t'.join(tmpL)
+    #-----------------------------------------------------
 
 
 #---------------------------------------
 
-def getBins(aDict, nBins):
+def getBins(aDict, nBins, strandD):
     for gene, innerD in aDict.items():
         if 'UTR5' in innerD:
-            getBinsType(innerD, 'UTR5', nBins[0], gene)
+            getBinsType(innerD, 'UTR5', nBins[0], gene, strandD[gene])
         if 'Coding_exon' in innerD:
-            getBinsType(innerD, 'Coding_exon', nBins[1], gene)
+            getBinsType(innerD, 'Coding_exon', nBins[1], gene,
+                strandD[gene])
         if 'UTR3' in innerD:
-            getBinsType(innerD, 'UTR3', nBins[2], gene)
+            getBinsType(innerD, 'UTR3', nBins[2], gene, strandD[gene])
 #-----------------------------------------------------------
 def main():
     options, args = cmdparameter(sys.argv)
@@ -100,11 +169,14 @@ def main():
         fh = open(file)
     #--------------------------------
     aDict = {}
+    strandD = {}
     for line in fh:
         lineL = line.split()
         keyL = lineL[3].split('.')
         gene = keyL[0]
         type = keyL[1]
+        if gene not in strandD:
+            strandD[gene] = lineL[5]
         if gene not in aDict:
             aDict[gene] = {}
         #---------------------------------
@@ -118,7 +190,7 @@ def main():
         fh.close()
     #-----------end close fh-----------
     #print aDict['NM_027855_3']
-    getBins(aDict, nBins)
+    getBins(aDict, nBins, strandD)
     #---------------------------------------
     if verbose:
         print >>sys.stderr,\
