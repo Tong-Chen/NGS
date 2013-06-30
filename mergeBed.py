@@ -14,7 +14,9 @@ Merge bed regions together for binned regions of mRNA.
 Those regions spearated by introns will be identified and added
 together.
 
-Binned-regions(At least 4 columns, more than 6 columns are allowed)
+Binned-regions(At least 4 columns, more than 6 columns are allowed.
+The last column will be taken as a number which will be averaged in
+merging process.)
 
 chr1	84034117	84034142	NM_001003948_21304.UTR3__69__51@897504  0	-
 chr1    84034142        84034167    NM_001003948_21304.UTR3__69__52@897505  0       -
@@ -150,6 +152,9 @@ def main():
             i += 1
             j = 0
             initialL = valueL[0]
+            lenInitialL = len(initialL)
+            if lenInitialL > 6:
+                lenInitialL = 6
             nameL = initialL[3].split('.', 1)
             name = nameL[0]
             type = set([nameL[1].split('__')[0]])
@@ -166,7 +171,7 @@ def main():
                     initialL[3] = "__".join([name,str(i),str(j)]) 
                     initialL[4] = str(sum(mean)*1.0/len(mean))
                     #print '\t'.join(initialL[:6])
-                    peakL.append(initialL[:6])
+                    peakL.append(initialL[:lenInitialL])
                     fullLen += int(initialL[2]) - int(initialL[1])
                     initialL = followL
                     #nameL = initialL[3].split('.', 1)
@@ -179,7 +184,7 @@ def main():
             initialL[3] = "__".join([name,str(i),str(j)]) 
             initialL[4] = str(sum(mean)*1.0/len(mean))
             #print '\t'.join(initialL[:6])
-            peakL.append(initialL[:6])
+            peakL.append(initialL[:lenInitialL])
             fullLen += int(initialL[2]) - int(initialL[1])
             type = list(type)
             type.sort()
