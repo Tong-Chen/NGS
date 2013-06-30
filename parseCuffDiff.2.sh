@@ -158,25 +158,25 @@ if test -s ${tr_jp}; then
 	 cuffdiff.systemtial_DE.py $(ls ${tr_jp_dir} | grep '___' | grep -P "^${tr_jp_base}.expr_${least_rpkm}.len_${least_len}.[^.]*$" | sed "s#^#${tr_jp_dir}#")
 fi
 #---------------boxplot----only for three samples--------------------------
-awk 'BEGIN{OFS="\t";FS="\t"}{if(NR==1) print $1,$2,$3,$4,"Set"; \
-	else {print $1,$2,$3,$4,"g"}}' ${gene_gp}.expr_${least_rpkm}.len_${least_len} \
-	>${gene_gp}.expr_${least_rpkm}.len_${least_len}.variousType.all_expr.forboxplot
-  
-
-for i in \
-	`ls ${dir}${tr_ap_dir} | grep \
-	"^${tr_ap_base}_[a-z].expr_${least_rpkm}.len_${least_len}$"`; do
-	cc=${i/${tr_ap_base}_/}
-	cc=${cc/.expr_${least_rpkm}.len_${least_len}/}
-	awk -v cc=${cc} 'BEGIN{OFS="\t";FS="\t"}\
-	{if(NR>1){print $1,$2,$3,$4,cc}}' ${dir}${tr_ap_dir}$i \
-	>>${gene_gp}.expr_${least_rpkm}.len_${least_len}.variousType.all_expr.forboxplot
-done
-
-boxplot.onefile.sh -f \
-${gene_gp}.expr_${least_rpkm}.len_${least_len}.variousType.all_expr.forboxplot \
--a Set -s TRUE -v "scale_y_log10()" -S 1 -n FALSE \
--L "'g','a','j','x','s','c','o','u'" \
--p "+theme(legend.position=c(0.08,0.8),legend.title=element_blank())"
+#awk 'BEGIN{OFS="\t";FS="\t"}{if(NR==1) print $1,$2,$3,$4,"Set"; \
+#	else {print $1,$2,$3,$4,"g"}}' ${gene_gp}.expr_${least_rpkm}.len_${least_len} \
+#	>${gene_gp}.expr_${least_rpkm}.len_${least_len}.variousType.all_expr.forboxplot
+#  
+#
+#for i in \
+#	`ls ${dir}${tr_ap_dir} | grep \
+#	"^${tr_ap_base}_[a-z].expr_${least_rpkm}.len_${least_len}$"`; do
+#	cc=${i/${tr_ap_base}_/}
+#	cc=${cc/.expr_${least_rpkm}.len_${least_len}/}
+#	awk -v cc=${cc} 'BEGIN{OFS="\t";FS="\t"}\
+#	{if(NR>1){print $1,$2,$3,$4,cc}}' ${dir}${tr_ap_dir}$i \
+#	>>${gene_gp}.expr_${least_rpkm}.len_${least_len}.variousType.all_expr.forboxplot
+#done
+#
+#boxplot.onefile.sh -f \
+#${gene_gp}.expr_${least_rpkm}.len_${least_len}.variousType.all_expr.forboxplot \
+#-a Set -s TRUE -v "scale_y_log10()" -S 1 -n FALSE \
+#-L "'g','a','j','x','s','c','o','u'" \
+#-p "+theme(legend.position=c(0.08,0.8),legend.title=element_blank())"
 
 
