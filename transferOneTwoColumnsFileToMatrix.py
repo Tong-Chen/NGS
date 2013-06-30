@@ -10,6 +10,34 @@ __author_email__ = 'chentong_biology@163.com'
 #=========================================================
 '''
 Functionla description
+
+Input fie format (Duplicate names are allowed, the one with the
+largest value will be kept.)
+NM_001177713_7331.UTR5.5        0
+NM_001177713_7331.UTR5.4        0
+NM_001177713_7331.UTR5.3        0
+NM_001177713_7331.UTR5.2        0
+NM_001177713_7331.UTR5.1        0
+NM_001177713_7331.Coding_exon.50        0
+NM_001177713_7331.Coding_exon.49        0
+NM_001177713_7331.Coding_exon.48        0
+NM_001177713_7331.Coding_exon.47        0
+.
+.
+.
+.
+NM_001177713_7331.Coding_exon.4 0
+NM_001177713_7331.Coding_exon.3 0
+NM_001177713_7331.Coding_exon.2 0
+NM_001177713_7331.Coding_exon.1 0
+NM_001177713_7331.UTR3.20       0
+NM_001177713_7331.UTR3.19       0
+NM_001177713_7331.UTR3.18       0
+NM_001177713_7331.UTR3.17       0
+NM_001177713_7331.UTR3.16       0
+.
+.
+.
 '''
 
 import sys
@@ -35,8 +63,15 @@ Starts with 1")
         metavar="2,3", default='2,3', help="The part of strings used for y-label. \
 Starts with 1")
     parser.add_option("-s", "--separtor", dest="separtor",
-        metavar=".", default='.',  help="The part of strings used for x-label. \
-Starts with 1")
+        metavar=".", default='.',  help="String separtor.")
+    parser.add_option("-k", "--key_y_label", dest="key",
+        metavar="UTR5.20.Coding_exon.50.UTR3.20",
+        default='UTR5.20.Coding_exon.50.UTR3.20',  
+        help="UTR5, Coding_exon, UTR3 represents label type. It can be \
+any given string. 20,50,20 means the numer of each type before them. \
+In this example , we will get <UTR5.1,UTR5.2,\
+...UTR5.20,Coding_exon.1,...,Coding_exon.50,UTR3.1,UTR3.2...,UTR3.20>\
+for y_label.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -63,6 +98,14 @@ def main():
     verbose = options.verbose
     debug = options.debug
     sep = options.separtor
+    key = options.key.split('.') #UTR5.20.Coding_exon.50.UTR3.20
+    lenkey = len(key)
+    keyL = []
+    for i in range(1,lenkey,2):
+        tmpL = [sep.join([key[i-1],str(j+1)]) for j in range(0,int(key[i]))]
+        keyL.extend(tmpL)
+    #print keyL
+    #sys.exit()
     x_label = [int(i)-1 for i in options.x_label.split(',')]
     y_label = [int(i)-1 for i in options.y_label.split(',')]
     #-----------------------------------
@@ -72,24 +115,30 @@ def main():
         fh = open(file)
     #--------------------------------
     aDict = {}
-    oldgene = ''
-    keyL = []
+    #oldgene = ''
+    #keyL = []
+    
     for line in fh:
         name, value = line.split()
         nameL = name.split(sep)
         gene = sep.join([nameL[i] for i in x_label])
         type = sep.join([nameL[i] for i in y_label])
-        if oldgene == "":
-            oldgene = gene
-        if oldgene == gene:
-            if type not in keyL:
-                keyL.append(type)
-            else:
-                assert type == keyL[-1]
+        assert type in keyL, type
+
+        #if oldgene == "":
+        #    oldgene = gene
+        #if oldgene == gene:
+        #    if type not in keyL:
+        #        keyL.append(type)
+        #    else:
+        #        assert type == keyL[-1]
         if gene not in aDict:
             aDict[gene] = {}
         #if type not in aDict[gene]:
-        aDict[gene][type] = value
+        if type not in aDict[gene]:
+            aDict[gene][type] = value
+        elif value > aDict[gene][type]:
+            aDict[gene][type] = value
         #else:
         #    print >>sys.stderr, "Duplicate type name", line
         #    sys.exit()
