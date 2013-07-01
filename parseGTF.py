@@ -38,6 +38,7 @@ two exons):
 exon-ATT-exon-intron-exon-intron-exon-UAA-exon
 exon-ATT-exon-UAA-exon
 exon-AT-intron-T-exon-interon-exon-UA-intron-A-exon
+exon-ex-ATT-on [means ATT at the last exon]
 
 Attention:
     1.If only start_codon or stop_codon exists (not both ot all
@@ -356,6 +357,9 @@ def get_coding_exon_intron(chr,keyL,tmpDict,name,score,strand):
         #---lose one side of codon--
         if begin_coding_exon:
             #print >>sys.stderr, 'Here'
+            if tmpLineL_218:
+                print '\t'.join(tmpLineL_218)
+                tmpLineL_218 = ''
             for i in ExonL[:]:
                 print '\t'.join(i)
         else:
