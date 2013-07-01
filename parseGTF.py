@@ -38,9 +38,18 @@ two exons):
 exon-ATT-exon-intron-exon-intron-exon-UAA-exon
 exon-ATT-exon-UAA-exon
 exon-AT-intron-T-exon-interon-exon-UA-intron-A-exon
+
+Attention:
+    1.If only start_codon or stop_codon exists (not both ot all
+    depleted), the start 3 letters or last 3 letters will be taken as
+    the other codon.
+    #the program may
+    #output wrong results. You may want to complete the info about
+    #start_codon or stop_codon. [positive strand with start codon and
+    #negative strand with stopcodon, but without the other codon has
+    #been solved.]
+
 '''
-
-
 
 def flankTSS_TES(TSS, TTS, end, regionL, strand, name_base, score, chr):
     #-------end means chromosome end-----------
@@ -128,7 +137,18 @@ def get_coding_exon_intron(chr,keyL,tmpDict,name,score,strand):
     tmpLineL_218 = ''
     first_met_stop_codon = 1
     first_met_start_codon = 1
+    #print >>sys.stderr, set(tmpDict.values())
+    if strand == '+' and \
+            'start_codon' not in tmpDict.values() and \
+            'stop_codon' in tmpDict.values():
+        begin_coding_exon = 1
+    elif strand == '-' and \
+            'stop_codon' not in tmpDict.values() and \
+            'start_codon' in tmpDict.values():
+        begin_coding_exon = 1
     #print keyL
+    #print >>sys.stderr, keyL
+    #print >>sys.stderr, tmpDict
     for ele in keyL:
         if strand == '+':
             if tmpDict[ele] == 'exon':
@@ -222,6 +242,7 @@ def get_coding_exon_intron(chr,keyL,tmpDict,name,score,strand):
             #--------END +----------------------------------------
         #-------------END + strand----------------------
         elif strand == '-':
+            #print >>sys.stderr, exon_num
             if tmpDict[ele] == 'exon':
                 #---------output intron-------------------------
                 if intron_start == -1:
@@ -241,6 +262,8 @@ def get_coding_exon_intron(chr,keyL,tmpDict,name,score,strand):
                     tmpLineL = [chr,str(ele[0]),str(ele[1]),exon,score,
                         strand]
                     ExonL.append(tmpLineL[:])
+                    #print >>sys.stderr, ExonL
+                    #print >>sys.stderr, ExonL
                     #---output exon defined by stop_codon
                     if tmpLineL_218:
                         print '\t'.join(tmpLineL_218)
@@ -257,6 +280,7 @@ def get_coding_exon_intron(chr,keyL,tmpDict,name,score,strand):
                     oneMoreExonNeeded = 0
                 #---------output exon after start_codon meets---
                 oldEle = ele
+                #print >>sys.stderr, oldEle
             #----------------------END if--------------------
             elif tmpDict[ele] == 'stop_codon':
                 if not begin_coding_exon:
@@ -266,9 +290,11 @@ def get_coding_exon_intron(chr,keyL,tmpDict,name,score,strand):
                         exon_num += 1
                         tmpLineL_218 = [chr,str(ele[0]),str(oldEle[1]),exon,score,
                             strand]
-                        #print >>sys.stderr, '\t'.join(tmpLineL)
+                        #print >>sys.stderr, '\t'.join(tmpLineL_218)
                     begin_coding_exon = 1
                     new_exon = 0
+                    #print >>sys.stderr, oldEle
+                    #print >>sys.stderr, ele
             elif tmpDict[ele] == 'start_codon':
                 #here = 0
                 if not first_met_start_codon:
@@ -286,6 +312,8 @@ def get_coding_exon_intron(chr,keyL,tmpDict,name,score,strand):
                 elif first_met_start_codon:
                     #print ele[1],oldEle[1],tmpLineL_218
                     first_met_start_codon = 0
+                    #print >>sys.stderr, "here"
+                    #print >>sys.stderr, ExonL
                     for i in ExonL[:-1]:
                         #here = 1
                         print '\t'.join(i)
@@ -325,12 +353,18 @@ def get_coding_exon_intron(chr,keyL,tmpDict,name,score,strand):
     #------------END for ele------------------------------
     #----for NR--------------
     if first_met_stop_codon and first_met_start_codon:
-        for ele in keyL:
-            exon = name + '.Coding_exon.'+str(exon_num)
-            exon_num += 1
-            tmpLineL = [chr,str(ele[0]),str(ele[1]),exon,score,
-                strand]
-            print '\t'.join(tmpLineL)
+        #---lose one side of codon--
+        if begin_coding_exon:
+            #print >>sys.stderr, 'Here'
+            for i in ExonL[:]:
+                print '\t'.join(i)
+        else:
+            for ele in keyL:
+                exon = name + '.Coding_exon.'+str(exon_num)
+                exon_num += 1
+                tmpLineL = [chr,str(ele[0]),str(ele[1]),exon,score,
+                    strand]
+                print '\t'.join(tmpLineL)
     #----for NR--------------
 #-------------------end get_coding_exon_intron_genebody--------
 '''
