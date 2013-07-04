@@ -45,6 +45,7 @@ from time import localtime, strftime
 timeformat = "%Y-%m-%d %H:%M:%S"
 from optparse import OptionParser as OP
 from math import log as ln
+from math import sqrt
 
 
 def computeShannon(fh, header, verbose):
@@ -78,7 +79,8 @@ def computeShannon(fh, header, verbose):
     #-------------END reading file----------
 #---------END computeShannnon----------------------
 
-def getGeneByShannon(fh,header,entropy,fpkm,cs):
+#def getGeneByShannon(fh,header,entropy,fpkm,cs):
+def getSpecificByShannon(fh,header,entropy,fpkm,cs,strict_entropy):
     for line in fh:
         if header:
             header -= 1
@@ -106,11 +108,60 @@ def getGeneByShannon(fh,header,entropy,fpkm,cs):
                 tmp106 = set([cs[i] for i in lineageL])
                 if len(tmp106) <= 2:
                     print "%s\t%s" % (line.rstrip(),':'.join(lineageL))
+                #-----------strict_entropy--------------------------------
+                elif strict_entropy != -1 and shannon < strict_entropy:
+                    lineageL = []
+                    mean, sd = mean_std(expr, lensampL)
+                    print >>sys.stderr, shannon, mean, sd, expr
+                    large113 = mean + sd
+                    for i114 in range(lensampL):
+                        if expr[i114] > large113:
+                            lineageL.append(sampL[i114])
+                    #-----------------------------------------
+                    if 0 < len(lineageL) <= 1:
+                        print "%s\t%s" % (line.rstrip(),':'.join(lineageL))
+                    elif len(lineageL) > 1 and cs:
+                        tmp106 = set([cs[i] for i in lineageL])
+                        if len(tmp106) <= 1:
+                            print "%s\t%s" % (line.rstrip(),':'.join(lineageL))
             #-------------------------------------------
         #---------END each line------------
     #-------------END all lines---------------
 #-----------END getGene-----------------------------------
+def mean_std(data, len):
+    sum_d = float(sum(data))
+    mean_d = sum_d/len
+    sd_d = sqrt(sum([(i-mean_d)**2 for i in data])*1.0/(len-1))
+    return mean_d,sd_d
+#-----------------------------------------------
 
+def getCommonByShannon(fh,header,entropy,fpkm):
+    for line in fh:
+        if header:
+            header -= 1
+            lineL = line.split()
+            sampL = lineL[1:-1]
+            lensampL = len(sampL)
+            print line,
+            continue
+        #-------------------------
+        lineL = line.split()
+        expr = [float(i) for i in lineL[1:-1]]
+        shannon = float(lineL[-1])
+        #lineageL = []
+        lineage_cnt = 0
+        if shannon > entropy:
+            for i92 in range(lensampL):
+                if expr[i92] >= fpkm:
+                    #lineageL.append(sampL[i92])
+                    lineage_cnt += 1
+            #---------------------------------------
+            if lineage_cnt == lensampL:
+                print line,
+        #-------One line------------------------
+    #-----------All lines-----------------
+
+#-------------------------------------------------
 def cmdparameter(argv):
     if len(argv) == 1:
         cmd = 'python ' + argv[0] + ' -h'
@@ -126,23 +177,35 @@ column as names.")
         metavar="a number", default=1, help="A number to indicate the header \
 lines in the file. Default 1 means only one header line.")
     parser.add_option("-o", "--operation", dest="op",
-        metavar="getShannon/getGene", default='getShannon', help="Since this program is \
+        metavar="getShannon/getSpecific/getCommon", default='getShannon', help="Since this program is \
 designed for two purposes, the operation you wanted should be chosen here. \
 First <getShannon> : compute the shannon entropy for each gene. \
-Second <getGene> : Get genes based on given criteria. \
+Second <getSpecific> : Get genes based on given criteria. \
+Third <getCommon> : Get genes based on given criteria. \
 Default <getShannon>.")
     parser.add_option("-e", "--entropy", dest="entropy",
         metavar="A number", default=2, help="The larger the entropy is, the \
 more ubiquitous of a gene. Normally a small value would be better to \
 get lineage specific genes and a large value would be better for \
 housekeeping genes. It ranges from 0 to log2(N)[N is the number \
-of lineages used here.] Default 2.")
+of lineages used here.] Default 2. If <getSpecific>, all genes with \
+entropy less than given value here will be processed furtherly. \
+If <getCommon>, all genes with entropy larger than given value will \
+processed furtherly.")
+    parser.add_option("-E", "--strict-entropy", dest="strict_entropy",
+        metavar="A number", default=-1, help="The paramter is only for \
+<getSpecific>. This is used to extract some differential genes which \
+expressed in all lineages but with much difference. Normally if an \
+entropy larger than (mean+sd), it will be treated as specific. \
+Default -1 means unsed. A number ranges from 0 to log2(N) is expected.")
     parser.add_option("-s", "--standard_for_high_expr", dest="fpkm",
         metavar="A number", default=1, help="This is mainly designed to \
 filter genes by expression values.If a gene have rpkm \
 larger than given value in one lineage and such high expression \
 cannot be observed in more than two additional cell types,  it will \
-be defined as a lineage specifc genes. Default 1.")
+be defined as a lineage specifc genes<for getSpecific>. If operation \
+is <getCommon>, genes with entropy larger than given value here will \
+be taken as common. Default 1.")
     parser.add_option("-m", "--mixed_sample", dest="sampleClass",
         metavar="", default='', help="Usually this parameter is \
 useless unless you have very similar lineages. For example, in my \
@@ -170,6 +233,7 @@ def main():
     file = options.filein
     op = options.op
     entropy = float(options.entropy)
+    strict_entropy = float(options.strict_entropy)
     header = int(options.header)
     verbose = options.verbose
     debug = options.debug
@@ -193,8 +257,13 @@ def main():
     #--------------------------------
     if op == 'getShannon':
         computeShannon(fh, header, verbose)
-    elif op == 'getGene':
-        getGeneByShannon(fh,header,entropy,fpkm,cs)   
+    elif op == 'getSpecific':
+        getSpecificByShannon(fh,header,entropy,fpkm,cs,strict_entropy)   
+    elif op == 'getCommon':
+        getCommonByShannon(fh,header,entropy,fpkm)   
+    else:
+        print >>sys.stderr, "Unknow operation %s" % op
+        sys.exit(1)
     #----close file handle for files-----
     if file != '-':
         fh.close()
