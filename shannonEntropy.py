@@ -112,7 +112,7 @@ def getSpecificByShannon(fh,header,entropy,fpkm,cs,strict_entropy):
                 elif strict_entropy != -1 and shannon < strict_entropy:
                     lineageL = []
                     mean, sd = mean_std(expr, lensampL)
-                    print >>sys.stderr, shannon, mean, sd, expr
+                    #print >>sys.stderr, shannon, mean, sd, expr
                     large113 = mean + sd
                     for i114 in range(lensampL):
                         if expr[i114] > large113:
