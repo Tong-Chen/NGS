@@ -129,13 +129,15 @@ def getBinsType(innerD, type, nBin, gene, strand):
     #--------------------------------------------------
     if strand == '+':
         for i in range (cnt, nBin):
-            lastCnt = int(tmpL[3].split('.')[2])
+            #potentil bug if type contains '.', change 2 to -1
+            lastCnt = int(tmpL[3].split('.')[-1])
             lastCnt += 1
             tmpL[3] = gene+'.'+type+'.'+str(lastCnt)
             print '\t'.join(tmpL)
     else:
         for i in range (cnt, 1, -1):
-            lastCnt = int(tmpL[3].split('.')[2])
+            #potentil bug if type contains '.', change 2 to -1
+            lastCnt = int(tmpL[3].split('.')[-1])
             lastCnt -= 1
             assert lastCnt >= 1, "%s\t%d\t%d" % (type, cnt, lastCnt)
             tmpL[3] = gene+'.'+type+'.'+str(lastCnt)
