@@ -27,11 +27,16 @@ def cmdparameter(argv):
     usages = "%prog -i file"
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
-        metavar="FILEIN", help="")
+        metavar="FILEIN", help="A standard bed file with \
+six columns. Strand information will be considered. \
+Extra columns will be ignored.")
     parser.add_option("-n", "--number-bins", dest="nBins",
-        metavar="20,50,20", default="20,50,20", 
-        help="The numbers for UTR5, CDS, UTR3 \
-regions")
+        metavar="20", default="20", 
+        help="The numbers bins in regions")
+    parser.add_option("-s", "--strand", dest="strand",
+        default=1, help="Consider strand information or not. \
+Default TRUE. Strings or numbers that represent FALSE can turn \
+off this parameter.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -41,8 +46,8 @@ regions")
     return (options, args)
 #--------------------------------------------------------------------
 
-def getBinsType(innerD, type, nBin, gene, strand):
-    typeL = innerD[type]
+
+def getBinsType(typeL, nBin, gene, strand):
     #add sort operation
     typeL.sort(key=lambda x:int(x[1]))
     type_len = sum([int(i[2])-int(i[1]) for i in typeL])
@@ -76,94 +81,53 @@ def getBinsType(innerD, type, nBin, gene, strand):
             #if index != lenTypeL -1: 
             if end  <= int(i[2]):
                 tmpL = [i[0], str(start), str(end), \
-                    gene+'.'+type+'.'+str(cnt), i[4], i[5]]
+                    gene+'.'+str(cnt), i[4], i[5]]
                 print '\t'.join(tmpL)
                 start = end
             else:
                 remain = end - int(i[2])
                 tmpL = [i[0], str(start), i[2], \
-                    gene+'.'+type+'.'+str(cnt), i[4], i[5]]
+                    gene+'.'+str(cnt), i[4], i[5]]
                 print '\t'.join(tmpL)
                 start = int(i[2])
                 break
-            #else:
-            #    if end + size <= int(i[2]):
-            #        tmpL = [i[0], str(start), str(end), \
-            #            gene+'.'+type+'.'+str(cnt), i[4], i[5]]
-            #        print '\t'.join(tmpL)
-            #        start = end
-            #    else:
-            #        tmpL = [i[0], str(start), i[2], \
-            #            gene+'.'+type+'.'+str(cnt), i[4], i[5]]
-            #        print '\t'.join(tmpL)
-            #        start = int(i[2])
-            #        break
-
             #------------------------------------------------
             if start >= int(i[2]):
                 break
         #--------------------------------------------------
-            #--For the last one------------------
-            #if (strand == '+' and cnt == nBin) or \
-            #    (strand == '-' and cnt == 1):
-            #    tmpL = [i[0], str(j), i[2], \
-            #        gene+'.'+type+'.'+str(cnt), i[4], i[5]]
-            #    print '\t'.join(tmpL)
-            #    break
-            #---------------------------------------------------
-            #print j, end
-            #if end + size <= int(i[2]):
-            #    tmpL = [i[0], str(j), str(end), \
-            #        gene+'.'+type+'.'+str(cnt), i[4], i[5]]
-            #    print '\t'.join(tmpL)
-            #else:
-            #    tmpL = [i[0], str(j), i[2], \
-            #        gene+'.'+type+'.'+str(cnt), i[4], i[5]]
-            #    print '\t'.join(tmpL)
-            #    remain = end+size-int(i[2])
-            #    #cnt += 1
-            #    break
-                #------------------------------
-            #print '\t'.join(tmpL)
-            #cnt += 1
     #--------------------------------------------------
     if strand == '+':
         for i in range (cnt, nBin):
-            #potentil bug if type contains '.', change 2 to -1
             lastCnt = int(tmpL[3].split('.')[-1])
             lastCnt += 1
-            tmpL[3] = gene+'.'+type+'.'+str(lastCnt)
+            tmpL[3] = gene+'.'+str(lastCnt)
             print '\t'.join(tmpL)
     else:
         for i in range (cnt, 1, -1):
-            #potentil bug if type contains '.', change 2 to -1
             lastCnt = int(tmpL[3].split('.')[-1])
             lastCnt -= 1
             assert lastCnt >= 1, "%s\t%d\t%d" % (type, cnt, lastCnt)
-            tmpL[3] = gene+'.'+type+'.'+str(lastCnt)
+            tmpL[3] = gene+'.'+str(lastCnt)
             print '\t'.join(tmpL)
     #-----------------------------------------------------
-
 
 #---------------------------------------
 
 def getBins(aDict, nBins, strandD):
-    for gene, innerD in aDict.items():
-        if 'UTR5' in innerD:
-            getBinsType(innerD, 'UTR5', nBins[0], gene, strandD[gene])
-        if 'Coding_exon' in innerD:
-            getBinsType(innerD, 'Coding_exon', nBins[1], gene,
-                strandD[gene])
-        if 'UTR3' in innerD:
-            getBinsType(innerD, 'UTR3', nBins[2], gene, strandD[gene])
+    for gene, innerL in aDict.items():
+        if not strandD:
+            getBinsType(innerL, nBins, gene, '+')
+        else:
+            getBinsType(innerL, nBins, gene, strandD[gene])
 #-----------------------------------------------------------
 def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
     file = options.filein
-    nBins = [int(i) for i in options.nBins.split(',')]
+    nBins = int(options.nBins)
     verbose = options.verbose
     debug = options.debug
+    strand = options.strand
     #-----------------------------------
     if file == '-':
         fh = sys.stdin
@@ -174,24 +138,26 @@ def main():
     strandD = {}
     for line in fh:
         lineL = line.split()
-        keyL = lineL[3].split('.')
-        gene = keyL[0]
-        type = keyL[1]
-        if gene not in strandD:
-            strandD[gene] = lineL[5]
+        gene = lineL[3]
+        #keyL = lineL[3].split('.')
+        #gene = keyL[0]
+        #type = keyL[1]
         if gene not in aDict:
-            aDict[gene] = {}
+            aDict[gene] = [lineL]
         #---------------------------------
-        if type in aDict[gene]:
-            aDict[gene][type].append(lineL)
-        else:
-            aDict[gene][type] = [lineL]
+        if strand:
+            strandD[gene] = lineL[5]
+        #if type in aDict[gene]:
+        #    aDict[gene][type].append(lineL)
+        #else:
+        #    aDict[gene][type] = [lineL]
     #-------------END reading file----------
     #----close file handle for files-----
     if file != '-':
         fh.close()
     #-----------end close fh-----------
     #print aDict['NM_027855_3']
+    #print aDict
     getBins(aDict, nBins, strandD)
     #---------------------------------------
     if verbose:
