@@ -205,6 +205,3 @@ if __name__ == '__main__':
     print >>fh, "%s\n\tRun time : %s - %s " % \
         (' '.join(sys.argv), startTime, endTime)
     fh.close()
-
-
-
