@@ -28,32 +28,35 @@ import sys
 from time import localtime, strftime 
 timeformat = "%Y-%m-%d %H:%M:%S"
 
-def outputBoundary(lineL, boundary):
+def outputBoundary(lineL, boundaryL):
     start = int(lineL[1])
     end = int(lineL[2])
     old = lineL[3]
     strand = lineL[5]
-    if end-start > boundary * 2:
-        #-------left boundary-----------
-        lineL[2] = str(start+boundary)
-        if strand == '+':
-            lineL[3] = old + '-LB'
-        elif strand == '-':
-            lineL[3] = old + '-RB'
-        else:
-            print >>sys.stderr, \
-                "Wrong strand %s " % transcriptName
-            sys.exit(1)
-        #---------------------------------------
-        print '\t'.join(lineL)
-        #------right boundary----------
-        lineL[1] = str(end - boundary)
-        lineL[2] = str(end)
-        if strand == '+':
-            lineL[3] = old + '-RB'
-        elif strand == '-':
-            lineL[3] = old + '-LB'
-        print '\t'.join(lineL)
+    for boundary in boundaryL:
+        if end-start > boundary * 2:
+            #-------left boundary-----------
+            lineL[1] = str(start)
+            lineL[2] = str(start+boundary)
+            if strand == '+':
+                lineL[3] = old + '-LB'+str(boundary)
+            elif strand == '-':
+                lineL[3] = old + '-RB'+str(boundary)
+            else:
+                print >>sys.stderr, \
+                    "Wrong strand %s " % transcriptName
+                sys.exit(1)
+            #---------------------------------------
+            print '\t'.join(lineL)
+            #------right boundary----------
+            lineL[1] = str(end - boundary)
+            lineL[2] = str(end)
+            if strand == '+':
+                lineL[3] = old + '-RB'+str(boundary)
+            elif strand == '-':
+                lineL[3] = old + '-LB'+str(boundary)
+            print '\t'.join(lineL)
+        #---------------end boundary------------
     #---------------end boundary------------
 #------------------END------o---------------
 
@@ -142,7 +145,8 @@ def main():
     if lensysargv < 2:
         print >>sys.stderr, "Print the result to screen"
         print >>sys.stderr, 'Using python %s filename[- means \
-sys.stdin. Usually the output of parseGTF.py.] boundary_size[default 100]' % sys.argv[0]
+sys.stdin. Usually the output of parseGTF.py.] boundary_size[default \
+100, accept a list "30,50,100"]' % sys.argv[0]
         sys.exit(0)
     #-----------------------------------
     file = sys.argv[1]
@@ -151,9 +155,9 @@ sys.stdin. Usually the output of parseGTF.py.] boundary_size[default 100]' % sys
     else:
         fh = open(file)
     if lensysargv > 2:
-        size = int(sys.argv[2])
+        size = [int(i) for i in sys.argv[2].split(',')]
     else:
-        size = 100
+        size = [100]
     #------------------------------------
     geneDict = {}
     transcriptDict = {}
