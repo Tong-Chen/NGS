@@ -196,7 +196,7 @@ processed furtherly.")
         metavar="A number", default=-1, help="The paramter is only for \
 <getSpecific>. This is used to extract some differential genes which \
 expressed in all lineages but with much difference. Normally if an \
-entropy larger than (mean+sd), it will be treated as specific. \
+gene have FPKM larger than (mean+sd), it will be treated as specific. \
 Default -1 means unsed. A number ranges from 0 to log2(N) is expected.")
     parser.add_option("-s", "--standard_for_high_expr", dest="fpkm",
         metavar="A number", default=1, help="This is mainly designed to \
