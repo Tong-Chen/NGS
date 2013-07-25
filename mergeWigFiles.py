@@ -237,6 +237,8 @@ def processWig(wigDict, chr, outputChrList, processL, fileD):
         input = open(file, 'rb')
         w1D = cPickle.load(input)
         input.close()
+        outputChrList.discard(chr)
+        os.remove(file)
     else:
         print >>sys.stderr, "Unmatched chr %s " % chr
         w1D = {}
@@ -248,8 +250,6 @@ def processWig(wigDict, chr, outputChrList, processL, fileD):
         print >>sys.stderr, w1D
         print >>sys.stderr, "-W wig2"
         print >>sys.stderr, w2D
-    outputChrList.discard(chr)
-    os.remove(file)
     w1DKeys = set(w1D.keys())
     w2DKeys = set(w2D.keys())
     posL = list(w1DKeys.union(w2DKeys))
