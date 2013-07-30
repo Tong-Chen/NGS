@@ -45,7 +45,8 @@ def cmdparameter(argv):
     usages = "%prog -i file"
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
-        metavar="Binned-regions", help="Binned regions")
+        metavar="Binned-regions", help="Binned regions. \
+'-' as STDIN accepted.")
     parser.add_option("-t", "--template-file", dest="template",
         metavar="Template-bed", help="template file")
     parser.add_option("-v", "--verbose", dest="verbose",
