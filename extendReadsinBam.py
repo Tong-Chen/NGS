@@ -70,13 +70,13 @@ STDIN] expected_length' % sys.argv[0]
         #---------------------------------------------------
         #---------extend SEQ and QUAL------------
         newseq = seq + seq[:diff]
-        while len(newseq) < 100:
+        while len(newseq) < exp_len:
             newseq += newseq
-        lineL[9]  = newseq[:100]
+        lineL[9]  = newseq[:exp_len]
         newquality = quality + quality[:diff]
-        while len(newquality) < 100:
+        while len(newquality) < exp_len:
             newquality += newquality
-        lineL[10] = newquality[:100]
+        lineL[10] = newquality[:exp_len]
         lineL[5]  = ''.join(cigarL)
         sys.stdout.write('\t'.join(lineL)) 
     #---------turn off file-------------------
