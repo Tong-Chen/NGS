@@ -45,6 +45,11 @@ def cmdparameter(argv):
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
         metavar="FILEIN", help="An input file format")
+    parser.add_option("-s", "--size", dest="size",
+        metavar="0", default=0, help="The default value for this \
+parameter is 0,  which means get the half of the exons. If a positive \
+value is given, it will get boundaries of that size. The left and \
+right most boundaries are excluded.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -59,6 +64,7 @@ def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
     file = options.filein
+    size = int(options.size)
     verbose = options.verbose
     debug = options.debug
     #-----------------------------------
@@ -94,8 +100,10 @@ def main():
             num_R = numDKl[i+1]
             leftL = numD[num_L][:]
             rightL = numD[num_R][:]
-            lenLeftExon = (int(leftL[2]) - int(leftL[1])) / 2
-            lenRightExon = (int(rightL[2]) - int(rightL[1])) / 2
+            lenLeftExon = (int(leftL[2]) - int(leftL[1]))
+            lenRightExon = (int(rightL[2]) - int(rightL[1]))
+            halflenLeftExon = lenLeftExon / 2
+            halflenRightExon = lenRightExon / 2
             strand = leftL[5]
             if strand == '+':
                 left_no = '@1'
@@ -104,12 +112,37 @@ def main():
                 left_no = '@2'
                 right_no = '@1'
             #-------------------------------------------
-            leftL[1] = str(int(leftL[2])-lenLeftExon)
-            leftL[3] = gene + '.junc.' + str(i+1) + left_no
-            print '\t'.join(leftL)
-            rightL[2] = str(int(rightL[1])+lenRightExon)
-            rightL[3] = gene + '.junc.' + str(i+1) + right_no
-            print '\t'.join(rightL)
+            if size == 0:
+                leftL[1] = str(int(leftL[2])-halflenLeftExon)
+                leftL[3] = gene + '.junc.' + str(i+1) + left_no
+                print '\t'.join(leftL)
+                rightL[2] = str(int(rightL[1])+halflenRightExon)
+                rightL[3] = gene + '.junc.' + str(i+1) + right_no
+                print '\t'.join(rightL)
+            else:
+                assert size > 0
+                if ((halflenLeftExon >= size) or \
+                        (i==0 and lenLeftExon >= size)):
+                    leftL[1] = str(int(leftL[2])-size)
+                    leftL[3] = gene + '.boundary.' + str(i+1) + left_no
+                    print '\t'.join(leftL)
+                elif halflenLeftExon >=1:
+                    leftL[1] = str(int(leftL[2])-halflenLeftExon)
+                    leftL[3] = gene + '.boundary.' + str(i+1) + left_no
+                    print '\t'.join(leftL)
+                if ((halflenRightExon >= size) or \
+                        (i+1==lennumDKl and lenRightExon >= size)):
+                    rightL[2] = str(int(rightL[1])+size)
+                    rightL[3] = gene + '.boundary.' + str(i+1) + right_no
+                    print '\t'.join(rightL)
+                elif halflenRightExon >= 1:
+                    rightL[2] = str(int(rightL[1])+halflenRightExon)
+                    rightL[3] = gene + '.boundary.' + str(i+1) + right_no
+                    print '\t'.join(rightL)
+
+                #--------------------------------------------------
+            #------------------------------------------
+        #------------------------------------------
     #---------------------------------
     if verbose:
         print >>sys.stderr,\
