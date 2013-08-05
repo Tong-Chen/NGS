@@ -25,11 +25,11 @@ from optparse import OptionParser as OP
 
 def cmdparameter(argv):
     if len(argv) == 1:
+        global desc
+        print >>sys.stderr, desc
         cmd = 'python ' + argv[0] + ' -h'
         os.system(cmd)
         sys.exit(1)
-    global desc
-    print >>sys.stderr, desc
     usages = "%prog -i file"
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
