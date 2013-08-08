@@ -109,27 +109,67 @@ def main():
             sum   = end - start 
             assert sum > 0, name
             cnt = 1
-            if sum >= norm_size * 1.5:
-                #tcnt = sum / norm_size
-                for i in range(start, end, norm_size):
-                    newstart = i
-                    newend = newstart + norm_size
-                    #print >>sys.stderr, newstart
-                    #print >>sys.stderr, newend
-                    if 0 < end - newend < norm_size * 0.5:
-                        newend = end
-                        #print >>sys.stderr, end
-                        #print >>sys.stderr, 'here'
-                    if newend > end:
-                        newend = end
-                    #print >>sys.stderr, newend
+            if sum >= norm_size * 2:
+                tcnt = sum / norm_size
+                for i in range(tcnt-1):
+                    newstart = start + i * norm_size
+                    newend   = newstart + norm_size
                     tmpLineL[1] = str(newstart)
                     tmpLineL[2] = str(newend)
                     tmpLineL[3] = name + sep + 'U' + str(cnt)
                     print '\t'.join(tmpLineL)
                     cnt += 1
-                    if newend == end:
-                        break
+                #-----------------------------------------
+                newstart = newend
+                if end - newend == norm_size:
+                    tmpLineL[1] = str(newstart)
+                    tmpLineL[2] = str(end)
+                    tmpLineL[3] = name + sep + 'U' + str(cnt)
+                    print '\t'.join(tmpLineL)
+                    cnt += 1
+                else:
+                    half = (end - newstart) / 2
+                    tmpLineL[1] = str(newstart)
+                    tmpLineL[2] = str(newstart+half)
+                    tmpLineL[3] = name + sep + 'U' + str(cnt)
+                    print '\t'.join(tmpLineL)
+                    cnt += 1
+                    tmpLineL[1] = str(newstart+half)
+                    tmpLineL[2] = str(end)
+                    tmpLineL[3] = name + sep + 'U' + str(cnt)
+                    print '\t'.join(tmpLineL)
+                    cnt += 1
+                #-----------------------------------------------
+                #for i in range(start, end, norm_size):
+                 #   newstart = i
+                 #   newend = newstart + norm_size
+                 #   #print >>sys.stderr, newstart
+                 #   #print >>sys.stderr, newend
+                 #   if 0 < end - newend < norm_size * 0.5:
+                 #       newend = end
+                 #       #print >>sys.stderr, end
+                 #       #print >>sys.stderr, 'here'
+                 #   if newend > end:
+                 #       newend = end
+                 #   #print >>sys.stderr, newend
+                 #   tmpLineL[1] = str(newstart)
+                 #   tmpLineL[2] = str(newend)
+                 #   tmpLineL[3] = name + sep + 'U' + str(cnt)
+                 #   print '\t'.join(tmpLineL)
+                 #   cnt += 1
+                 #   if newend == end:
+                 #       break
+            elif sum > norm_size:
+                half = sum / 2
+                tmpLineL[1] = str(start)
+                tmpLineL[2] = str(start+half)
+                tmpLineL[3] = name + sep + 'U' + str(cnt)
+                print '\t'.join(tmpLineL)
+                cnt += 1
+                tmpLineL[1] = str(start+half)
+                tmpLineL[2] = str(end)
+                tmpLineL[3] = name + sep + 'U' + str(cnt)
+                print '\t'.join(tmpLineL)
             else:
                 tmpLineL[1] = str(tmpLineL[1])
                 tmpLineL[2] = str(tmpLineL[2])
@@ -142,7 +182,7 @@ def main():
             valueL.sort(key=lambda x:(x[1], x[2]))
             for tmpL in valueL:
                 sum += tmpL[2]-tmpL[1]
-            if sum >= norm_size * 1.5:
+            if sum >= norm_size * 2:
                 #tcnt = sum / norm_size + 1
                 diff = norm_size
                 #for i in range(tcnt):
@@ -162,7 +202,7 @@ def main():
                         newstart = start
                         newend = newstart + diff
                         if cntTmpL == lenvalueL and \
-                            0 < end - newend < norm_size*0.5:
+                            0 < end - newend < norm_size:
                             newend = end
                         if newend > end:
                             diff = newend - end
@@ -186,10 +226,14 @@ def main():
                 innercnt = 1
                 tmpsum187 = 0
                 last192 = 0
-                for tmpL in outputL[:-1]:
-                    tmpsum187 += int(tmpL[2])-int(tmpL[1])
-                    if sum - tmpsum187 < norm_size * 0.5:
+                labelUsedRegions = 0
+                for tmpL in outputL:
+                    #print tmpL
+                    #tmpsum187 += int(tmpL[2])-int(tmpL[1])
+                    if tmpsum187 % norm_size == 0 and \
+                            sum - tmpsum187 <= norm_size * 2:
                         last192 = 1
+                        break
                     if last192 == 0 and sum160 == 0 and \
                         int(tmpL[2])-int(tmpL[1]) == norm_size:
                         tmpL[3] = name + sep + 'SU' + str(cnt159)
@@ -197,20 +241,171 @@ def main():
                         tmpL[3] = name+sep+'S'+str(cnt159)+sep+str(innercnt)
                     #----------------------------------------------
                     print '\t'.join(tmpL)
+                    labelUsedRegions += 1
+                    tmpsum187 += int(tmpL[2])-int(tmpL[1])
                     innercnt += 1
                     sum160 += int(tmpL[2])-int(tmpL[1])
                     if last192 == 0 and sum160 % norm_size == 0:
                         sum160 = 0
                         cnt159 += 1
                         innercnt =1
-                #--------------------The last one----------
-                tmpL = outputL[-1]
-                if last192 == 0 and sum160 == 0:
-                    tmpL[3] = name + sep + 'SU' + str(cnt159)
-                else:
-                    tmpL[3] = name+sep+'S'+str(cnt159)+sep+str(innercnt)
-                print '\t'.join(tmpL)
-            #----------------------------------------
+#                #--------------------The last one----------
+#                tmpL = outputL[-1]
+#                if last192 == 0 and sum160 == 0:
+#                    start = int(tmpL[1])
+#                    end   = int(tmpL[2])
+#                    half = (end - start) / 2
+#                    tmpL[2] = str(start+half)
+#                    tmpL[3] = name + sep + 'SU' + str(cnt159)
+#                    print '\t'.join(tmpL)
+#                    cnt159 += 1
+#                    tmpL[1] = tmpL[2]
+#                    tmpL[2] = str(end)
+#                    tmpL[3] = name + sep + 'SU' + str(cnt159)
+#                    print '\t'.join(tmpL)
+#                else:
+#                    start = int(tmpL[1])
+#                    end   = int(tmpL[2])
+#                    ready = sum160 % norm_size
+#                    all_remain_len = ready + end -start
+#                    if all_remain_len >= norm_size * 2:
+#                        remain = norm_size - ready
+#                    else:
+#                        remain = all_remain_len / 2 - ready
+#                    #--------------------------------------
+#                    if remain > 0:
+#                        tmpL[2] = str(start + remain)
+#                        tmpL[3] = name+sep+'S'+str(cnt159)+sep+str(innercnt)
+#                        print '\t'.join(tmpL)
+#                        cnt159 += 1
+#                        tmpL[1] = tmpL[2]
+#                        tmpL[2] = str(end)
+#                        tmpL[3] = name + sep + 'SU' + str(cnt159)
+#                        print '\t'.join(tmpL)
+#                    else:
+#                        tmpL[3] = name+sep+'S'+str(cnt159)+sep+str(innercnt)
+#                        print '\t'.join(tmpL)
+#                #--------------------------------
+                assert innercnt == 1
+                half = (sum-tmpsum187) / 2
+                remain = half
+                for tmpL in outputL[labelUsedRegions:]:
+                    #print tmpL
+                    start = int(tmpL[1])
+                    end   = int(tmpL[2])
+                    length = end - start
+                    #print "***length=,", length
+                    #print "***remain=,", remain
+                    if length < remain:
+                        tmpL[1] = str(tmpL[1])
+                        tmpL[2] = str(tmpL[2])
+                        tmpL[3] = name + sep + 'S' + str(cnt159) + \
+                            sep + str(innercnt)
+                        print '\t'.join(tmpL)
+                        innercnt += 1
+                        remain = remain - length
+                    elif length == remain:
+                        tmpL[1] = str(tmpL[1])
+                        tmpL[2] = str(tmpL[2])
+                        if remain == half:
+                            tmpL[3] = name + sep + 'SU' + str(cnt159)
+                        else:
+                            tmpL[3] = name + sep + 'S' + str(cnt159) + \
+                                sep + str(innercnt)
+                        #--------------------------------
+                        print '\t'.join(tmpL)
+                        cnt159 += 1
+                        innercnt = 1
+                        remain = sum -tmpsum187 -half
+                    else:
+                        if remain < half:
+                            tmpL[1] = str(tmpL[1])
+                            tmpL[2] = str(start+remain)
+                            tmpL[3] = name + sep + 'S' + \
+                                str(cnt159) + sep + str(innercnt)
+                            print '\t'.join(tmpL)
+                            cnt159 += 1
+                            innercnt = 1
+                        else:
+                            tmpL[1] = str(tmpL[1])
+                            tmpL[2] = str(start+remain)
+                            tmpL[3] = name + sep + 'SU' + str(cnt159)
+                            print '\t'.join(tmpL)
+                            cnt159 += 1
+                            innercnt = 1
+                        #-----------------------
+                        remain = sum -tmpsum187 -half
+                        tmpL[1] = tmpL[2]
+                        tmpL[2] = str(end)
+                        if remain == end - int(tmpL[1]):
+                            tmpL[3] = name + sep + 'SU' + str(cnt159)
+                        else:
+                            tmpL[3] = name + sep + 'S' + str(cnt159) + \
+                                sep + str(innercnt)
+                        print '\t'.join(tmpL)
+                        innercnt += 1
+                        #cnt159 += 1
+                    #-----------------------------
+                #----------------------------------------
+#            #----------------------------------------
+            elif sum > norm_size:
+                cnt = 1
+                tcnt = 1
+                half = sum / 2
+                remain = half
+                for tmpL in valueL:
+                    start = tmpL[1]
+                    end   = tmpL[2]
+                    length = end - start
+                    if length < remain:
+                        tmpL[1] = str(tmpL[1])
+                        tmpL[2] = str(tmpL[2])
+                        tmpL[3] = name + sep + 'S' + str(tcnt) + sep + str(cnt)
+                        print '\t'.join(tmpL)
+                        cnt += 1
+                        remain = remain - length
+                    elif length == remain:
+                        tmpL[1] = str(tmpL[1])
+                        tmpL[2] = str(tmpL[2])
+                        if remain == half:
+                            tmpL[3] = name + sep + 'SU' + str(tcnt)
+                        else:
+                            tmpL[3] = name + sep + 'S' + str(tcnt) + \
+                                sep + str(cnt)
+                        print '\t'.join(tmpL)
+                        cnt += 1
+                        tcnt = 2
+                        cnt = 1
+                        remain = sum- half
+                    else:
+                        if remain < half:
+                            tmpL[1] = str(tmpL[1])
+                            tmpL[2] = str(start+remain)
+                            tmpL[3] = name + sep + 'S' + str(tcnt) + sep + str(cnt)
+                            print '\t'.join(tmpL)
+                            tcnt = 2
+                            cnt = 1
+                        else:
+                            tmpL[1] = str(tmpL[1])
+                            tmpL[2] = str(start+remain)
+                            tmpL[3] = name + sep + 'SU' + str(tcnt)
+                            print '\t'.join(tmpL)
+                            tcnt = 2
+                            cnt = 1
+                        #-----------------------
+                        remain = sum - half
+                        tmpL[1] = tmpL[2]
+                        tmpL[2] = str(end)
+                        if remain == end - int(tmpL[1]):
+                            tmpL[3] = name + sep + 'SU' + str(tcnt)
+                        else:
+                            tmpL[3] = name + sep + 'S' + str(tcnt) + sep + str(cnt)
+                        print '\t'.join(tmpL)
+                        cnt += 1
+                        tcnt = 2
+                    #-----------------------------
+                #----------------------------------------
+            #----------------------------------
             else:
                 cnt = 1
                 for tmpL in valueL:
