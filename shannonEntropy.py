@@ -189,7 +189,7 @@ more ubiquitous of a gene. Normally a small value would be better to \
 get lineage specific genes and a large value would be better for \
 housekeeping genes. It ranges from 0 to log2(N)[N is the number \
 of lineages used here.] Default 2. If <getSpecific>, all genes with \
-entropy less than given value here will be processed furtherly. \
+entropy no larger than than given value here will be processed furtherly. \
 If <getCommon>, all genes with entropy larger than given value will \
 processed furtherly.")
     parser.add_option("-E", "--strict-entropy", dest="strict_entropy",
