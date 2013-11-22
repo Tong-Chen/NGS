@@ -32,7 +32,8 @@ def cmdparameter(argv):
     usages = "%prog -i file"
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
-        metavar="FILEIN", help="The files want to compute")
+        metavar="FILEIN", help="The file want to compute. \
+Multiple files separated by <,> are accepted.")
     parser.add_option("-f", "--format", dest="format",
         metavar="FASTA", default='FATSA', help="The format of files \
 given. Default is one-line-FASTA. For FATSA file, \
@@ -44,6 +45,13 @@ legal format.")
         metavar="COUNT", default='count', help="The type of data to be outputed. \
 <count> represents raw count of each element. \
 <percentage> represents the relative count of each element.")
+    parser.add_option("-F", "--output-format", dest="of",
+        default='matrix', help="Default output normal matrix-table. \
+if <melt> given, a melted matrix will be outputed.")
+    parser.add_option("-s", "--Set", dest="Set",
+        default=0, help="Only used when -F is melt. A word to \
+represent the attribute of your data. If multiple files are \
+supplied to -i, related string for <Set> is needed.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -53,9 +61,9 @@ legal format.")
     return (options, args)
 #--------------------------------------------------------------------
 
-def stackColumnsFromFasta(fh):
+def stackColumnsFromFasta(file):
     aDict = {}
-    for line in fh:
+    for line in open(file):
         if line[0] == '>':
             continue
         else:
@@ -75,45 +83,63 @@ def stackColumnsFromFasta(fh):
     return aDict
 #-------------------------------------------
 
-def outputStackColumns(aDict, type):
+def outputStackColumns(aDict, type, of, Set, noHead):
     posKeyL = aDict.keys()
     posKeyL.sort() 
     elementL = [j for i in posKeyL for j in
         aDict[i].keys()]
     elementL = list(set(elementL))
     elementL.sort()
-    print "pos\t%s" % '\t'.join(elementL)
-    for pos in posKeyL:
-        tmpL = [aDict[pos].get(ele,0) for ele in elementL]
-        if type == 'count':
-            tmp = '\t'.join([str(count) for count in tmpL])
-        elif type == 'percentage':
-            sumL = sum(tmpL) * 1.0
-            tmp = '\t'.join([str(i/sumL) for i in tmpL])
-        #-----------------------------------------
-        print "%s\t%s" % (str(pos), tmp)
+    if of == 'matrix':
+        if noHead == 0:
+            print "pos\t%s" % '\t'.join(elementL)
+        for pos in posKeyL:
+            tmpL = [aDict[pos].get(ele,0) for ele in elementL]
+            if type == 'count':
+                tmp = '\t'.join([str(count) for count in tmpL])
+            elif type == 'percentage':
+                sumL = sum(tmpL) * 1.0
+                tmp = '\t'.join([str(i/sumL) for i in tmpL])
+            #-----------------------------------------
+            print "%s\t%s" % (str(pos), tmp)
+        #---------------------------------------
+    elif of == 'melt':
+        lenEle = len(elementL)
+        if noHead == 0:
+            print "pos\tvariable\tvalue\tSet" 
+        for pos in posKeyL:
+            tmpL = [aDict[pos].get(ele,0) for ele in elementL]
+            if type == 'count':
+                tmpL = [str(i) for i in tmpL]
+            elif type == 'percentage':
+                sumL = sum(tmpL) * 1.0
+                tmpL = [str(i/sumL) for i in tmpL]
+            #-----------------------------------------
+            for i in range(lenEle):
+                print "%s\t%s\t%s\t%s" % \
+                    (str(pos),elementL[i], tmpL[i], Set)
+    #--------------------------------------------
 #------------------------------------------------
 
 def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
-    file = options.filein
+    fileL = options.filein.split(',')
     format = options.format
     type = options.type
+    of = options.of
+    Set = options.Set.split(',')
     verbose = options.verbose
     debug = options.debug
     #-----------------------------------
-    if file == '-':
-        fh = sys.stdin
-    else:
-        fh = open(file)
     #--------------------------------
-    aDict = stackColumnsFromFasta(fh)
-    outputStackColumns(aDict, type)
+    noHead = 0
+    for file in fileL:
+        aDict = stackColumnsFromFasta(file)
+        outputStackColumns(aDict, type, of, Set[noHead], noHead)
+        noHead += 1
     #-------------END reading file----------
     #----close file handle for files-----
-    if file != '-':
-        fh.close()
     #-----------end close fh-----------
     if verbose:
         print >>sys.stderr,\
