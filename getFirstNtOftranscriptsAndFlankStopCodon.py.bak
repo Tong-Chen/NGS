@@ -1,0 +1,550 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#from __future__ import division, with_statement
+'''
+Copyright 2013, 陈同 (chentong_biology@163.com).  
+===========================================================
+'''
+__author__ = 'chentong & ct586[9]'
+__author_email__ = 'chentong_biology@163.com'
+#=========================================================
+'''
+Functionla description
+
+This is designed to extract two parts of mRNA. The first part if the
+first n nt regions of transcripts. [Transcriptionaal Start Site, TSS+n]
+The second part is the flanking n nt regions of Stopcodon.
+[Translating Stop site-n/2, Translating Stop Site+n/2].
+
+Input file is the output of parseGTF.py.
+
+Necessary lines:
+chr12   4824595 4824625 NM_025323_15.Coding_exon.1      0       +
+chr12   4827399 4827518 NM_025323_15.Coding_exon.2      0       +
+chr12   4833563 4833702 NM_025323_15.Coding_exon.3      0       +
+chr12   4833819 4833909 NM_025323_15.Coding_exon.4      0       +
+chr12   4824413 4824595 NM_025323_15.UTR5       0       +
+chr12   4833909 4834465 NM_025323_15.UTR3       0       +
+'''
+
+import sys
+import os
+from time import localtime, strftime 
+timeformat = "%Y-%m-%d %H:%M:%S"
+from optparse import OptionParser as OP
+
+def cmdparameter(argv):
+    if len(argv) == 1:
+        cmd = 'python ' + argv[0] + ' -h'
+        os.system(cmd)
+        sys.exit(1)
+    desc = ""
+    usages = "%prog -i file"
+    parser = OP(usage=usages)
+    parser.add_option("-i", "--input-file", dest="filein",
+        metavar="FILEIN", help="Ususlally input file is the output of \
+parseGTF.py. Other bed files with UTR5,UTR3,Exon cooredinate in given \
+format should be OK")
+    parser.add_option("-t", "--tCss-length", dest="startRegion",
+        metavar="200,400",
+        default="200,400", help="The width you want for Transcriptional \
+start site flanking regions. Single number or multiple regions separated by comma are \
+accepted. Default 200,400")
+    parser.add_option("-w", "--direction", dest="direction",
+        default='down', metavar="down", 
+        help="The ways of using <n> given to tss-length. \
+[up] means extracting the upstream <n> nt of TSS. \
+[down] means extracting the downstream <n> nt of TSS. \
+[both] means extracting 2*<n> nt flanking TSS. Default down. \
+Multiple values separated by ',' are also accepted.")
+    parser.add_option("-e", "--tRts-length", dest="endRegion",
+        metavar="200,400",
+        default="200,400", help="The width you want for Translation \
+terminating sites flanking regions. Single number or multiple regions separated by \
+comma are accepted. Default 200,400.")
+    parser.add_option("-o", "--orientation", dest="orientation",
+        metavar='both',
+        default='both', help="The ways of using <n> given to tRts-length. \
+[up] means extracting the upstream <n> nt of TTS. \
+[down] means extracting the downstream <n> nt of TTS. \
+[both] means extracting 2*<n> nt flanking TTS. Default both. \
+Multiple values separated by ',' are also accepted.")
+    parser.add_option("-v", "--verbose", dest="verbose",
+        default=0, help="Show process information")
+    parser.add_option("-d", "--debug", dest="debug",
+        default=False, help="Debug the program")
+    (options, args) = parser.parse_args(argv[1:])
+    assert options.filein != None, "A filename needed for -i"
+    return (options, args)
+#--------------------------------------------------------------------
+
+
+
+def processing(aDict, name, tCss_len, tCss_w, tRts_len, tRts_w):
+    strand = aDict['strand']
+    exonKeyL = aDict['Coding_exon'].keys()
+    exonKeyL.sort()
+    if strand == '+':
+        if 'UTR5' not in aDict:
+            for i in tCss_len:
+                remainI = i
+                for index in exonKeyL:
+                    tmpExon  = aDict['Coding_exon'][index]
+                    in_start = int(tmpExon[1])
+                    in_end   = int(tmpExon[2])
+                    in_width = in_end - in_start
+                    if remainI > in_width:
+                        tmpL = [tmpExon[0], str(in_start), str(in_end),
+                                name+'.TcSS.dw'+str(i),tmpExon[4],
+                                strand]
+                        print '\t'.join(tmpL)
+                        remainI = remainI - in_width
+                    else:
+                        tmpL = [tmpExon[0], str(in_start),
+                                str(in_start+remainI),
+                                name+'.TcSS.dw'+str(i),tmpExon[4],
+                                strand]
+                        print '\t'.join(tmpL)
+                        remainI = 0
+                        break
+                #-------------Get full length-----------------
+            #-----------------END one type of length---------------------
+        #-------END no UTR5----------------------------------------------
+        else:
+            for i in tCss_len:
+                remainI = i
+                #print aDict['UTR5']
+                for UTR5 in aDict['UTR5']:
+                    #print UTR5
+                    start = int(UTR5[1])
+                    end   = int(UTR5[2])
+                    width = end -start
+                    if remainI <= width:
+                        tmpL = [UTR5[0], str(start), str(start+remainI),
+                                name+'.TcSS.dw'+str(i),UTR5[4],
+                                strand]
+                        print '\t'.join(tmpL)
+                        remainI = 0
+                        break
+                    else:
+                        tmpL = [UTR5[0], str(start), str(end),
+                                name+'.TcSS.dw'+str(i),UTR5[4],
+                                strand]
+                        print '\t'.join(tmpL)
+                        remainI = remainI - width 
+                #---------Get seg length from UTR5-----------
+                #---------Get seg length from Exon-----------
+                if remainI == 0:
+                    continue
+                for index in exonKeyL:
+                    tmpExon  = aDict['Coding_exon'][index]
+                    in_start = int(tmpExon[1])
+                    in_end   = int(tmpExon[2])
+                    in_width = in_end - in_start
+                    if remainI > in_width:
+                        tmpL = [tmpExon[0], str(in_start), str(in_end),
+                                name+'.TcSS.dw'+str(i),tmpExon[4],
+                                strand]
+                        print '\t'.join(tmpL)
+                        remainI = remainI - in_width
+                    else:
+                        tmpL = [tmpExon[0], str(in_start),
+                                str(in_start+remainI),
+                                name+'.TcSS.dw'+str(i),tmpExon[4],
+                                strand]
+                        print '\t'.join(tmpL)
+                        remainI = 0
+                        break
+                #-------------Get full length-----------------
+            #-----------------END one type of length---------------------
+        #-------END no UTR5----------------------------------------------
+        #--------------------BEGIN UTR3---------------------------------
+        exonKeyL.reverse()
+        if 'UTR3' not in aDict:
+            for i in tRts_len:
+                remainI = i
+                for type in tRts_w:
+                    if type == 'down' :
+                        continue
+                    for index in exonKeyL:
+                        tmpExon  = aDict['Coding_exon'][index]
+                        in_start = int(tmpExon[1])
+                        in_end   = int(tmpExon[2])
+                        in_width = in_end - in_start
+                        if remainI > in_width:
+                            tmpL = [tmpExon[0], str(in_start), str(in_end),
+                                    name+'.TsTS.'+type+str(i),tmpExon[4],
+                                    strand]
+                            print '\t'.join(tmpL)
+                            remainI = remainI - in_width
+                        else:
+                            tmpL = [tmpExon[0], str(in_end-remainI),
+                                    str(in_end),
+                                    name+'.TsTS.'+type+str(i),tmpExon[4],
+                                    strand]
+                            print '\t'.join(tmpL)
+                            remainI = 0
+                            break
+                    #-------------Get full length-----------------
+                #-----------------END one type of length---------------------
+            #-----------------END various length---------------------
+        #-------END no UTR3----------------------------------------------
+        else:
+            for i in tRts_len:
+                for type in tRts_w:
+                    remainI = i
+                    if type == 'UP':
+                        for index in exonKeyL:
+                            tmpExon  = aDict['Coding_exon'][index]
+                            in_start = int(tmpExon[1])
+                            in_end   = int(tmpExon[2])
+                            in_width = in_end - in_start
+                            if remainI > in_width:
+                                tmpL = [tmpExon[0], str(in_start), str(in_end),
+                                        name+'.TsTS.'+type+str(i),tmpExon[4],
+                                        strand]
+                                print '\t'.join(tmpL)
+                                remainI = remainI - in_width
+                            else:
+                                tmpL = [tmpExon[0], str(in_end-remainI),
+                                        str(in_end),
+                                        name+'.TsTS.'+type+str(i),tmpExon[4],
+                                        strand]
+                                print '\t'.join(tmpL)
+                                remainI = 0
+                                break
+                        #-------------Get full length-----------------
+                    elif type == 'DW':
+                        for UTR3 in aDict['UTR3']:
+                            in_start = int(UTR3[1])
+                            in_end   = int(UTR3[2])
+                            in_width = in_end - in_start
+                            if remainI > in_width:
+                                tmpL = [UTR3[0],UTR3[1],UTR3[2], 
+                                    name+'.TsTS.DW'+str(i),UTR3[4],strand]
+                                remainI = remainI - in_width
+                                print '\t'.join(tmpL)
+                            else:
+                                tmpL = [UTR3[0],UTR3[1],str(in_start+remainI), 
+                                    name+'.TsTS.DW'+str(i),UTR3[4],strand]
+                                print '\t'.join(tmpL)
+                                remainI = 0
+                                break
+                            #----------------------------------------------
+                        #------------------------------------
+                    elif type == 'both':
+                        exonRemainI = remainI
+                        UTR3RemainI = remainI
+                        for index in exonKeyL:
+                            tmpExon  = aDict['Coding_exon'][index]
+                            in_start = int(tmpExon[1])
+                            in_end   = int(tmpExon[2])
+                            in_width = in_end - in_start
+                            if exonRemainI > in_width:
+                                tmpL = [tmpExon[0], str(in_start), str(in_end),
+                                        name+'.TsTS.'+type+str(i),tmpExon[4],
+                                        strand]
+                                print '\t'.join(tmpL)
+                                exonRemainI = exonRemainI - in_width
+                            else:
+                                tmpL = [tmpExon[0], str(in_end-exonRemainI),
+                                        str(in_end),
+                                        name+'.TsTS.'+type+str(i),tmpExon[4],
+                                        strand]
+                                print '\t'.join(tmpL)
+                                exonRemainI = 0
+                                break
+                        #-------------Get full length-----------------
+                        for UTR3 in aDict['UTR3']:
+                            in_start = int(UTR3[1])
+                            in_end   = int(UTR3[2])
+                            in_width = in_end - in_start
+                            if UTR3RemainI > in_width:
+                                tmpL = [UTR3[0],UTR3[1],UTR3[2], 
+                                    name+'.TsTS.'+type+str(i),UTR3[4],strand]
+                                UTR3RemainI = UTR3RemainI - in_width
+                                print '\t'.join(tmpL)
+                            else:
+                                tmpL = \
+                                    [UTR3[0],UTR3[1],str(in_start+UTR3RemainI), 
+                                    name+'.TsTS.'+type+str(i),UTR3[4],strand]
+                                print '\t'.join(tmpL)
+                                UTR3RemainI = 0
+                                break
+                            #----------------------------------------------
+                        #------------------------------------
+                #-----------------END one type of length---------------------
+            #-----------------END various length---------------------
+        #--------------------END UTR3---------------------
+    #----------------------END all positive strand------
+    elif strand == '-':
+        exonKeyL.reverse()
+        if 'UTR5' not in aDict:
+            for i in tCss_len:
+                remainI = i
+                for index in exonKeyL:
+                    tmpExon  = aDict['Coding_exon'][index]
+                    in_start = int(tmpExon[1])
+                    in_end   = int(tmpExon[2])
+                    in_width = in_end - in_start
+                    if remainI > in_width:
+                        tmpL = [tmpExon[0], str(in_start), str(in_end),
+                                name+'.TcSS.dw'+str(i),tmpExon[4],
+                                strand]
+                        print '\t'.join(tmpL)
+                        remainI = remainI - in_width
+                    else:
+                        tmpL = [tmpExon[0], str(in_end-remainI),
+                                str(in_end),
+                                name+'.TcSS.dw'+str(i),tmpExon[4],
+                                strand]
+                        print '\t'.join(tmpL)
+                        remainI = 0
+                        break
+                #-------------Get full length-----------------
+            #-----------------END one type of length---------------------
+        #-------END no UTR5----------------------------------------------
+        else:
+            for i in tCss_len:
+                remainI = i
+                UTR5L = aDict['UTR5']
+                UTR5L.reverse()
+                for UTR5 in UTR5L:
+                    start = int(UTR5[1])
+                    end   = int(UTR5[2])
+                    width = end -start
+                    if remainI <= width:
+                        tmpL = [UTR5[0], str(end-remainI), str(end),
+                                name+'.TcSS.dw'+str(i),UTR5[4],
+                                strand]
+                        print '\t'.join(tmpL)
+                        remainI = 0
+                        break
+                    else:
+                        tmpL = [UTR5[0], str(start), str(end),
+                                name+'.TcSS.dw'+str(i),UTR5[4],
+                                strand]
+                        print '\t'.join(tmpL)
+                        remainI = remainI - width 
+                #---------Get seg length from UTR5-----------
+                #---------Get seg length from Exon-----------
+                if remainI == 0:
+                    continue
+                for index in exonKeyL:
+                    tmpExon  = aDict['Coding_exon'][index]
+                    in_start = int(tmpExon[1])
+                    in_end   = int(tmpExon[2])
+                    in_width = in_end - in_start
+                    if remainI > in_width:
+                        tmpL = [tmpExon[0], str(in_start), str(in_end),
+                                name+'.TcSS.dw'+str(i),tmpExon[4],
+                                strand]
+                        print '\t'.join(tmpL)
+                        remainI = remainI - in_width
+                    else:
+                        tmpL = [tmpExon[0], str(in_end-remainI),
+                                str(in_end),
+                                name+'.TcSS.dw'+str(i),tmpExon[4],
+                                strand]
+                        print '\t'.join(tmpL)
+                        remainI = 0
+                        break
+                    #-------------Get full length-----------------
+                #-------------Get full length-----------------
+            #-----------------END one type of length---------------------
+        #-------END no UTR5----------------------------------------------
+        #--------------------BEGIN UTR3---------------------------------
+        exonKeyL.reverse()
+        if "UTR3" not in aDict:
+            for i in tRts_len:
+                remainI = i
+                for type in tRts_w:
+                    if type == 'down' :
+                        continue
+                    for index in exonKeyL:
+                        tmpExon  = aDict['Coding_exon'][index]
+                        in_start = int(tmpExon[1])
+                        in_end   = int(tmpExon[2])
+                        in_width = in_end - in_start
+                        if remainI > in_width:
+                            tmpL = [tmpExon[0], str(in_start), str(in_end),
+                                    name+'.TsTS.'+type+str(i),tmpExon[4],
+                                    strand]
+                            print '\t'.join(tmpL)
+                            remainI = remainI - in_width
+                        else:
+                            tmpL = [tmpExon[0], str(in_start),
+                                    str(in_start+remainI),
+                                    name+'.TsTS.'+type+str(i),tmpExon[4],
+                                    strand]
+                            print '\t'.join(tmpL)
+                            remainI = 0
+                            break
+                    #-------------Get full length-----------------
+                #-----------------END one type of length---------------------
+            #-----------------END various length---------------------
+        #-------END no UTR3----------------------------------------------
+        else:
+            UTR3L = aDict['UTR3']
+            UTR3L.reverse()
+            for i in tRts_len:
+                for type in tRts_w:
+                    remainI = i
+                    if type == 'UP':
+                        for index in exonKeyL:
+                            tmpExon  = aDict['Coding_exon'][index]
+                            in_start = int(tmpExon[1])
+                            in_end   = int(tmpExon[2])
+                            in_width = in_end - in_start
+                            if remainI > in_width:
+                                tmpL = [tmpExon[0], str(in_start), str(in_end),
+                                        name+'.TsTS.'+type+str(i),tmpExon[4],
+                                        strand]
+                                print '\t'.join(tmpL)
+                                remainI = remainI - in_width
+                            else:
+                                tmpL = [tmpExon[0], str(in_start),
+                                        str(in_start+remainI),
+                                        name+'.TsTS.'+type+str(i),tmpExon[4],
+                                        strand]
+                                print '\t'.join(tmpL)
+                                remainI = 0
+                                break
+                        #-------------Get full length-----------------
+                    elif type == 'DW':
+                        for UTR3 in UTR3L:
+                            in_start = int(UTR3[1])
+                            in_end   = int(UTR3[2])
+                            in_width = in_end - in_start
+                            if remainI > in_width:
+                                tmpL = [UTR3[0],UTR3[1],UTR3[2], 
+                                    name+'.TsTS.DW'+str(i),UTR3[4],strand]
+                                remainI = remainI - in_width
+                                print '\t'.join(tmpL)
+                            else:
+                                tmpL = [UTR3[0],in_end-remainI,UTR3[2], 
+                                    name+'.TsTS.DW'+str(i),UTR3[4],strand]
+                                print '\t'.join(tmpL)
+                                remainI = 0
+                                break
+                            #----------------------------------------------
+                        #------------------------------------
+                    elif type == 'both':
+                        exonRemainI = remainI
+                        UTR3RemainI = remainI
+                        for index in exonKeyL:
+                            tmpExon  = aDict['Coding_exon'][index]
+                            in_start = int(tmpExon[1])
+                            in_end   = int(tmpExon[2])
+                            in_width = in_end - in_start
+                            if exonRemainI > in_width:
+                                tmpL = [tmpExon[0], str(in_start), str(in_end),
+                                        name+'.TsTS.'+type+str(i),tmpExon[4],
+                                        strand]
+                                print '\t'.join(tmpL)
+                                exonRemainI = exonRemainI - in_width
+                            else:
+                                tmpL = [tmpExon[0], str(in_start),
+                                        str(in_start+exonRemainI),
+                                        name+'.TsTS.'+type+str(i),tmpExon[4],
+                                        strand]
+                                print '\t'.join(tmpL)
+                                exonRemainI = 0
+                                break
+                        #-------------Get full length-----------------
+                        for UTR3 in UTR3L:
+                            in_start = int(UTR3[1])
+                            in_end   = int(UTR3[2])
+                            in_width = in_end - in_start
+                            if UTR3RemainI > in_width:
+                                tmpL = [UTR3[0],UTR3[1],UTR3[2], 
+                                    name+'.TsTS.'+type+str(i),UTR3[4],strand]
+                                UTR3RemainI = UTR3RemainI - in_width
+                                print '\t'.join(tmpL)
+                            else:
+                                tmpL = \
+                                    [UTR3[0],str(in_end-UTR3RemainI),UTR3[2], 
+                                    name+'.TsTS.'+type+str(i),UTR3[4],strand]
+                                print '\t'.join(tmpL)
+                                UTR3RemainI = 0
+                                break
+                            #----------------------------------------------
+                        #------------------------------------
+                    #----------------------------------
+                #-----------------END one type of length---------------------
+            #-----------------END various length---------------------
+        #----------------------END all positive strand------
+    #---------------------------------------------
+#-------------------END processing------------------------------
+
+
+def main():
+    options, args = cmdparameter(sys.argv)
+    #-----------------------------------
+    file = options.filein
+    tCss_len = [int(i) for i in options.startRegion.split(',')]
+    tCss_w = options.direction.split(',') 
+    tRts_len = [int(i) for i in options.endRegion.split(',')]
+    tRts_w = options.orientation.split(',')
+    verbose = options.verbose
+    debug = options.debug
+    #-----------------------------------
+    if file == '-':
+        fh = sys.stdin
+    else:
+        fh = open(file)
+    #--------------------------------
+    key = ''
+    aDict = {}
+    '''
+    aDict - {'Coding_exon':{1:[chr1, start, end], 2:[chr2, start,
+            end]}, 'UTR5':[[], []], 'UTR3':[[], []]}
+    '''
+    for line in fh:
+        lineL = line.split()
+        forthCol = lineL[3]
+        newkey = forthCol.split('.')[0] 
+        if key and newkey != key:
+            processing(aDict, key, tCss_len, tCss_w, tRts_len, tRts_w)
+            aDict = {}
+        key = newkey
+        if 'strand' not in aDict:
+            aDict['strand'] = lineL[5]
+        else:
+            assert lineL[5] == aDict['strand']
+        if forthCol.find('exon') != -1:
+            null,type,num = forthCol.split('.')
+            num = int(num)
+            if type not in aDict:
+                aDict[type] = {}
+            aDict[type][num] = lineL
+        elif forthCol.find('UTR5') != -1 or forthCol.find('UTR3') != -1:
+            type = forthCol.split('.',1)[1] 
+            if type not in aDict:
+                aDict[type] = [lineL]
+            else:
+                aDict[type].append(lineL)
+            #----------------------------------------------------------
+        #------------------------------------------------------
+    #-------------END reading file----------
+    if key:
+        processing(aDict, key, tCss_len, tCss_w, tRts_len, tRts_w)
+        aDict = {}
+    #----close file handle for files-----
+    if file != '-':
+        fh.close()
+    #-----------end close fh-----------
+    if verbose:
+        print >>sys.stderr,\
+            "--Successful %s" % strftime(timeformat, localtime())
+if __name__ == '__main__':
+    startTime = strftime(timeformat, localtime())
+    main()
+    endTime = strftime(timeformat, localtime())
+    fh = open('python.log', 'a')
+    print >>fh, "%s\n\tRun time : %s - %s " % \
+        (' '.join(sys.argv), startTime, endTime)
+    fh.close()
+
+
+

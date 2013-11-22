@@ -8,7 +8,7 @@ Copyright 2013, 陈同 (chentong_biology@163.com).
 __author__ = 'chentong & ct586[9]'
 __author_email__ = 'chentong_biology@163.com'
 #=========================================================
-'''
+func='''
 Functionla description
 
 This is designed to compute the percantage of peaks overlapped among
@@ -27,6 +27,11 @@ and Y relative to total numbe of Y-axis.
 This depends on the command <intersectBed> from Bedtools for region
 data in bed format and local script <diffComMultiple.py> for one
 column name data. 
+
+***Programs with similar functions
+***<oneToOneCmpForMultipleFiles.sh>*** 
+and
+***<oneToOthersCompare.py>.***
 '''
 
 import sys
@@ -38,6 +43,7 @@ from optparse import OptionParser as OP
 
 def cmdparameter(argv):
     if len(argv) == 1:
+        print >>sys.stderr, func
         cmd = 'python ' + argv[0] + ' -h'
         os.system(cmd)
         sys.exit(1)
@@ -51,8 +57,9 @@ comma only, like 'file1.bed,file2.bed,file3.bed'")
         metavar="FILEIN", help="Unique string to represent \
 input files, like 'file1,file2,file3'. Label must be consistent with \
 file name. Default using filenmae as labels. If the length of label \
-less than the length of filenames, the filenames will be trunctated to \
-from tail.")
+less than the length of filenames, only the first length-label-number \
+files will be processed. The program will give an warning when meeting \
+this situtation.")
     parser.add_option("-t", "--type", dest="type",
         metavar="Region/Name", 
         default='Region', help="This indicates the type of data. \
