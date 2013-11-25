@@ -128,7 +128,11 @@ def main():
     format = options.format
     type = options.type
     of = options.of
-    Set = options.Set.split(',')
+    if options.Set != None:
+        Set = options.Set.split(',')
+        assert len(Set) == len(fileL)
+    else:
+        Set = ''
     verbose = options.verbose
     debug = options.debug
     #-----------------------------------
@@ -136,7 +140,11 @@ def main():
     noHead = 0
     for file in fileL:
         aDict = stackColumnsFromFasta(file)
-        outputStackColumns(aDict, type, of, Set[noHead], noHead)
+        if Set != '':
+            outputStackColumns(aDict, type, of, Set[noHead], noHead)
+        else:
+            outputStackColumns(aDict, type, of, '', noHead)
+        #--------------------------------
         noHead += 1
     #-------------END reading file----------
     #----close file handle for files-----
