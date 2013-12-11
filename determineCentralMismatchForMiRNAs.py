@@ -23,6 +23,7 @@ Input file:
 Score formula:
     # match = 2 mismatch = 0 GU = 1
 
+***Test passed***
 '''
 
 import sys
@@ -47,6 +48,12 @@ Normaly you can run nafold through wrapped nafold.pl.")
     parser.add_option("-m", "--map-file", dest="map",
         metavar="DAT.MAP", help="The parsed miRNA.dat file though \
 parsemirBase.py. This is used to map miRNAs to pre-miRNAs.") 
+    parser.add_option("-s", "--subset-file", dest="sub",
+        metavar="SUB", help="A file containing only part of \
+miRNAs.[Unsupported]")
+    parser.add_option("-a", "--all-pos-status", dest="all_status",
+        metavar="TRUE", help="Return the pairing status of all \
+positions. Default FALSE")
     parser.add_option("-p", "--position", dest="pos",
         metavar="POS", help="The positions you want to check. \
 Accept discrete numbers like '1,2,4,6' or a range '1-5' or both. \
