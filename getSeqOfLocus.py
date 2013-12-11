@@ -29,7 +29,8 @@ def cmdparameter(argv):
     usages = "%prog -i file"
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
-        metavar="FILEIN", help="A FASTA file.")
+        metavar="FILEIN", help="A FASTA file. Sequences in multiple \
+lines are supported.")
     parser.add_option("-l", "--locus", dest="locus",
         metavar="LOCUS", help="A file with given locus one each line.")
     parser.add_option("-s", "--sep", dest="sep",
