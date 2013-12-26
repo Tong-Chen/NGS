@@ -25,13 +25,20 @@ Traditionally, the output wig file for regions labeld '+' would be 0.
 Actually,  these regions are also covered by reads. Thus,  using this
 program,  you can get <true> coverage for <insert regions>.
 
+
+==============================================  Genome
+^^^^^^         ^^^^^^                           Two reads 
+      +++++          +++++                      Extend regions
+
+
 It was also planned to transfer BAM with single-end reads to wig.
 However, this is not finished yet. But other substitutaion tools or 
 combined tools are available in this directory can deal with this type
 of transferation.  
 
 1.PE extend-unextend strand-unstrand finished
-2.SE unextend strand-unstrand finished
+2.SE extend-unextend strand-unstrand finished
+  a. 2013-12-26 SE unstranded RNA extend make through the test
 STH unexpected:
 1.Mapped reads with flag 83 even when two reads mapped to different
 chromosomes.
@@ -45,6 +52,7 @@ import os
 from time import localtime, strftime 
 timeformat = "%Y-%m-%d %H:%M:%S"
 from optparse import OptionParser as OP
+DEBUG = 0
 
 def cmdparameter(argv):
     if len(argv) == 1:
@@ -60,7 +68,7 @@ regions."
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
         metavar="FILEIN", help="A SAM file with or without header,  or \
-- means STDIN. File must be sorted by chromosome")
+- means STDIN. No header lines allowed and file must be sorted by chromosome")
     parser.add_option("-g", "--gtf", dest="gtf",
         metavar="GTF", help="When -t is PE and -e is positive, this \
 GTF should be supplied. It canbe standard GTF downlaoded from UCSC. \
@@ -68,29 +76,33 @@ However, the one outputted by you RNA-Seq would be better (Only with \
 expressed transcripts is preferred).")
     parser.add_option("-n", "--nucleotide-type", dest="nt",
         metavar="RNA/DNA", default="RNA", 
-        help="Default RNA. DNA means ChIP-Seq, RNA means RNA-Seq")
+        help="Default RNA. DNA means ChIP-Seq, RNA means RNA-Seq. \
+Currently only RNA is supported.")
     parser.add_option("-t", "--seq-type", dest="seq_Type",
         metavar="PE/SE", default="PE", 
         help="Default PE. PE for pair-end reads and SE for single-end reads.")
     parser.add_option("-l", "--library-type", dest="lt",
         default="fr-unstranded", 
-        help="Default fr-unstranded. fr-unstranded,fr-firststrand,fr-secondstrand")
+        help="Default fr-unstranded. fr-unstranded,fr-firststrand,\
+fr-secondstrand. In default value, all exons in GTF will be treated as \
+positive strand exons.")
     parser.add_option("-e", "--extend", dest="extend", default=0,
-        type='int', help="Default 0 means no extend. A positive number means extending reads to \
-give length \
-for SE data or filling in the blank between two PE reads assisted by \
-GTF. 0 means no extending or filling. For PE reads,  any positive \
-number can be used to represent extend.")
+        type='int', help="Default 0 means no extend. A positive number \
+indicates the expected legth should be given for SE data. \
+For PE reads, any positive number would be enough to let \
+the progeam to fill in the blank between two PE reads assisted by \
+GTF. 0 means no extending or filling. ")
     parser.add_option("-c", "--chrom-size", dest="chromSize",
-        help="If -t is SE and -e larger than 0 and no header in SAM \
+        help="Only needed when <nucleotide-type> is DNA. \
+If -t is SE and -e larger than 0 and no header in SAM \
 file. This should be given. One can use \
 mysql --user=genome --host=genome-mysql.cse.ucsc.edu -A -e \
 'select chrom, size from mm10.chromInfo' > mm10.genome \
 to extract chromosome size.")
     parser.add_option("-v", "--verbose", dest="verbose",
-        default=0, help="Show process information")
+        default=0, help="Show process information.")
     parser.add_option("-d", "--debug", dest="debug",
-        default=False, help="Debug the program")
+        default=0, help="Debug the program")
     (options, args) = parser.parse_args(argv[1:])
     assert options.filein != None, "A filename needed for -i"
     return (options, args)
@@ -235,6 +247,19 @@ def extendWigDict(wigDict, posKeyL, exonDictChr):
     #--------------END all position---------------------
 #--------NED extendWigDict---------------------
 
+def extendWigDictSE(wigDict):
+    global DEBUG
+    for pos in wigDict.keys():
+        for xs in wigDict[pos].keys():
+            real = wigDict[pos][xs][0]
+            extend = wigDict[pos][xs][1]
+            if DEBUG:
+                print >>sys.stderr, "%s\t%s\t%s" % (pos, real, extend)
+            if real > 0 and extend < 0:
+                wigDict[pos][xs][0] = real - extend
+
+#---------------------------------------------
+
 def outputWigDict(wigDict, chr, posL, lt):
     '''
     Output variableStep wig.
@@ -323,8 +348,237 @@ def readExonRegFromGTF(gtf, lt):
             exonDict[chr][xs].append([int(lineL[3]), int(lineL[4])])
         #-----------end exon-----------
     #--------End reading file------------
+    for chr in exonDict.keys():
+        for xs in exonDict[chr].keys():
+            exonDict[chr][xs].sort()
     return exonDict
 #-----------END read exons from GTF----------
+
+def computeWigDictSE(wigDict, regionL, start, xs, 
+    extend, flag, exonDictChr=[]):
+    global DEBUG
+    if DEBUG:
+        print >>sys.stderr, "RegionL: ", regionL
+    #------save mapped reads-------------
+    countMappedLen = 0
+    for posL in regionL:
+        for pos in xrange(posL[0], posL[1]):
+            countMappedLen += 1
+            if xs not in wigDict[pos]:
+                wigDict[pos][xs] = [1,0]
+            else:
+                wigDict[pos][xs][0] += 1
+        #----------finish on region-----------
+    #-----------finish all regions-------
+    #if DEBUG:
+    #    outputWigDictTest(wigDict, 'test', posL, lt)
+    if extend and extend > countMappedLen:
+        diff = extend - countMappedLen
+        if DEBUG:
+            print >>sys.stderr, "Diff is %d" % diff
+        #-------------------------------------
+        #exonDict = {} #{chr:{'+':[[exon_s,exon_e], [], ...], '-':[[],]}} 
+                  # 1-based both closed
+        positiveExonL = exonDictChr['+']
+        if '-' in exonDictChr:
+            negativeExonL = exonDictChr['-']
+        #-----------------------------------
+        add = 1
+        findExon = 0
+        if xs == '+':
+            #Origin from positive strand or unstranded reads map to
+            #positive strand.
+            if flag & 16 == 0: 
+                if DEBUG:
+                    print >>sys.stderr, "Flag %d" % flag
+                for exonR in positiveExonL[:]:
+                    if diff == 0:
+                        break
+                    if findExon == 1:
+                        if DEBUG:
+                            print >>sys.stderr, "Current exon:", exonR
+                            print >>sys.stderr, "Next position:", exonR[0]
+                        add = 0
+                        inner_pos = exonR[0]
+                        inner_pos = inner_pos+add
+                        while diff != 0:
+                            if inner_pos > exonR[1]:
+                                break
+                            if xs not in wigDict[inner_pos]:
+                                wigDict[inner_pos][xs] = [0,-1]
+                            else:
+                                wigDict[inner_pos][xs][1] -= 1
+                            inner_pos += 1
+                            diff -= 1
+                            #-------end while-----------------
+                        #-------------------------------------
+                    #------Met the first exon-----------
+                    else:
+                        inner_pos_4 = pos + add
+                        if exonR[0] <= inner_pos_4 <= exonR[1]:
+                            if DEBUG:
+                                print >>sys.stderr, "First Met exon:", exonR
+                                print >>sys.stderr, "Next position:", pos+add
+                            findExon = 1
+                            while inner_pos_4 <= exonR[1]:
+                                if xs not in wigDict[inner_pos_4]:
+                                    wigDict[inner_pos_4][xs] = [0,-1]
+                                else:
+                                    wigDict[inner_pos_4][xs][1] -= 1
+                                #add += 1
+                                inner_pos_4 += 1
+                                diff -= 1
+                                if diff == 0:
+                                    break
+                            #-------end while-----------------
+                        #---do not locate at known exons-----------------
+                        if add == 1 and exonR[0] > pos+add:
+                            if DEBUG:
+                                print >>sys.stderr, "Locate at intron"
+                            break
+                    #---End met the first exon---------------
+                #---------test if exon-----------------
+            #Origin from positive strand or unstranded reads map to
+            #negative strand.
+            else:
+                if DEBUG:
+                    print >>sys.stderr, "Flag %d" % flag
+                for exonR in positiveExonL[::-1]:
+                    if diff == 0:
+                        break
+                    if findExon == 1:
+                        #add = 0
+                        inner_pos = exonR[1]
+                        if DEBUG:
+                            print >>sys.stderr, "Current exon:", exonR
+                            print >>sys.stderr, "Next position:", inner_pos
+                        while diff != 0:
+                            if inner_pos < exonR[0]:
+                                break
+                            if xs not in wigDict[inner_pos]:
+                                wigDict[inner_pos][xs] = [0,-1]
+                            else:
+                                wigDict[inner_pos][xs][1] -= 1
+                            #add -= 1
+                            inner_pos -= 1
+                            diff -= 1
+                            #-------end while-----------------
+                        #-------------------------------------
+                    #---------Try to find the first exon-----
+                    else:
+                        newstart = start - 1
+                        if exonR[0] <= newstart <= exonR[1]:
+                            findExon = 1
+                            if DEBUG:
+                                print >>sys.stderr, "First Met exon:", exonR
+                                print >>sys.stderr, "Next position:", newstart
+                            while newstart >= exonR[0]:
+                                if xs not in wigDict[newstart]:
+                                    wigDict[newstart][xs] = [0,-1]
+                                else:
+                                    wigDict[newstart][xs][1] -= 1
+                                #add += 1
+                                newstart -= 1
+                                diff -= 1
+                                if diff == 0:
+                                    break
+                            #-------end while-----------------
+                        #-------------------------------------
+                        if add == 1 and start-add >exonR[1]:
+                            if DEBUG:
+                                print >>sys.stderr, "Locate at intron"
+                            break
+                    #-------------------------------------
+                #---------test if exon-----------------
+        #---------------END positive or unstrand----------
+        elif xs == '-':
+            if flag & 16 == 0: 
+                for exonR in negativeExonL[:]:
+                    if diff == 0:
+                        break
+                    if findExon == 1:
+                        add = 0
+                        inner_pos = exonR[0] + 1
+                        while diff != 0:
+                            if inner_pos > exonR[1]:
+                                break
+                            if xs not in wigDict[inner_pos]:
+                                wigDict[inner_pos][xs] = [0,-1]
+                            else:
+                                wigDict[inner_pos][xs][1] -= 1
+                            #add += 1
+                            inner_pos += 1
+                            diff -= 1
+                            #-------end while-----------------
+                        #-------------------------------------
+                    else:
+                        inner_pos = pos + 1
+                        if exonR[0] <= inner_pos <= exonR[1]:
+                            findExon = 1
+                            while inner_pos <= exonR[1]:
+                                if xs not in wigDict[inner_pos]:
+                                    wigDict[inner_pos][xs] = [0,-1]
+                                else:
+                                    wigDict[inner_pos][xs][1] -= 1
+                                #add += 1
+                                inner_pos += 1
+                                diff -= 1
+                                if diff == 0:
+                                    break
+                            #-------end while-----------------
+                        #---do not locate at known exons-----------------
+                        if add == 1 and exonR[0] > pos+add:
+                            if DEBUG:
+                                print >>sys.stderr, "Locate at intron"
+                            break
+                    #-------------------------------------
+                #---------test if exon-----------------
+            else:
+                for exonR in negativeExonL[::-1]:
+                    if diff == 0:
+                        break
+                    if findExon == 1:
+                        #add = 0
+                        inner_pos = exonR[1]
+                        while diff != 0:
+                            if inner_pos < exonR[0]:
+                                break
+                            if xs not in wigDict[inner_pos]:
+                                wigDict[inner_pos][xs] = [0,-1]
+                            else:
+                                wigDict[inner_pos][xs][1] -= 1
+                            #add -= 1
+                            inner_pos -= 1
+                            diff -= 1
+                            #-------end while-----------------
+                        #-------------------------------------
+                    else:
+                        inner_pos_5 = start - 1
+                        if exonR[0] <= inner_pos_5 <= exonR[1]:
+                            findExon = 1
+                            while inner_pos_5 >= exonR[0]:
+                                if xs not in wigDict[inner_pos_5]:
+                                    wigDict[inner_pos_5][xs] = [0,-1]
+                                else:
+                                    wigDict[inner_pos_5][xs][1] -= 1
+                                #add += 1
+                                inner_pos_5 -= 1
+                                diff -= 1
+                                if diff == 0:
+                                    break
+                            #-------end while-----------------
+                        #-----locate at intron-------------
+                        if add == 1 and start-add >exonR[1]:
+                            if DEBUG:
+                                print >>sys.stderr, "Locate at intron"
+                            break
+                    #---------find the first exon-----------
+                #---------test if exon-----------------
+            #---------------------------
+        #---------------END positive or unstrand----------
+    #--------------END all position---------------------
+#---------END SE-----------------------------------
+
 
 def main():
     options, args = cmdparameter(sys.argv)
@@ -338,8 +592,13 @@ def main():
     nt = options.nt
     cs = options.chromSize
     verbose = options.verbose
-    debug = options.debug
-    #wigDict = {} #dict = {pos:{+:[+,+_e], '-':[ -,-_e]}}
+    global DEBUG
+    DEBUG = options.debug
+    #+_p means number of directly mapped reads in positive strand of this postion
+    #+_e means number of potential interval reads mapped to positive
+    #strand of thi spostion
+    #- means negative strand.
+    #wigDict = {} #dict = {pos:{+_p:[+,+_e], '-':[-_p,-_e]}}
     wigDict = collections.defaultdict(dict)
     wigDictSE = {}
     pairDict = {}
@@ -349,9 +608,9 @@ def main():
         fh = open(file)
     #--------------------------------
     #-------------open GTF-----------
-    if nt == 'RNA' and extend and readsType == 'PE':
+    if nt == 'RNA' and extend:
         if verbose:
-            print >>sys.stderr, "--Begin readding GTF---%s" \
+            print >>sys.stderr, "--Begin reading GTF---%s" \
                     % strftime(timeformat, localtime())
         if gtf:
             exonDict = readExonRegFromGTF(gtf,lt)   
@@ -359,11 +618,12 @@ def main():
             print >>sys.stderr, "GTF file is needed."
             sys.exit(1)
         if verbose:
-            print >>sys.stderr, "--Finish readding GTF---%s" \
+            print >>sys.stderr, "--Finish reading GTF---%s" \
                     % strftime(timeformat, localtime())
     #---------------------------------
     chr = ''
     count = 0
+    #read in sam file
     for line in fh:
         if verbose:
             count += 1
@@ -373,6 +633,8 @@ def main():
         #---------------------------------------------------
         lineL = line.strip().split("\t")
         name = lineL[0]
+        if DEBUG:
+            print >>sys.stderr, "---Processing %s" % name
         flag = int(lineL[1])
         #----------------------START output one chr----------------
         if chr and chr != lineL[2]:
@@ -385,11 +647,18 @@ def main():
                         % (chr, strftime(timeformat, localtime()))
                 extendWigDict(wigDict, posL, exonDict[chr])
                 exonDict.pop(chr)
+            #--Extend single end sequencing of RNA-Seq 
+            elif readsType == 'SE' and extend:
+                if verbose:
+                    print >>sys.stderr,\
+                        "--Begin extend SE reads for %s--%s" \
+                        % (chr, strftime(timeformat, localtime()))
+                extendWigDictSE(wigDict)
             if verbose:
                 print >>sys.stderr,\
                     "--Begin output wig for %s--%s" \
                         % (chr, strftime(timeformat, localtime()))
-            if debug:
+            if DEBUG:
                 outputWigDictTest(wigDict, chr, posL, lt)
             else:
                 outputWigDict(wigDict, chr, posL, lt)
@@ -405,14 +674,19 @@ def main():
         else:
             xs = '+'
         if readsType == 'SE':
-            for posL in regionL:
-                for pos in xrange(posL[0], posL[1]):
-                    if xs not in wigDict[pos]:
-                        wigDict[pos][xs] = [1,0]
-                    else:
-                        wigDict[pos][xs][0] += 1
-                #----------finish on region-----------
-            #-----------finish all regions-------
+            if extend:
+                computeWigDictSE(wigDict, regionL, start, xs, \
+                    extend, flag, exonDict[chr])
+            else:
+                for posL in regionL:
+                    for pos in xrange(posL[0], posL[1]):
+                        if xs not in wigDict[pos]:
+                            wigDict[pos][xs] = [1,0]
+                        else:
+                            wigDict[pos][xs][0] += 1
+                    #----------finish on region-----------
+                #-----------finish all regions-------
+            #---------Extend or not----------------------
         #---------------END SE----------------------
         elif readsType == 'PE':
             if flag & 0x2 == 2 and lineL[6] == '=': #properly paired
@@ -454,12 +728,18 @@ def main():
                     "--Begin extend PE reads for %s--%s" \
                     % (chr, strftime(timeformat, localtime()))
             extendWigDict(wigDict, posL, exonDict[chr])
+        elif readsType == 'SE' and extend:
             if verbose:
                 print >>sys.stderr,\
-                    "--Begin output wig for %s--%s" \
-                        % (chr, strftime(timeformat, localtime()))
+                    "--Begin extend SE reads for %s--%s" \
+                    % (chr, strftime(timeformat, localtime()))
+            extendWigDictSE(wigDict)
+        if verbose:
+            print >>sys.stderr,\
+                "--Begin output wig for %s--%s" \
+                    % (chr, strftime(timeformat, localtime()))
             #exonDict.pop(chr)
-        if debug:
+        if DEBUG:
             outputWigDictTest(wigDict, chr, posL, lt)
         else:
             outputWigDict(wigDict, chr, posL, lt)
