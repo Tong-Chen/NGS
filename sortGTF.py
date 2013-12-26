@@ -33,11 +33,12 @@ sys.stdin]' % sys.argv[0]
     for line in fh:
         lineL = line.split("\t")
         if lineL[2] != 'CDS':
-            firstKey = '.'.join(lineL[8].split("; ")[0:2])
+            firstKey = lineL[0] + '.'.join(lineL[8].split("; ")[0:2])
             if firstKey not in aDict:
                 aDict[firstKey] = {}
             secondKey = (int(lineL[3]), int(lineL[4]))
-            assert secondKey not in aDict[firstKey]
+            assert secondKey not in aDict[firstKey], \
+                (firstKey, secondKey)
             aDict[firstKey][secondKey] = line
         #here is your reading
     #-------------END reading file----------
