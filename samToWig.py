@@ -325,7 +325,7 @@ def outputWigDictSE(wigDict, chr, posL, lt):
 
 
 
-def readExonRegFromGTF(gtf, lt):
+def readExonRegFromGTF(gtf, lt, type='PE'):
     '''
     Get exon regions from GTF for each chromosome. It is such a greedy
     process that if one NT is exon in one transcript, it will be
@@ -354,8 +354,264 @@ def readExonRegFromGTF(gtf, lt):
     return exonDict
 #-----------END read exons from GTF----------
 
+def readExonRegFromGTFSE(gtf, lt):
+    '''
+    Get exon regions from GTF for each chromosome. It is such a greedy
+    process that if one NT is exon in one transcript, it will be
+    considered as exon [This does not always mean it will have
+    coverage if interval value less than 0].
+
+    GTF: 1-based numbering, both closed
+    '''
+    exonDict = {} #{chr:{'+':{pos, 1}, '-':[[],]}} 
+                  # 1-based both closed
+    for line in open(gtf):
+        lineL = line.split('\t', 7)
+        if lineL[2] == 'exon':
+            xs = lineL[6] if lt != 'fr-unstranded' else '+'
+            chr = lineL[0]
+            if chr not in exonDict:
+                exonDict[chr] = {}
+            if xs not in exonDict[chr]:
+                exonDict[chr][xs] = {}
+            for i377 in xrange(int(lineL[3]), int(lineL[4])):
+                if i377 not in exonDict[chr][xs]:
+                    exonDict[chr][xs][i377]=1
+        #-----------end exon-----------
+    #--------End reading file------------
+    return exonDict
+#-----------END read exons from GTF----------
+
+
+
+###def computeWigDictSE(wigDict, regionL, start, xs, 
+###    extend, flag, exonDictChr=[]):
+###    global DEBUG
+###    if DEBUG:
+###        print >>sys.stderr, "RegionL: ", regionL
+###    #------save mapped reads-------------
+###    countMappedLen = 0
+###    for posL in regionL:
+###        for pos in xrange(posL[0], posL[1]):
+###            countMappedLen += 1
+###            if xs not in wigDict[pos]:
+###                wigDict[pos][xs] = [1,0]
+###            else:
+###                wigDict[pos][xs][0] += 1
+###        #----------finish on region-----------
+###    #-----------finish all regions-------
+###    #if DEBUG:
+###    #    outputWigDictTest(wigDict, 'test', posL, lt)
+###    if extend and extend > countMappedLen:
+###        diff = extend - countMappedLen
+###        if DEBUG:
+###            print >>sys.stderr, "Diff is %d" % diff
+###        #-------------------------------------
+###        #exonDict = {} #{chr:{'+':[[exon_s,exon_e], [], ...], '-':[[],]}} 
+###                  # 1-based both closed
+###        positiveExonL = exonDictChr['+']
+###        if '-' in exonDictChr:
+###            negativeExonL = exonDictChr['-']
+###        #-----------------------------------
+###        add = 1
+###        findExon = 0
+###        if xs == '+':
+###            #Origin from positive strand or unstranded reads map to
+###            #positive strand.
+###            if flag & 16 == 0: 
+###                if DEBUG:
+###                    print >>sys.stderr, "Flag %d" % flag
+###                for exonR in positiveExonL[:]:
+###                    if diff == 0:
+###                        break
+###                    if findExon == 1:
+###                        if DEBUG:
+###                            print >>sys.stderr, "Current exon:", exonR
+###                            print >>sys.stderr, "Next position:", exonR[0]
+###                        add = 0
+###                        inner_pos = exonR[0]
+###                        inner_pos = inner_pos+add
+###                        while diff != 0:
+###                            if inner_pos > exonR[1]:
+###                                break
+###                            if xs not in wigDict[inner_pos]:
+###                                wigDict[inner_pos][xs] = [0,-1]
+###                            else:
+###                                wigDict[inner_pos][xs][1] -= 1
+###                            inner_pos += 1
+###                            diff -= 1
+###                            #-------end while-----------------
+###                        #-------------------------------------
+###                    #------Met the first exon-----------
+###                    else:
+###                        inner_pos_4 = pos + add
+###                        if exonR[0] <= inner_pos_4 <= exonR[1]:
+###                            if DEBUG:
+###                                print >>sys.stderr, "First Met exon:", exonR
+###                                print >>sys.stderr, "Next position:", pos+add
+###                            findExon = 1
+###                            while inner_pos_4 <= exonR[1]:
+###                                if xs not in wigDict[inner_pos_4]:
+###                                    wigDict[inner_pos_4][xs] = [0,-1]
+###                                else:
+###                                    wigDict[inner_pos_4][xs][1] -= 1
+###                                #add += 1
+###                                inner_pos_4 += 1
+###                                diff -= 1
+###                                if diff == 0:
+###                                    break
+###                            #-------end while-----------------
+###                        #---do not locate at known exons-----------------
+###                        if add == 1 and exonR[0] > pos+add:
+###                            if DEBUG:
+###                                print >>sys.stderr, "Locate at intron"
+###                            break
+###                    #---End met the first exon---------------
+###                #---------test if exon-----------------
+###            #Origin from positive strand or unstranded reads map to
+###            #negative strand.
+###            else:
+###                if DEBUG:
+###                    print >>sys.stderr, "Flag %d" % flag
+###                for exonR in positiveExonL[::-1]:
+###                    if diff == 0:
+###                        break
+###                    if findExon == 1:
+###                        #add = 0
+###                        inner_pos = exonR[1]
+###                        if DEBUG:
+###                            print >>sys.stderr, "Current exon:", exonR
+###                            print >>sys.stderr, "Next position:", inner_pos
+###                        while diff != 0:
+###                            if inner_pos < exonR[0]:
+###                                break
+###                            if xs not in wigDict[inner_pos]:
+###                                wigDict[inner_pos][xs] = [0,-1]
+###                            else:
+###                                wigDict[inner_pos][xs][1] -= 1
+###                            #add -= 1
+###                            inner_pos -= 1
+###                            diff -= 1
+###                            #-------end while-----------------
+###                        #-------------------------------------
+###                    #---------Try to find the first exon-----
+###                    else:
+###                        newstart = start - 1
+###                        if exonR[0] <= newstart <= exonR[1]:
+###                            findExon = 1
+###                            if DEBUG:
+###                                print >>sys.stderr, "First Met exon:", exonR
+###                                print >>sys.stderr, "Next position:", newstart
+###                            while newstart >= exonR[0]:
+###                                if xs not in wigDict[newstart]:
+###                                    wigDict[newstart][xs] = [0,-1]
+###                                else:
+###                                    wigDict[newstart][xs][1] -= 1
+###                                #add += 1
+###                                newstart -= 1
+###                                diff -= 1
+###                                if diff == 0:
+###                                    break
+###                            #-------end while-----------------
+###                        #-------------------------------------
+###                        if add == 1 and start-add >exonR[1]:
+###                            if DEBUG:
+###                                print >>sys.stderr, "Locate at intron"
+###                            break
+###                    #-------------------------------------
+###                #---------test if exon-----------------
+###        #---------------END positive or unstrand----------
+###        elif xs == '-':
+###            if flag & 16 == 0: 
+###                for exonR in negativeExonL[:]:
+###                    if diff == 0:
+###                        break
+###                    if findExon == 1:
+###                        add = 0
+###                        inner_pos = exonR[0] + 1
+###                        while diff != 0:
+###                            if inner_pos > exonR[1]:
+###                                break
+###                            if xs not in wigDict[inner_pos]:
+###                                wigDict[inner_pos][xs] = [0,-1]
+###                            else:
+###                                wigDict[inner_pos][xs][1] -= 1
+###                            #add += 1
+###                            inner_pos += 1
+###                            diff -= 1
+###                            #-------end while-----------------
+###                        #-------------------------------------
+###                    else:
+###                        inner_pos = pos + 1
+###                        if exonR[0] <= inner_pos <= exonR[1]:
+###                            findExon = 1
+###                            while inner_pos <= exonR[1]:
+###                                if xs not in wigDict[inner_pos]:
+###                                    wigDict[inner_pos][xs] = [0,-1]
+###                                else:
+###                                    wigDict[inner_pos][xs][1] -= 1
+###                                #add += 1
+###                                inner_pos += 1
+###                                diff -= 1
+###                                if diff == 0:
+###                                    break
+###                            #-------end while-----------------
+###                        #---do not locate at known exons-----------------
+###                        if add == 1 and exonR[0] > pos+add:
+###                            if DEBUG:
+###                                print >>sys.stderr, "Locate at intron"
+###                            break
+###                    #-------------------------------------
+###                #---------test if exon-----------------
+###            else:
+###                for exonR in negativeExonL[::-1]:
+###                    if diff == 0:
+###                        break
+###                    if findExon == 1:
+###                        #add = 0
+###                        inner_pos = exonR[1]
+###                        while diff != 0:
+###                            if inner_pos < exonR[0]:
+###                                break
+###                            if xs not in wigDict[inner_pos]:
+###                                wigDict[inner_pos][xs] = [0,-1]
+###                            else:
+###                                wigDict[inner_pos][xs][1] -= 1
+###                            #add -= 1
+###                            inner_pos -= 1
+###                            diff -= 1
+###                            #-------end while-----------------
+###                        #-------------------------------------
+###                    else:
+###                        inner_pos_5 = start - 1
+###                        if exonR[0] <= inner_pos_5 <= exonR[1]:
+###                            findExon = 1
+###                            while inner_pos_5 >= exonR[0]:
+###                                if xs not in wigDict[inner_pos_5]:
+###                                    wigDict[inner_pos_5][xs] = [0,-1]
+###                                else:
+###                                    wigDict[inner_pos_5][xs][1] -= 1
+###                                #add += 1
+###                                inner_pos_5 -= 1
+###                                diff -= 1
+###                                if diff == 0:
+###                                    break
+###                            #-------end while-----------------
+###                        #-----locate at intron-------------
+###                        if add == 1 and start-add >exonR[1]:
+###                            if DEBUG:
+###                                print >>sys.stderr, "Locate at intron"
+###                            break
+###                    #---------find the first exon-----------
+###                #---------test if exon-----------------
+###            #---------------------------
+###        #---------------END positive or unstrand----------
+###    #--------------END all position---------------------
+####---------END SE-----------------------------------
+
+
 def computeWigDictSE(wigDict, regionL, start, xs, 
-    extend, flag, exonDictChr=[]):
+    extend, flag, exonDictChr={}):
     global DEBUG
     if DEBUG:
         print >>sys.stderr, "RegionL: ", regionL
@@ -379,9 +635,9 @@ def computeWigDictSE(wigDict, regionL, start, xs,
         #-------------------------------------
         #exonDict = {} #{chr:{'+':[[exon_s,exon_e], [], ...], '-':[[],]}} 
                   # 1-based both closed
-        positiveExonL = exonDictChr['+']
+        positiveExonD = exonDictChr['+']
         if '-' in exonDictChr:
-            negativeExonL = exonDictChr['-']
+            negativeExonD = exonDictChr['-']
         #-----------------------------------
         add = 1
         findExon = 0
@@ -391,193 +647,81 @@ def computeWigDictSE(wigDict, regionL, start, xs,
             if flag & 16 == 0: 
                 if DEBUG:
                     print >>sys.stderr, "Flag %d" % flag
-                for exonR in positiveExonL[:]:
-                    if diff == 0:
-                        break
-                    if findExon == 1:
-                        if DEBUG:
-                            print >>sys.stderr, "Current exon:", exonR
-                            print >>sys.stderr, "Next position:", exonR[0]
-                        add = 0
-                        inner_pos = exonR[0]
-                        inner_pos = inner_pos+add
-                        while diff != 0:
-                            if inner_pos > exonR[1]:
-                                break
+                inner_pos = pos
+                if inner_pos in positiveExonD:
+                    while diff != 0:
+                        inner_pos += 1
+                        if inner_pos in positiveExonD:
                             if xs not in wigDict[inner_pos]:
                                 wigDict[inner_pos][xs] = [0,-1]
                             else:
                                 wigDict[inner_pos][xs][1] -= 1
-                            inner_pos += 1
                             diff -= 1
-                            #-------end while-----------------
-                        #-------------------------------------
-                    #------Met the first exon-----------
-                    else:
-                        inner_pos_4 = pos + add
-                        if exonR[0] <= inner_pos_4 <= exonR[1]:
-                            if DEBUG:
-                                print >>sys.stderr, "First Met exon:", exonR
-                                print >>sys.stderr, "Next position:", pos+add
-                            findExon = 1
-                            while inner_pos_4 <= exonR[1]:
-                                if xs not in wigDict[inner_pos_4]:
-                                    wigDict[inner_pos_4][xs] = [0,-1]
-                                else:
-                                    wigDict[inner_pos_4][xs][1] -= 1
-                                #add += 1
-                                inner_pos_4 += 1
-                                diff -= 1
-                                if diff == 0:
-                                    break
-                            #-------end while-----------------
-                        #---do not locate at known exons-----------------
-                        if add == 1 and exonR[0] > pos+add:
-                            if DEBUG:
-                                print >>sys.stderr, "Locate at intron"
+                        #---------test if exon-----------------
+                        if inner_pos == 1000000000:
                             break
-                    #---End met the first exon---------------
-                #---------test if exon-----------------
+                    #---------------------------------------------
+                #-------Extend only when reads located at exons----
             #Origin from positive strand or unstranded reads map to
             #negative strand.
             else:
                 if DEBUG:
                     print >>sys.stderr, "Flag %d" % flag
-                for exonR in positiveExonL[::-1]:
-                    if diff == 0:
-                        break
-                    if findExon == 1:
-                        #add = 0
-                        inner_pos = exonR[1]
-                        if DEBUG:
-                            print >>sys.stderr, "Current exon:", exonR
-                            print >>sys.stderr, "Next position:", inner_pos
-                        while diff != 0:
-                            if inner_pos < exonR[0]:
-                                break
+                inner_pos = start
+                if inner_pos in positiveExonD:
+                    while diff != 0:
+                        inner_pos -= 1
+                        if inner_pos in positiveExonD:
                             if xs not in wigDict[inner_pos]:
                                 wigDict[inner_pos][xs] = [0,-1]
                             else:
                                 wigDict[inner_pos][xs][1] -= 1
-                            #add -= 1
-                            inner_pos -= 1
                             diff -= 1
-                            #-------end while-----------------
-                        #-------------------------------------
-                    #---------Try to find the first exon-----
-                    else:
-                        newstart = start - 1
-                        if exonR[0] <= newstart <= exonR[1]:
-                            findExon = 1
-                            if DEBUG:
-                                print >>sys.stderr, "First Met exon:", exonR
-                                print >>sys.stderr, "Next position:", newstart
-                            while newstart >= exonR[0]:
-                                if xs not in wigDict[newstart]:
-                                    wigDict[newstart][xs] = [0,-1]
-                                else:
-                                    wigDict[newstart][xs][1] -= 1
-                                #add += 1
-                                newstart -= 1
-                                diff -= 1
-                                if diff == 0:
-                                    break
-                            #-------end while-----------------
-                        #-------------------------------------
-                        if add == 1 and start-add >exonR[1]:
-                            if DEBUG:
-                                print >>sys.stderr, "Locate at intron"
+                        #---------test if exon-----------------
+                        if inner_pos == -1:
                             break
-                    #-------------------------------------
-                #---------test if exon-----------------
+                    #------------------------------------
+                #-------Extend only when reads located at exons----
         #---------------END positive or unstrand----------
         elif xs == '-':
             if flag & 16 == 0: 
-                for exonR in negativeExonL[:]:
-                    if diff == 0:
-                        break
-                    if findExon == 1:
-                        add = 0
-                        inner_pos = exonR[0] + 1
-                        while diff != 0:
-                            if inner_pos > exonR[1]:
-                                break
+                inner_pos = pos
+                if inner_pos in negativeExonD:
+                    while diff != 0:
+                        inner_pos += 1
+                        if inner_pos in nagativeExonD:
                             if xs not in wigDict[inner_pos]:
                                 wigDict[inner_pos][xs] = [0,-1]
                             else:
                                 wigDict[inner_pos][xs][1] -= 1
-                            #add += 1
-                            inner_pos += 1
                             diff -= 1
-                            #-------end while-----------------
-                        #-------------------------------------
-                    else:
-                        inner_pos = pos + 1
-                        if exonR[0] <= inner_pos <= exonR[1]:
-                            findExon = 1
-                            while inner_pos <= exonR[1]:
-                                if xs not in wigDict[inner_pos]:
-                                    wigDict[inner_pos][xs] = [0,-1]
-                                else:
-                                    wigDict[inner_pos][xs][1] -= 1
-                                #add += 1
-                                inner_pos += 1
-                                diff -= 1
-                                if diff == 0:
-                                    break
-                            #-------end while-----------------
-                        #---do not locate at known exons-----------------
-                        if add == 1 and exonR[0] > pos+add:
-                            if DEBUG:
-                                print >>sys.stderr, "Locate at intron"
+                        #---------test if exon-----------------
+                        if inner_pos == 1000000000:
                             break
-                    #-------------------------------------
-                #---------test if exon-----------------
+                    #---------test if exon-----------------
+                #-------Extend only when reads located at exons----
             else:
-                for exonR in negativeExonL[::-1]:
-                    if diff == 0:
-                        break
-                    if findExon == 1:
-                        #add = 0
-                        inner_pos = exonR[1]
-                        while diff != 0:
-                            if inner_pos < exonR[0]:
-                                break
+                inner_pos = start
+                if inner_pos in negativeExonD:
+                    while diff != 0:
+                        inner_pos -= 1
+                        if inner_pos in negativeExonD:
                             if xs not in wigDict[inner_pos]:
                                 wigDict[inner_pos][xs] = [0,-1]
                             else:
                                 wigDict[inner_pos][xs][1] -= 1
-                            #add -= 1
-                            inner_pos -= 1
                             diff -= 1
-                            #-------end while-----------------
-                        #-------------------------------------
-                    else:
-                        inner_pos_5 = start - 1
-                        if exonR[0] <= inner_pos_5 <= exonR[1]:
-                            findExon = 1
-                            while inner_pos_5 >= exonR[0]:
-                                if xs not in wigDict[inner_pos_5]:
-                                    wigDict[inner_pos_5][xs] = [0,-1]
-                                else:
-                                    wigDict[inner_pos_5][xs][1] -= 1
-                                #add += 1
-                                inner_pos_5 -= 1
-                                diff -= 1
-                                if diff == 0:
-                                    break
-                            #-------end while-----------------
-                        #-----locate at intron-------------
-                        if add == 1 and start-add >exonR[1]:
-                            if DEBUG:
-                                print >>sys.stderr, "Locate at intron"
+                        #---------test if exon-----------------
+                        if inner_pos == -1:
                             break
-                    #---------find the first exon-----------
-                #---------test if exon-----------------
+                    #------------------------------------
+                #-------Extend only when reads located at exons----
             #---------------------------
-        #---------------END positive or unstrand----------
+        #---------------END nagative----------
     #--------------END all position---------------------
 #---------END SE-----------------------------------
+
+
 
 
 def main():
@@ -613,7 +757,10 @@ def main():
             print >>sys.stderr, "--Begin reading GTF---%s" \
                     % strftime(timeformat, localtime())
         if gtf:
-            exonDict = readExonRegFromGTF(gtf,lt)   
+            if readsType == 'PE':
+                exonDict = readExonRegFromGTF(gtf,lt)   
+            elif readsType == 'SE':
+                exonDict = readExonRegFromGTFSE(gtf, lt)
         else:
             print >>sys.stderr, "GTF file is needed."
             sys.exit(1)
