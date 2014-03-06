@@ -55,7 +55,7 @@ def main():
     #--------------------------------
     for line in fh:
         if line[0] == '>':
-            print line
+            print line,
         else:
             tmp = [0.001, 0.001, 0.001, 0.001]
             tmp[0] = random.uniform(0.001,0.997)
