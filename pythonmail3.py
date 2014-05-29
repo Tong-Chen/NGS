@@ -30,6 +30,16 @@ Symbol <-> should be given if you want SYS.STDIN as the mail content.")
     parser.add_option("-a", "--attachement", dest='attachment',
             metavar="ATTACHEMENT", help="The attachment for your mail. \
 Multiple attachments should be separated by ','.")
+    parser.add_option("-u", "--user", dest='user',
+            metavar="USER", default='mercury_gold@163.com', 
+            help="The username for mail sender.")
+    parser.add_option("-p", "--passwd", dest='passwd',
+            metavar="PASSWD", default='mercury.gold', 
+            help="The passwd for mail sender.")
+    parser.add_option("-S", "--smtp", dest='smtp',
+            metavar="SMTP", default='smtp.163.com', 
+            help="The mail send server, for 163 is \
+smtp.163.com.")
     (options, args) = parser.parse_args(argv[1:])
     return (options, args)
 
@@ -43,9 +53,10 @@ from email.MIMEAudio import MIMEAudio
 from email.MIMEImage import MIMEImage  
 from email.Encoders import encode_base64  
   
-def sendMail(subject, text, recipient, attachmentFilePaths):  
-    gmailUser = 'mercury_gold@163.com'  
-    gmailPassword = 'mercury.gold'  
+def sendMail(subject, text, recipient, attachmentFilePaths, user,
+        passwd, smtp):  
+    gmailUser = user
+    gmailPassword = passwd
   
     msg = MIMEMultipart()  
     msg['From'] = gmailUser  
@@ -57,7 +68,7 @@ def sendMail(subject, text, recipient, attachmentFilePaths):
         if attachmentFilePath:
             msg.attach(getAttachment(attachmentFilePath))  
   
-    mailServer = smtplib.SMTP('smtp.163.com')  
+    mailServer = smtplib.SMTP(smtp)  
     mailServer.ehlo()  
     mailServer.starttls()  
     mailServer.ehlo()  
@@ -106,8 +117,14 @@ def main():
         #fh = sys.stdin
         content = sys.stdin.read()
     recipient = options.receiver
-    attach = [i.strip() for i in options.attachment.split(',')]
+    if options.attachment:
+        attach = [i.strip() for i in options.attachment.split(',')]
+    else:
+        attach = []
+    user = options.user
+    passwd = options.passwd
+    smtp = options.smtp
 
-    sendMail(subject, content, recipient, attach) 
+    sendMail(subject, content, recipient, attach, user, passwd, smtp) 
 
 main()
