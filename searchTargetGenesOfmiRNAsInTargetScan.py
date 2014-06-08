@@ -48,7 +48,7 @@ default Human, accept Rat, Mouse or other supported species.")
     return (options, args)
 #--------------------------------------------------------------------
 
-def parseContent(contentL):
+def parseContent(contentL, mir):
     pattern = re.compile('(<[^>]*>)*([^><]*)')
     next_pat = re.compile('"(.*)"')
     tmpL = []
@@ -61,24 +61,28 @@ def parseContent(contentL):
         #------------------------------
         if begin and line.startswith('<td>'):
             if debug:
-                print >>sys.stderr, "Get to expected miRNA-gene table"
+                print >>sys.stderr, "### Get to expected miRNA-gene table"
             matchAll = pattern.findall(line)
             gene = matchAll[0][1]
             tr   = matchAll[1][1]
             func = matchAll[2][1]
-            mir  = matchAll[-6][1]
+            #mir  = matchAll[-6][1]
             tmpL[0].append(gene+'\t'+mir)
             if debug:
-                print >>sys.stderr, gene, mir
+                print >>sys.stderr, '###', line
+                print >>sys.stderr, '###', gene, mir
             next_url = next_pat.search(matchAll[-3][0]).groups()[0]
             alignL = getAlignment(next_url, mir)
             tmpL[1].append(alignL)
         #-------END one target gene-----------
     #-----------END all genes-----------------
+    if begin == 0:
+        print >>sys.stderr, "No miRNA %s in databse" % mir
     return tmpL
 #---------------------------------------------------------
 
 def getAlignment(next_url, mir):
+    alignL = []
     next_contentL = urllib2.urlopen(next_url).read().split('\n')
     if debug:
         print >>sys.stderr, '\n'.join(next_contentL)
@@ -86,25 +90,36 @@ def getAlignment(next_url, mir):
     pattern_no = re.compile('<[^>]*>') #the substituted strings
     begin = 0
     for i in next_contentL:
-        if i.find(mir) != -1:
+        if i.startswith('<TD nowrap>') and i.find(mir) != -1:
             begin = 1
+            if debug:
+                print >>sys.stderr, '###Aln', i, 
             gene, deplete, mir_2 = pattern.search(i).groups()
             len_gene = len(gene)
             len_mir_2 = len(mir_2)
             expect_len = len_gene if len_gene > len_mir_2 else len_mir_2
             if debug:
-                print >>sys.stderr, gene, mir_2
-            assert mir_2 == mir, "Unconsistent miRNA"
+                print >>sys.stderr, '###Aln', gene, mir_2
+            
+            if mir_2 != mir:
+                print "### Unconsistent miRNA: \
+original %s, here %s" % (mir, mir_2)
+            #assert mir_2 == mir, "Unconsistent miRNA: \
+#original %s, here %s" % (mir, mir_2)
         elif begin:
+            assert i.startswith('<TD nowrap>')
+            begin = 0
             pre, mid, post, unuse = i.split('<br>')
             pre = pattern_no.sub('', pre).replace('&nbsp;', ' ')
             mid = pattern_no.sub('', mid).replace('&nbsp;', ' ')
             post = pattern_no.sub('', post).replace('&nbsp;', ' ')
             if debug:
-                print >>sys.stderr, pre, mid, post
-            return [gene+'\t'+pre, ' ' * expect_len + '\t'+mid, mir_2+ ' '*
-                    (expect_len-len_mir_2) + '\t'+post]
-            
+                print >>sys.stderr, '###', i
+                print >>sys.stderr, '###', pre, mid, post
+            alignL.append([gene+'\t'+pre, ' ' * expect_len + '\t'+mid, mir_2+ ' '*
+                    (expect_len-len_mir_2) + '\t'+post])
+        #-----------------------------------------------
+    return alignL
 #----------------------------------------------------------
 
 def output(stringL):
@@ -112,14 +127,22 @@ def output(stringL):
     stringL = [ [gene\tmir, 
                  gene2\tmir
                 ], 
-                [ [gene\tseq, mir\tseq], 
-                  [gene2\tseq, mir\tseq]
+                [ [
+                    [gene\tseq, mir\tseq], 
+                    [gene\tseq, mir\tseq], 
+                  ], 
+                  [
+                    [gene2\tseq, mir\tseq],
+                    [gene2\tseq, mir\tseq],
+                  ]
                 ]
               ]
     '''
     print '\n'.join(stringL[0])
-    for list in stringL[1]:
-        print '\n'.join(list)
+    for listL in stringL[1]:
+        for list in listL:
+            print '\n'.join(list)
+        print
 
 
 #------------------------------------------------------------
@@ -144,7 +167,7 @@ def main():
         content = urllib2.urlopen(url).read()
         if debug:
             print >>sys.stderr, content 
-        output(parseContent(content.split('\n')))
+        output(parseContent(content.split('\n'), mirna))
     #-------------END reading file----------
     #----close file handle for files-----
     if file != '-':
