@@ -40,7 +40,8 @@ and target gene pairs with miRNAs at the first column.")
     parser.add_option("-o", "--output-unverified-pair", dest="out_all",
         metavar="OUT-ALL", default=0, help="Default FALSE meaning only \
 output verified pair. Accept any string represents TRUE to output all \
-predicted pairs after a cutting line.")
+predicted pairs after a cutting line. Also when this is TRUE, a \
+parameter to -f may not be needed.")
     parser.add_option("-s", "--sta", dest="sta",
         default=0, help="Count the miRNA-target gene pairs which are \
 both verified and predicted.")
@@ -93,16 +94,17 @@ def main():
         fh = open(miranda)
     #--------------------------------
     aDict = readMiranda(fh)
-    for line in open(pair):
-        mir, gene = line.split()
-        tmp = ''.join(aDict[mir][gene])
-        if tmp.find("No Hits Found above Threshold") != -1:
-            print 'v-',''.join(aDict[mir][gene])
-        else:
-            print 'v+',''.join(aDict[mir][gene])
-        if out_all:
-            aDict[mir].pop(gene)
-    #-------------END reading file----------
+    if out_all == 0 or pair:
+        for line in open(pair):
+            mir, gene = line.split()
+            tmp = ''.join(aDict[mir][gene])
+            if tmp.find("No Hits Found above Threshold") != -1:
+                print 'v-',''.join(aDict[mir][gene])
+            else:
+                print 'v+',''.join(aDict[mir][gene])
+            if out_all:
+                aDict[mir].pop(gene)
+        #-------------END reading file----------
     if out_all:
         print '--------------------------'
         for mir, itemD in aDict.items():
