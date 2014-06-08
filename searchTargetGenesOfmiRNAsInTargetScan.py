@@ -17,12 +17,13 @@ Functional description:
 
 import sys
 import os
-from time import localtime, strftime 
+from time import localtime, strftime, sleep 
 timeformat = "%Y-%m-%d %H:%M:%S"
 from optparse import OptionParser as OP
 import urllib2
 import re
 debug = 0
+sleep_time = 20
 
 def cmdparameter(argv):
     if len(argv) == 1:
@@ -39,6 +40,9 @@ with each at one row.")
     parser.add_option("-s", "--species", dest="spec",
         default='Human', help="Specify the species information, \
 default Human, accept Rat, Mouse or other supported species.")
+    parser.add_option("-S", "--sleep-time", dest="sleep",
+        default=20, help="Perform another search after 20 seconds \
+to save the server load. One can give any number.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -74,6 +78,7 @@ def parseContent(contentL, mir):
             next_url = next_pat.search(matchAll[-3][0]).groups()[0]
             alignL = getAlignment(next_url, mir)
             tmpL[1].append(alignL)
+            sleep(sleep_time)
         #-------END one target gene-----------
     #-----------END all genes-----------------
     if begin == 0:
@@ -152,6 +157,8 @@ def main():
     file = options.filein
     spec = options.spec
     verbose = options.verbose
+    global sleep_time
+    sleep_time = int(options.sleep)
     global debug
     debug = options.debug
     #-----------------------------------
