@@ -45,6 +45,9 @@ parameter to -f may not be needed.")
     parser.add_option("-s", "--sta", dest="sta",
         default=0, help="Count the miRNA-target gene pairs which are \
 both verified and predicted.")
+    parser.add_option("-r", "--ref-aligned-seq", dest="ref",
+        default=0, help="If a TRUE value is given,  then output the \
+predicted miRNA targeting sequence. Default 0 means FALSE.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -54,25 +57,33 @@ both verified and predicted.")
     return (options, args)
 #--------------------------------------------------------------------
 
-def readMiranda(fh):
+def readMiranda(fh, ref):
     aDict = {}
+    refDict = {}
     while 1:
         line = fh.readline()
         while not line.startswith("Performing Scan:"):
             line = fh.readline()
             if line.startswith("Scan Complete"):
-                return aDict
+                return aDict, refDict
         lineL = line.split()
         key1 = lineL[2]
         key2 = lineL[4]
         if key1 not in aDict:
             aDict[key1] = {}
+            if ref:
+                refDict[key1] = {}
         if key2 not in aDict[key1]:
             aDict[key1][key2] = [line]
+            if ref:
+                refDict[key1][key2] = []
         #---------------------------------
         line = fh.readline()
         while not line.startswith("Complete"):
             aDict[key1][key2].append(line)
+            if ref and line.startswith('   Ref:'):
+                seq = line.split()[2]
+                refDict[key1][key2].append(seq)
             line = fh.readline()
         #----END one pair------------
     #--------END all pairs-----------
@@ -85,6 +96,7 @@ def main():
     pair    = options.pair
     out_all = options.out_all
     sta     = options.sta
+    ref     = options.ref
     verbose = options.verbose
     debug = options.debug
     #-----------------------------------
@@ -93,7 +105,7 @@ def main():
     else:
         fh = open(miranda)
     #--------------------------------
-    aDict = readMiranda(fh)
+    aDict, refDict = readMiranda(fh, ref)
     if out_all == 0 or pair:
         for line in open(pair):
             mir, gene = line.split()
@@ -117,6 +129,15 @@ def main():
     if file != '-':
         fh.close()
     #-----------end close fh-----------
+    if ref:
+        for mir, itemD in refDict.items():
+            for gene, itemL in itemD.items():
+                no = 0
+                for seq in itemL:
+                    no += 1
+                    print "@>%s#%s#%d\n@%s" % (mir, gene, no, seq)
+            #---------------------------------------
+        #---------------------------------------------------
     if verbose:
         print >>sys.stderr,\
             "--Successful %s" % strftime(timeformat, localtime())
