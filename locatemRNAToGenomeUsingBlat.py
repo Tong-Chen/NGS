@@ -18,7 +18,38 @@ to bed file.
 Potential bug:
     1. If a fragment or one of the spliced fragments is too short, it can not
     be mapped to genome with default parameter. You may want to modify
-    the parameter for Blat.
+    the parameter for Blat. Since the shortest query size that will
+    guarantee a match is 2 * stepSize + tileSize -1, the default value
+    for this is 2 * 11 + 11 -1 = 32 for nucleotides. Try -stepSize=5
+    -tileSize=6 -repMatch=10000 -minScore=0 -fine -minIdentity=0
+
+
+First blat splits the reference sequence up into " tiles" . The manner
+in which it is split depends on two parameters,  -tileSize and
+-stepSize,  where -tileSize is the size of the tile and -stepSize
+specifies when to start the next tile. The default setting of both for
+DNA sequences is 11,  which also means the tiles do not overlap.
+
+For blat to report an alignment,  your query sequence must match at
+least two tiles (set via -minMatch) with no mismatches (you can allow
+up to one mismatch in the tile by using -oneOff). So if you're trying
+to align a 21 bp sequence to a reference using the default setting,
+blat will never report an alignment.
+
+To illustrate,  imagine this reference sequence (44bp):
+
+>database
+AAAAAAAAAAACCCCCCCCCCCGGGGGGGGGGGTTTTTTTTTTT
+
+and this query sequence (12bp)
+
+>test
+GGGGGGGGGGGT:
+    
+The only way an alignment will be reported is if the tileSize is
+set to 1 and the minScore set to less than 12.
+
+
 '''
 
 import sys
@@ -42,13 +73,18 @@ def cmdparameter(argv):
 fragments.")
     parser.add_option("-g", "--genome-fasta", dest="genome",
         metavar="GENOME", help="A genome assembl file in \
-fasta format or other blat supported formats.")
+fasta format or other blat supported formats. Like \
+~/home/server-project/2bit/mm9.2bit or \
+~/home/server-project/bwa_index/mouse/mm9/mm9.fa")
     parser.add_option("-p", "--parameter-blat", dest="blat_p",
         default="-t=dna -q=rna -minIdentity=100", 
         help="Parameters for blat. Full list of accepted parameter \
 would be shown when you hit <blat> in terminal. \
 Default <-t=dna -q=rna -minIdentity=100> means target sequence is DNA,\
-query sequence is RNA, nomismatch allowed.")
+query sequence is RNA, nomismatch allowed. \
+For short sequence (20-30 nt), parameter \
+<-t=dna -q=rna -minIdentity=0 -tileSize=6 -stepSize=5 \
+-minScore=0 -fine.")
     parser.add_option("-o", "--output-prefix", dest="op",
         help="The prefix for output file; \
 Default the string given to -i.")
@@ -75,10 +111,16 @@ def main():
     verbose = options.verbose
     debug = options.debug
     #-----------------------------------
+    #---Blat alignment-----------
     cmd = ' '.join(['blat', genome, file, output, blat_p])
     os.system(cmd)
-    aDict = transferPSLtoBed(open(output), 5)
-    fh = open(output+'.bed', 'w')
+    #--Filter mapped results--------
+    filter = output + '.filter'
+    cmd = ' '.join(['pslCDnaFilter -minId=1 -minCover=1',  
+        output, filter])
+    os.system(cmd)
+    aDict = transferPSLtoBed(open(filter), 0)
+    fh = open(filter+'.bed', 'w')
     for valueL in aDict.values():
         print >>fh, '\n'.join(valueL)
     fh.close()
