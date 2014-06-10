@@ -53,7 +53,7 @@ def cmdparameter(argv):
         os.system(cmd)
         sys.exit(1)
     desc = "Output to file"
-    usages = "%prog -i bed -w wig -o operator -s True"
+    usages = "%prog -w wig1 -W wig2 -o <substract,divide> (wig1-wig2) "
     parser = OP(usage=usages)
     parser.add_option("-w", "--wig1", dest="wig1",
         metavar="WIG1", help="A normalized wig file. Each value \
@@ -80,7 +80,8 @@ strand specific coverage for bed regions. This assumes, the seond \
 column in wig is positive strand while the third column in wig is \
 nagative strand." )
     parser.add_option("-p", "--output-prefix", dest="outP",
-        help="The prefix for output files")
+        default="mergedWig", help="The prefix for output files. \
+Default mergedWig.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
