@@ -125,6 +125,31 @@ def main():
         print >>fh, '\n'.join(valueL)
     fh.close()
     #-----------end close fh-----------
+    inputSet = set()
+    for line in open(file):
+        if line[0] == '>':
+            inputSet.add(line[1:-1])
+    mappedSet = set()
+    head = 5
+    for line in open(output):
+        if head:
+            head -= 1
+            continue
+        mappedSet.add(line.split('\t')[9])
+    #------------------------------------
+    finalSet = set(aDict.keys())
+    print >>sys.stderr, "%d FASTA sequences are given in \
+file %s, %d sequences can be mapped to given database and \
+%d sequences in final output." % \
+(len(inputSet), file, len(mappedSet), len(finalSet))
+    if inputSet.difference(mappedSet):
+        print >>sys.stderr, "The following sequences have \
+not been mapped to database", '\t'.join(inputSet.difference(mappedSet))
+    if mappedSet.difference(finalSet):
+        print >>sys.stderr, "The following sequences have \
+no perfect match to database, you may want to \
+extend their sequence", '\t'.join(mappedSet.difference(finalSet))
+    #------------------------------------
     if verbose:
         print >>sys.stderr,\
             "--Successful %s" % strftime(timeformat, localtime())
