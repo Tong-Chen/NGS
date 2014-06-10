@@ -76,14 +76,14 @@ def readMiranda(fh, ref):
         if key2 not in aDict[key1]:
             aDict[key1][key2] = [line]
             if ref:
-                refDict[key1][key2] = []
+                refDict[key1][key2] = set()
         #---------------------------------
         line = fh.readline()
         while not line.startswith("Complete"):
             aDict[key1][key2].append(line)
             if ref and line.startswith('   Ref:'):
                 seq = line.split()[2].replace('-','')
-                refDict[key1][key2].append(seq)
+                refDict[key1][key2].add(seq)
             line = fh.readline()
         #----END one pair------------
     #--------END all pairs-----------
