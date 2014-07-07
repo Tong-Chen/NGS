@@ -47,7 +47,9 @@ parameter to -f may not be needed.")
 both verified and predicted.")
     parser.add_option("-r", "--ref-aligned-seq", dest="ref",
         default=0, help="If a TRUE value is given,  then output the \
-predicted miRNA targeting sequence. Default 0 means FALSE.")
+predicted miRNA targeting sequence (if one miRNA targets multiple \
+position along targeting-regions with same sequence,  only one of them \
+will be outputted). Default 0 means FALSE.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
