@@ -103,7 +103,7 @@ def computePos(m_start, m_end, t_start, t_end, t_strand, suffix):
         elif t_strand == '-':
             return "UP_"+str(dist) + suffix
     else:
-        if m_start <= t_start:
+        if m_start < t_start:
             overlap = m_end - t_start
             if t_strand == '+':
                 return "OUP_"+str(overlap) + suffix
