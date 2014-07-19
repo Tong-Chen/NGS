@@ -16,7 +16,7 @@ def cmdparameter(argv):
         cmd = 'python ' + argv[0] + ' -h'
         os.system(cmd)
         sys.exit(1)
-    usages = "%prog -i file"
+    usages = "%prog -r receiver@smtp.com -s subjsct -c hello -a attach1,attach2"
     parser = OP(usage=usages)
     parser.add_option("-r", "--receiver", dest='receiver',
             metavar="RECEIVER", default="chentong_biology@163.com", 
