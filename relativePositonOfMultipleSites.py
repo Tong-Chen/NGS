@@ -72,7 +72,9 @@ The sample file we used is the output of \
 Default ':' for sample files.")
     parser.add_option("-F", "--t-filter", dest="t_filter_file",
         help="The files containing filters with each at one row. \
-Only lines matched with filters will be used for following analysis.")
+Only lines matched with filters will be used for following analysis. \
+In file given to -t, the filter should match strings at its forth \
+column after given separtor.")
     parser.add_option("-r", "--t-range", dest="t_range",
         help="Label specific regions for comparing, for example, \
 seed regions of miRNAs (2-8) will be represented as 2-8 \
