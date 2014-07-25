@@ -30,7 +30,15 @@ def cmdparameter(argv):
     usages = "%prog -i file"
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
-        metavar="FILEIN", help="")
+        metavar="FILEIN", help="The output of \
+relativePositonOfMultipleSites.py.")
+    parser.add_option("-s", "--sep", dest="sep",
+        default=':', help="The separtor between peak_name and \
+other things in the third column. Default ':'.")
+    parser.add_option("-c", "--compare-col-begin", dest="colB",
+        default=13, help="The start column containing compare \
+information, simply the column containing @. A zero-started \
+number needed. Default 13, means the forth column.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -45,6 +53,8 @@ def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
     file = options.filein
+    sep = options.sep
+    colB = int(options.colB)
     verbose = options.verbose
     debug = options.debug
     #-----------------------------------
@@ -74,10 +84,10 @@ def main():
         if line.find("No motif") == -1 and \
             line.find("Untargeted") == -1:
             lineL = line.split()
-            peak = lineL[3].split(':')[0]
+            peak = lineL[3].split(sep)[0]
             if peak not in peakD:
                 peakD[peak] = {}
-            for relativePos in lineL[13:]:
+            for relativePos in lineL[colB:]:
                 pos, key = relativePos.split('@')
                 targetTypeL.add(key)
                 posType, posDist = pos.split("_")
