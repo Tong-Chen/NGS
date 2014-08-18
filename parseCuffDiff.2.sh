@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+#set -x
 set -e
 set -u
 
@@ -36,14 +36,16 @@ least_rpkm=$7
 least_len=$8
 ##---map---change label---------------
 ##--------------gene--------------------------
-echo "Substitute labeled name for ${gene_exp}"
+echo ">>> Substitute labeled name for ${gene_exp}"
+echo ">>>"
 awk 'BEGIN{OFS="\t";FS="\t"}ARGIND==1{if(map[$1]=="") map[$1]=$2; \
 else map[$1]=map[$1]"&"$2;}\
 ARGIND==2{if(FNR==1) print $0; else \
 {ne=split(map[$1],name,"&"); for (n in name) {$1=name[n]; print $0;}}}' \
 ${gene_map} ${dir}${gene_exp} >${dir}${gene_exp}.label
 
-echo "Sort genes with specific labels to separate files."
+echo ">>> Sort genes with specific labels to separate files."
+echo ">>>"
 awk 'BEGIN{OFS="\t";FS="\t"}{if (FNR==1) \
 {output=FILENAME"_g"; print $0 >output; \
 output=FILENAME"_x"; print $0 >output; \
@@ -55,8 +57,9 @@ else { a=split($1,b,"__"); cc=b[a]; \
 if(cc=="=" || cc=="j") cc="g"; output=FILENAME"_"cc; \
 print $0 >>output;}}' ${dir}${gene_exp}.label
 
-echo "Transfer genes into normal table and select genes meets
+echo ">>> Transfer genes into normal table and select genes meets
 given conditions. Files with only one line will be skipped."
+echo ">>>"
 for i in `ls ${dir} | grep "${gene_exp}.label_[a-z]$"`; do 
 	if test $(cat ${dir}${i} | wc -l) -gt 1; then
 		cc=${i/${gene_exp}.label_/}
@@ -70,7 +73,8 @@ for i in `ls ${dir} | grep "${gene_exp}.label_[a-z]$"`; do
 	fi
 done
 
-echo "Get expression of genes."
+echo ">>> Get expression of genes."
+echo ">>>"
 gene_gp=${dir}${gene_p}_g
 gene_p_dir=$(dirname ${gene_gp})
 gene_p_base=$(basename ${gene_gp})
@@ -87,14 +91,16 @@ echo "Separate genes into files with sample-sample comparison data."
 
 #--------------isoform----------------------------------
 
-echo "Substitute labeled name for ${tr_exp}"
+echo ">>> Substitute labeled name for ${tr_exp}"
+echo ">>>"
 awk 'BEGIN{OFS="\t";FS="\t"}ARGIND==1{if(map[$1]=="") map[$1]=$2; \
 else {print "This should never happen."; exit;}}\
 ARGIND==2{if(FNR==1) print $0; else \
 {$1=map[$1]; print $0;}}' \
 ${tr_map} ${dir}${tr_exp} >${dir}${tr_exp}.label
 
-echo "Sort out genes into separate files by different labels"
+echo ">>> Sort out genes into separate files by different labels"
+echo ">>>"
 awk 'BEGIN{OFS="\t";FS="\t"}{if (FNR==1) \
 {output=FILENAME"_a"; print $0 >output; \
 output=FILENAME"_j"; print $0 >output; \
@@ -107,8 +113,9 @@ else { a=split($1,b,"__"); cc=b[a]; ; \
 if(cc=="=") cc="a"; output=FILENAME"_"cc; \
 print $0 >>output;}}' ${dir}${tr_exp}.label
 
-echo "Transfer isoforms into normal table and select isoforms meets
+echo ">>> Transfer isoforms into normal table and select isoforms meets
 given conditions. Files with only one line will be skipped."
+echo ">>>"
 for i in `ls ${dir} | grep "${tr_exp}.label_[a-z]$"`; do 
 	if test $(cat ${dir}${i} | wc -l) -gt 1; then
 		cc=${i/${tr_exp}.label_/}
@@ -122,7 +129,8 @@ for i in `ls ${dir} | grep "${tr_exp}.label_[a-z]$"`; do
 	fi
 done
 
-echo "Sort all expressed isoforms"
+echo ">>> Sort all expressed isoforms"
+echo ">>>"
 tr_ap=${dir}${tr_p}_a
 
 awk 'BEGIN{OFS="\t";FS="\t"}{if(FNR==1) {for(i=1;i<=NF;i++) {a[i]=$i;if($i~/___/) {out=ARGV[1]"."a[i]; print $0 >out;}}} else {for(i=2;i<=NF;i++) {if ($i=="yes") {out=ARGV[1]"."a[i]; print $0 >>out}}}}' ${tr_ap}.expr_${least_rpkm}.len_${least_len}
@@ -139,7 +147,8 @@ tr_ap_base=$(basename ${tr_ap})
  cuffdiff.systemtial_DE.py $(ls ${tr_ap_dir} | grep '___' | grep -P "^${tr_ap_base}.expr_${least_rpkm}.len_${least_len}.[^.]*$" | sed "s#^#${tr_ap_dir}#")
 
 
-echo "Sort new isoforms if exists"
+echo ">>> Sort new isoforms if exists"
+echo ">>>"
 tr_jp=${dir}${tr_p}_j
 if test -s ${tr_jp}; then
 	#
