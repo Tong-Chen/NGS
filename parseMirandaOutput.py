@@ -47,9 +47,7 @@ parameter to -f may not be needed.")
 both verified and predicted.")
     parser.add_option("-r", "--ref-aligned-seq", dest="ref",
         default=0, help="If a TRUE value is given,  then output the \
-predicted miRNA targeting sequence (if one miRNA targets multiple \
-position along targeting-regions with same sequence,  only one of them \
-will be outputted). Default 0 means FALSE.")
+predicted miRNA targeting sequence. Default 0 means FALSE.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -68,6 +66,8 @@ def readMiranda(fh, ref):
             line = fh.readline()
             if line.startswith("Scan Complete"):
                 return aDict, refDict
+        #-------Output----------------------------
+        #-------Output----------------------------
         lineL = line.split()
         key1 = lineL[2]
         key2 = lineL[4]
@@ -78,14 +78,23 @@ def readMiranda(fh, ref):
         if key2 not in aDict[key1]:
             aDict[key1][key2] = [line]
             if ref:
-                refDict[key1][key2] = set()
+                refDict[key1][key2] = []
         #---------------------------------
         line = fh.readline()
+        getScore = 0
         while not line.startswith("Complete"):
             aDict[key1][key2].append(line)
-            if ref and line.startswith('   Ref:'):
-                seq = line.split()[2].replace('-','')
-                refDict[key1][key2].add(seq)
+            if ref:
+                if line.startswith('   Ref:'):
+                    seq = line.split()[2].replace('-','')
+                    refDict[key1][key2].append([seq])
+                elif line.startswith("Scores for this hit:"):
+                    getScore = 1
+                elif getScore:
+                    lineL = line.split()    
+                    score = '@'.join(lineL[2:4])
+                    getScore = 0
+                    refDict[key1][key2][-1].append(score)
             line = fh.readline()
         #----END one pair------------
     #--------END all pairs-----------
@@ -120,7 +129,7 @@ def main():
                 aDict[mir].pop(gene)
         #-------------END reading file----------
     if out_all:
-        print '--------------------------'
+        #print '--------------------------'
         for mir, itemD in aDict.items():
             for gene, itemL in itemD.items():
                 tmp = ''.join(itemL)
@@ -135,9 +144,11 @@ def main():
         for mir, itemD in refDict.items():
             for gene, itemL in itemD.items():
                 no = 0
-                for seq in itemL:
+                #print itemL
+                for seq, score in itemL:
                     no += 1
-                    print "@>%s#%s#%d\n@%s" % (mir, gene, no, seq)
+                    print "@>%s#%s#%d#%s\n@%s" % (mir, gene, no,
+                        score, seq)
             #---------------------------------------
         #---------------------------------------------------
     if verbose:
