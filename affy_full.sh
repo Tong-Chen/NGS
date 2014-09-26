@@ -51,10 +51,15 @@ ${txtbld}OPTIONS${txtrst}:
 		GSM723212.CEL   shDot1L3
 
 	-s	The prefix of output file.
+	-M	The algorithm to use.
+		${bldred}Default [rma], accept mas5${txtrst}
 	-i	If error happends when loading needed packages, plaease give
 		TRUE to -i to install all needed ones.
 		${bldred}Default [FALSE]${txtrst}
-	-G	The GPL file used to annotate affy probe ID.
+	-G	The file used to annotate affy probe ID.
+		Currently accepted is a tow column file with the first column
+		containing probe_sets and the second column containing gene
+		symbols (header line is optional).
 		${bldred}Not necessary but better to supply${txtrst}
 	-m	The number of rows in layout. When drawing the raw
 		image signal, this value is used.
@@ -101,7 +106,10 @@ pvalue=0.05
 fdr=0.3
 foldc=1
 qcheck=FALSE
-while getopts "hf:s:i:m:n:a:r:g:G:t:c:p:d:o:q:" OPTION
+algorithm='rma'
+
+
+while getopts "hf:s:i:M:m:n:a:r:g:G:t:c:p:d:o:q:" OPTION
 do
 	case $OPTION in
 		h)
@@ -113,6 +121,9 @@ do
 			;;
 		s)
 			prefix=$OPTARG
+			;;
+		M)
+			algorithm=$OPTARG
 			;;
 		i)
 			install=$OPTARG
@@ -171,7 +182,9 @@ if [ $qcheck == 'TRUE' ] && ( [ -z $rawr ] || [ -z $rawc ] ); then
 	exit 1
 fi
 
-cat <<EOF >$prefix.r
+midname="affy."${algorithm}
+
+cat <<EOF >$prefix.${midname}.r
 if ($install){
 	source("http://bioconductor.org/biocLite.R")
 	#biocLite(c("affy", "genefilter", "gcrma", "affyPLM", 'xps', 'oligo'))
@@ -194,19 +207,19 @@ if($qcheck){
 	#postscript(file="$prefix.qc.raw.signal.eps", onefile=FALSE, 
 	#	horizontal=FALSE, paper="special", width=10, height=8, pointsize=10)
 	print('##Check raw signal')
-	jpeg("$prefix.qc.raw.signal.jpg", 2049, 2049, res=72, quality=95)  #width, height
+	jpeg("$prefix.affy.qc.raw.signal.jpg", 2049, 2049, res=72, quality=95)  #width, height
 	#the matrix 6 x 3, must change according to your sample
 	par(mfrow=c($rawr,$rawc))  
 	image(abc)
 	dev.off() #needed to save the picture
 	print('##Pairwise comparision')
 	#Pairwise comparision. The more linear converge, the better.
-	jpeg("$prefix.MA.plot.jpg", 2048,2048,res=72,quality=95)
+	jpeg("$prefix.affy.MA.plot.jpg", 2048,2048,res=72,quality=95)
 	MAplot(abc, pairs=TRUE, plot.method="smoothScatter")  #slow
 	dev.off() #needed to save the picture
 	#The boxplot, to see the expression variation and decide the normalization
 	print('##Raw signal--boxplot')
-	pdf("$prefix.boxplot.raw.signal.pdf")
+	pdf("$prefix.affy.boxplot.raw.signal.pdf")
 	#las is a parameter of par. 0: always parallel to the axis [_default_],
 	#1: always horizontal, 2: always perpendicular to the axis, 
 	#3: always vertical.
@@ -217,30 +230,37 @@ if($qcheck){
 	#QC-RNA degradation plots, mRNA degrades from 5' to 3'.
 	deg <- AffyRNAdeg(abc)
 	summaryAffyRNAdeg(deg)  #this is just a show of 'deg' 
-	jpeg("$prefix.rna.degradation.raw.signal.jpg", 800, 600,res=72,quality=95)
+	jpeg("$prefix.affy.rna.degradation.raw.signal.jpg", 800, 600,res=72,quality=95)
 	plotAffyRNAdeg(deg, transform="shift.only")
 	dev.off()
 }
-print("##Begin preprocessing data using rma")
+print("##Begin preprocessing data using << ${algorithm} >>")
 #data preprocessing, background correction,normalization and summarization
 #calculating expression
-eset <- rma(abc)
+eset <- ${algorithm}(abc)
+
+eset_expr <- exprs(eset)
+
+if ("${algorithm}" == "mas5"){
+	eset_expr <- log2(eset_expr)
+}
+
 #
 print("##Normalized boxplot")
 #The boxplot, to see the expression variation after normalization
-pdf("$prefix.boxplot.normalization.pdf")
-boxplot(as.data.frame(exprs(eset)), las=2, main="Boxplot of raw signal")  
+pdf("$prefix.${midname}.boxplot.normalization.pdf")
+boxplot(as.data.frame(eset_expr), las=2, main="Boxplot of raw signal")  
 dev.off()
 print("hclust of all samples")
 #hcluster of RMA normalization
 library("amap")
-pdf("$prefix.whole.gene.hcluster.pdf")
+pdf("$prefix.${midname}.whole.gene.hcluster.pdf")
 #t:returns the transpose of x.
-plot(hcluster(t(exprs(eset)), method="pearson"), hang=-1)
+plot(hcluster(t(eset_expr), method="pearson"), hang=-1)
 dev.off()
-print("#output expression value to $prefix.expr")
+print("#output expression value to $prefix.${midname}.expr")
 #output
-write.table(exprs(eset), file="$prefix.expr", sep="\t", 
+write.table(eset_expr, file="$prefix.${midname}.expr", sep="\t", 
 	row.names=TRUE, col.names=TRUE, quote=FALSE)
 
 if ($pma) {
@@ -281,10 +301,10 @@ if ($pma) {
 	}
 	print('Output pma annotated result')
 	detect <- cbind(detect, probe_A)  #only for testing
-	write.table(detect, file="$prefix.pma", sep="\t",
+	write.table(detect, file="$prefix.${midname}.pma", sep="\t",
 		row.names=TRUE, col.names=TRUE, quote=FALSE) 
 	#combine the probe_A with espression data
-	esetN <- cbind(exprs(eset), probe_A)
+	esetN <- cbind(eset_expr, probe_A)
 	#delete untrustable data 
 	filterdProbe <- subset(esetN, esetN[,'probe_A']==0)
 	filterF <- filterdProbe[,1:detectRC[2]]
@@ -292,12 +312,12 @@ if ($pma) {
 	#delete the last column
 	esetF <- esetNoA[,1:detectRC[2]] #the final result for t-test
 	print('output expression daate after filter and filtered probes')
-	write.table(esetF, file="$prefix.expr.aPMA", sep="\t", 
+	write.table(esetF, file="$prefix.${midname}.expr.aPMA", sep="\t", 
 		row.names=TRUE, col.names=TRUE, quote=FALSE) 
-	write.table(filterF, file="$prefix.expr.fullA", sep="\t", 
+	write.table(filterF, file="$prefix.${midname}.expr.fullA", sep="\t", 
 		row.names=TRUE, col.names=TRUE, quote=FALSE) 
 }else{
-	esetF <- exprs(eset)
+	esetF <- eset_expr
 }
 
 if ($runDE) {
@@ -311,7 +331,7 @@ if ($runDE) {
 	esetFF <- cbind(esetF, TtestAdj)
 	print("Output all gene expression with t-test results")
 	write.table(esetFF,
-		file="${prefix}_${foldc}_${pvalue}_${fdr}.expr.ttest",
+		file="${prefix}${midname}_${foldc}_${pvalue}_${fdr}.expr.ttest",
 		sep="\t", row.names=TRUE, col.names=TRUE, quote=FALSE)
 	#diffExpr <- subset(TtestAdjM, abs(TtestAdjM[,'dm'])>=$foldc &&
 	#	TtestAdjM[,'p.adjust']<=$fdr && TtestAdjM[,'p.value']<=$pvalue)
@@ -320,69 +340,74 @@ if ($runDE) {
 	#abs(rowSums(esetFF[,2:$controlR])/rowSums(esetFF[,$controlR+1:$controlR+$treatR]))>=$foldc)
 	diffExpr <- subset(diffExpr, diffExpr\$p.value<=$pvalue)
 	diffExpr <- subset(diffExpr, diffExpr\$p.adjust<=$fdr)
-	write.table(diffExpr, file="${prefix}_${foldc}_${pvalue}_${fdr}.deexpr",
+	write.table(diffExpr, file="${prefix}${midname}_${foldc}_${pvalue}_${fdr}.deexpr",
 		sep="\t", row.names=TRUE, col.names=TRUE, quote=FALSE)
 }
 EOF
 
 if [ "$run" = 'TRUE' ];then
-	Rscript $prefix.r 
-	sed -i '1 s/^/Probe\t/' ${prefix}.expr
+	Rscript $prefix.${midname}.r 
+	/bin/rm -f $prefix.${midname}.r 
+	sed -i '1 s/^/Probe\t/' ${prefix}.${midname}.expr
 	#if [ -s ${gpl} ];then
 	if ! [ -z ${gpl} ] && [ -s ${gpl} ];then
-		grep -v '^#' ${gpl} | cut -f 1,11,13 | \
-			awk 'BEGIN{OFS="\t";FS="\t"}ARGIND==1{if(FNR>1)
-			a[$1]=$1"@"$2"@"$3;}ARGIND==2{if(FNR>1) $1=a[$1]; print
-			$0; }' - ${prefix}.expr | sed 's# /// #;#g' >${prefix}.expr.gene  
-		grep -v '^#' ${gpl} | paste - ${prefix}.expr >${prefix}.expr.anno
+		#grep -v '^#' ${gpl} | cut -f 1,11,13 | \
+		#	awk 'BEGIN{OFS="\t";FS="\t"}ARGIND==1{if(FNR>1)
+		#	a[$1]=$1"@"$2"@"$3;}ARGIND==2{if(FNR>1) $1=a[$1]; print
+		#	$0; }' - ${prefix}.expr | sed 's# /// #;#g' >${prefix}.expr.gene  
+		#grep -v '^#' ${gpl} | paste - ${prefix}.expr >${prefix}.expr.anno
+		awk 'BEGIN{OFS="\t";FS="\t"}ARGIND==1{
+		a[$1]=$1"@"$2;}ARGIND==2{if(FNR>1) $1=a[$1]; print 
+		$0; }' ${gpl} ${prefix}.${midname}.expr >${prefix}.${midname}.expr.gene  
+
 	fi
 fi
 
 
-cat <<EOF >$prefix.Makefile
-$prefix.r.CT:
-	@echo "The R script for analysis."
-
-$prefix.MA.plot.jpg.CT:
-	@echo "The pairwise comparision plot to indicate the
-	repeatability."
-$prefix.qc.raw.signal.jpg.CT:
-	@echo "The raw point picture to detect the quality of the
-	microarray. If no light points found, good. If run in linux,
-	light lines can be irgnored for system reason."
-
-$prefix.boxplot.raw.signal.pdf.CT:
-	@echo "The raw boxplot to see the difference among each sample
-	with raw data."
-
-$prefix.boxplot.normalization.pdf.CT:
-	@echo "The raw boxplot to see the difference among each sample
-	after normalization."
-
-$prefix.whole.gene.hcluster.pdf.CT:
-	@echo "The cluster of all samples. The tree graph can used
-	to tell if your result is right."
-
-$prefix.pma.CT:
-	@echo "The PMA detect result with 0 and 1 annotation in the last
-	column. 1 means kept. "
-
-$prefix.expr.CT:
-	@echo "The normalized expression value of all probes."
-
-$prefix.expr.fullA:
-	@echo "The expression value of wrong probes."
-
-$prefix.cor:
-	@echo "The input file of affy_full.sh."
-
-$prefix.t.test:
-	@echo "The filtered expression value with t-test results."
-
-${prefix}_${foldc}_${pvalue}_${fdr}.expr.ttest.CT:
-	@echo "The selected different expressed genes with expressed
-	values ttest results."
-
-${prefix}_${foldc}_${pvalue}_${fdr}.deexpr:
-	@echo "The selected different expressed genes and ttest results."
-EOF
+#cat <<EOF >$prefix.Makefile
+#$prefix.r.CT:
+#	@echo "The R script for analysis."
+#
+#$prefix.MA.plot.jpg.CT:
+#	@echo "The pairwise comparision plot to indicate the
+#	repeatability."
+#$prefix.qc.raw.signal.jpg.CT:
+#	@echo "The raw point picture to detect the quality of the
+#	microarray. If no light points found, good. If run in linux,
+#	light lines can be irgnored for system reason."
+#
+#$prefix.boxplot.raw.signal.pdf.CT:
+#	@echo "The raw boxplot to see the difference among each sample
+#	with raw data."
+#
+#$prefix.boxplot.normalization.pdf.CT:
+#	@echo "The raw boxplot to see the difference among each sample
+#	after normalization."
+#
+#$prefix.whole.gene.hcluster.pdf.CT:
+#	@echo "The cluster of all samples. The tree graph can used
+#	to tell if your result is right."
+#
+#$prefix.pma.CT:
+#	@echo "The PMA detect result with 0 and 1 annotation in the last
+#	column. 1 means kept. "
+#
+#$prefix.expr.CT:
+#	@echo "The normalized expression value of all probes."
+#
+#$prefix.expr.fullA:
+#	@echo "The expression value of wrong probes."
+#
+#$prefix.cor:
+#	@echo "The input file of affy_full.sh."
+#
+#$prefix.t.test:
+#	@echo "The filtered expression value with t-test results."
+#
+#${prefix}_${foldc}_${pvalue}_${fdr}.expr.ttest.CT:
+#	@echo "The selected different expressed genes with expressed
+#	values ttest results."
+#
+#${prefix}_${foldc}_${pvalue}_${fdr}.deexpr:
+#	@echo "The selected different expressed genes and ttest results."
+#EOF
