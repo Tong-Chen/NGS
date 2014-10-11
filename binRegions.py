@@ -10,6 +10,16 @@ __author_email__ = 'chentong_biology@163.com'
 #=========================================================
 '''
 Functionla description
+
+Input files:
+
+    chr1	23853198	23853221	1	CTGCAAAGGCATCTAGTTCCCAT	-
+    chr1	34872326	34872349	2	AGCACCAGCAAGCACACCCTGCA	-
+    chr1	37932703	37932720	3	TCGGCAGCAAATTCTGCCCCG	+
+    chr1	40829459	40829463	3	TCGGCAGCAAATTCTGCCCCG	+
+
+
+
 '''
 
 import sys
@@ -28,7 +38,9 @@ def cmdparameter(argv):
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
         metavar="FILEIN", help="A standard bed file with \
-six columns. Strand information will be considered. \
+six columns. Multiple separated regions with same names will \
+be preocessed together as you would expect. \
+Strand information will be considered. \
 Extra columns will be ignored.")
     parser.add_option("-n", "--number-bins", dest="nBins",
         metavar="20", default="20", 
@@ -144,6 +156,8 @@ def main():
         #type = keyL[1]
         if gene not in aDict:
             aDict[gene] = [lineL]
+        else:
+            aDict[gene].append(lineL)
         #---------------------------------
         if strand:
             strandD[gene] = lineL[5]
