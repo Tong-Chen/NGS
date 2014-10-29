@@ -45,6 +45,10 @@ outputted matrix. Default 3 means the third column.")
     parser.add_option("-H", "--header-line", dest="header",
         default=1, help="The number of header lines one want to skip. \
 Default 1.")
+    parser.add_option("-D", "--duplicate_names", dest="dpn",
+        default=1, help="A number to represent the number of duplicate \
+names in name column. Default 1 means no duplicate names allowed. \
+An integer allowed..")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -63,6 +67,7 @@ def main():
     col = int(options.col) - 1
     value = int(options.value) - 1
     header = int(options.header)
+    dpn = int(options.dpn)
     verbose = options.verbose
     debug = options.debug
     #-----------------------------------
@@ -85,18 +90,35 @@ def main():
         sampleSet.add(sample)
         if gene not in aDict:
             aDict[gene] = {}
-        if sample not in aDict[gene]:
-            aDict[gene][sample] = expr
-        else:
-            print >>sys.stderr, "Duplicate sample for gene", gene, sample
+        if dpn > 1:
+            if sample not in aDict[gene]:
+                aDict[gene][sample] = [expr]
+            else:
+                aDict[gene][sample].append(expr)
+        elif dpn == 1:
+            if sample not in aDict[gene]:
+                aDict[gene][sample] = expr
+            else:
+                print >>sys.stderr, "Duplicate sample for gene", gene, sample
     #-------------END reading file----------
     #-------------Output--------------------
-    sampleSet = list(sampleSet)
-    sampleSet.sort()
-    print "Name\t%s" % '\t'.join(sampleSet)
-    for gene, sampleD in aDict.items():
-        tmpL = [sampleD[sample] for sample in sampleSet]
-        print "%s\t%s" % (gene, '\t'.join(tmpL))
+    if dpn > 1:
+        sampleSet = list(sampleSet) 
+        sampleSet.sort()
+        sampleSet2 = sampleSet * dpn
+        sampleSet2.sort()
+        print "Name\t%s" % '\t'.join(sampleSet2)
+        for gene, sampleD in aDict.items():
+            tmpL = ['\t'.join(sampleD.get(sample, ['NA']*dpn)) for sample in sampleSet]
+            print "%s\t%s" % (gene, '\t'.join(tmpL))
+    #---------------------------------------------------------------------
+    elif dpn == 1:
+        sampleSet = list(sampleSet)
+        sampleSet.sort()
+        print "Name\t%s" % '\t'.join(sampleSet)
+        for gene, sampleD in aDict.items():
+            tmpL = [sampleD.get(sample, 'NA') for sample in sampleSet]
+            print "%s\t%s" % (gene, '\t'.join(tmpL))
     #----close file handle for files-----
     if file != '-':
         fh.close()
