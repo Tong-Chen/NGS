@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+#set -x
 
 usage()
 {
@@ -103,7 +103,7 @@ if [ -z $precursor ] || [ -z $mature ] || [ -z $reads ] || [ -z $suffix ]; then
 fi
 
 quantifier.modified.pl -p $precursor -m ${mature} \
-	-r ${reads} -y ${suffix} -t ${spe} ${other_p_quantifier}
+	-r ${reads} -y ${suffix} -t ${spe} ${other_p_quantifier} -T 8
 
 if test "${trim}" == 'TRUE'; then
 	#---Get unmapped reads
@@ -128,7 +128,7 @@ if test "${trim}" == 'TRUE'; then
 		#---Test unmapped trimmed reads----------
 		quantifier.modified.pl -p $precursor -m ${mature} \
 			-r ${reads}.processed.fa -y ${suffix} -t ${spe} \
-			${other_p_quantifier} \
+			-T 8 ${other_p_quantifier} \
 			${additional_p_quantifier}
 		#---Get unmapped reads
 		getSeqOfLocus.py -i ${reads}.processed.fa -l \
@@ -152,5 +152,5 @@ if test "${trim}" == 'TRUE'; then
 		miRNAs_expressed_all_samples_${suffix}
 	quantifier.modified.pl -p $precursor -m ${mature} \
 		-r ${reads}.mapped.fa -y ${suffix} \
-		-t ${spe} ${other_p_quantifier}
+		-t ${spe} -T 8 ${other_p_quantifier}
 fi
