@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#set -x
+set -x
 set -e
 set -u
 
@@ -64,18 +64,18 @@ for i in `ls ${dir} | grep "${gene_exp}.label_[a-z]$"`; do
 	if test $(cat ${dir}${i} | wc -l) -gt 1; then
 		cc=${i/${gene_exp}.label_/}
 		cuffdiff.transfer_diff.py ${dir}$i \
-		${dir}${gene_p}_${cc} ${least_rpkm} ${least_len}
+		${gene_p}_${cc} ${least_rpkm} ${least_len}
 		cut -f 2-4 --complement \
-		${dir}${gene_p}_${cc}.expr_${least_rpkm}.len_${least_len} > \
-			${dir}${gene_p}_${cc}.expr_${least_rpkm}.len_${least_len}.tmp
-		/bin/mv -f ${dir}${gene_p}_${cc}.expr_${least_rpkm}.len_${least_len}.tmp \
-			${dir}${gene_p}_${cc}.expr_${least_rpkm}.len_${least_len}
+		${gene_p}_${cc}.expr_${least_rpkm}.len_${least_len} > \
+			${gene_p}_${cc}.expr_${least_rpkm}.len_${least_len}.tmp
+		/bin/mv -f ${gene_p}_${cc}.expr_${least_rpkm}.len_${least_len}.tmp \
+			${gene_p}_${cc}.expr_${least_rpkm}.len_${least_len}
 	fi
 done
 
 echo ">>> Get expression of genes."
 echo ">>>"
-gene_gp=${dir}${gene_p}_g
+gene_gp=${gene_p}_g
 gene_p_dir=$(dirname ${gene_gp})
 gene_p_base=$(basename ${gene_gp})
 if test gene_p_dir == '.'; then
@@ -120,18 +120,18 @@ for i in `ls ${dir} | grep "${tr_exp}.label_[a-z]$"`; do
 	if test $(cat ${dir}${i} | wc -l) -gt 1; then
 		cc=${i/${tr_exp}.label_/}
 		cuffdiff.transfer_diff.py ${dir}$i \
-		${dir}${tr_p}_${cc} ${least_rpkm} ${least_len}
+		${tr_p}_${cc} ${least_rpkm} ${least_len}
 		cut -f 2-4 --complement \
-		${dir}${tr_p}_${cc}.expr_${least_rpkm}.len_${least_len} > \
-			${dir}${tr_p}_${cc}.expr_${least_rpkm}.len_${least_len}.tmp
-		/bin/mv -f ${dir}${tr_p}_${cc}.expr_${least_rpkm}.len_${least_len}.tmp \
-			${dir}${tr_p}_${cc}.expr_${least_rpkm}.len_${least_len}
+		${tr_p}_${cc}.expr_${least_rpkm}.len_${least_len} > \
+			${tr_p}_${cc}.expr_${least_rpkm}.len_${least_len}.tmp
+		/bin/mv -f ${tr_p}_${cc}.expr_${least_rpkm}.len_${least_len}.tmp \
+			${tr_p}_${cc}.expr_${least_rpkm}.len_${least_len}
 	fi
 done
 
 echo ">>> Sort all expressed isoforms"
 echo ">>>"
-tr_ap=${dir}${tr_p}_a
+tr_ap=${tr_p}_a
 
 awk 'BEGIN{OFS="\t";FS="\t"}{if(FNR==1) {for(i=1;i<=NF;i++) {a[i]=$i;if($i~/___/) {out=ARGV[1]"."a[i]; print $0 >out;}}} else {for(i=2;i<=NF;i++) {if ($i=="yes") {out=ARGV[1]"."a[i]; print $0 >>out}}}}' ${tr_ap}.expr_${least_rpkm}.len_${least_len}
 
@@ -149,7 +149,7 @@ tr_ap_base=$(basename ${tr_ap})
 
 echo ">>> Sort new isoforms if exists"
 echo ">>>"
-tr_jp=${dir}${tr_p}_j
+tr_jp=${tr_p}_j
 if test -s ${tr_jp}; then
 	#
 	#
