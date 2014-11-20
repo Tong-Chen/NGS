@@ -40,6 +40,13 @@ by microarray or other high-throughtput technologies.")
     parser.add_option("-c", "--col", dest="val_col",
         help="The number of the column containing the values \
 to be compared. 1-based.")
+    parser.add_option("-C", "--consist", dest="constist_col",
+        help="The number of the column containing the values \
+to check consistency. Here consistency means all up-regualte \
+or all down-regulate. 1-based.")
+    parser.add_option("-p", "--process-consist", dest="process_consist",
+        help="The threshold to start consistent process. \
+Default 0.05 (for p-value only).")
     parser.add_option("-a", "--average", dest="average",
         help="If only two groups, the programs can compare the \
 average values of these two groups. \
@@ -85,6 +92,10 @@ def main():
         col_grp = [ [int(i.split('-')[0])-1,  int(i.split('-')[1])] for i in options.average.split('.')]
     else:
         col_grp = ''
+    #------------------------------------------
+    if options.constist_col:
+        consistent = int(options.constist_col) - 1
+        const_threshold = float(options.process_consist)
     keepLarge = int(options.keepLarge)
     header  = int(options.header)
     verbose = options.verbose
@@ -113,6 +124,17 @@ def main():
             if val_col:
                 curVal = float(lineL[val_col])
                 lastVal = float(aDict[key][val_col])
+                if keepLarge:
+                    if curVal >= const_threshold and \
+                        lastVal >= const_threshold:
+                        if float(lineL[consistent]) * float(aDict[key][consistent]):
+                            print '**%s' % key
+                else:
+                    if curVal <= const_threshold and \
+                        lastVal <= const_threshold:
+                        if float(lineL[consistent]) * float(aDict[key][consistent]):
+                            print '**%s' % key
+                #----------------------------
                 if keepLarge and curVal > lastVal:
                     aDict[key] = lineL
                 elif (not keepLarge) and curVal < lastVal:
@@ -121,7 +143,7 @@ def main():
                 curVal = lineL[-1]
                 lastVal = aDict[key][-1]
                 if curVal * lastVal < 0:
-                    print '**%s' % key
+                    print >>sys.stderr, '**%s' % key
                 if keepLarge and ((curVal > lastVal > 0) or (curVal < lastVal < 0)):
                     aDict[key] = lineL
                 elif (not keepLarge) and ((0 < curVal < lastVal) or (0>curVal>lastVal)):
