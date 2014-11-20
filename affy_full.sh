@@ -67,6 +67,9 @@ ${txtbld}OPTIONS${txtrst}:
 		image signal, this value is used.
 	-a	Execute PMA selection.[Default FALSE, accept TRUE]
 	-r	Run the script[default] or only produce the script[FALSE].
+	-R	Supplying the path of R you want to use instead of default R.
+		[Default an empty string, accept a path like
+		~/soft/R-3.0.0/bin]
 	-g	Run DE test or not.[Default FALSE, accept TRUE only if there
 		are two conditions in data. When TRUE,
 		please supply other needed parameters.]
@@ -107,9 +110,10 @@ fdr=0.3
 foldc=1
 qcheck=FALSE
 algorithm='rma'
+Rscript_path=
 
 
-while getopts "hf:s:i:M:m:n:a:r:g:G:t:c:p:d:o:q:" OPTION
+while getopts "hf:s:i:M:m:n:a:r:R:g:G:t:c:p:d:o:q:" OPTION
 do
 	case $OPTION in
 		h)
@@ -139,6 +143,9 @@ do
 			;;
 		r)
 			run=$OPTARG
+			;;
+		R)
+			Rscript_path=$OPTARG
 			;;
 		G)
 			gpl=$OPTARG
@@ -346,7 +353,11 @@ if ($runDE) {
 EOF
 
 if [ "$run" = 'TRUE' ];then
-	Rscript $prefix.${midname}.r 
+	if [ -z ${Rscript_path} ]; then
+		Rscript $prefix.${midname}.r 
+	else
+		${Rscript_path}/Rscript $prefix.${midname}.r 
+	fi
 	/bin/rm -f $prefix.${midname}.r 
 	sed -i '1 s/^/Probe\t/' ${prefix}.${midname}.expr
 	#if [ -s ${gpl} ];then
