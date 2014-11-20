@@ -258,18 +258,19 @@ if($qcheck){
 	#the matrix 6 x 3, must change according to your sample
 	total_samp <- ${rawr} * ${rawc}
 	for (i in 1:total_samp) {
-		jpeg(paste("$prefix.affy.",i,".rawSignal.jpg",sep=""), 1024, 1024, res=300, quality=95)  #width, height
+		jpeg(paste("$prefix",i,"rawSignal.jpg",sep="."), 1024, 1024, res=300, quality=95)  #width, height
 		image(abc, i)
 		dev.off()
 	}
 	print('##Pairwise comparision')
 	#Pairwise comparision. The more linear converge, the better.
-	jpeg("$prefix.affy.MA.plot.jpg", 2048,2048,res=300,quality=95)
+	pdf(file="${prefix}.rawSignal.MA.plot.pdf",onefile=FALSE, paper="special",
+	pointsize=9)
 	MAplot(abc, pairs=TRUE, plot.method="smoothScatter")  #slow
 	dev.off() #needed to save the picture
 	#The boxplot, to see the expression variation and decide the normalization
 	print('##Raw signal--boxplot')
-	pdf("$prefix.affy.boxplot.raw.signal.pdf")
+	pdf("$prefix.rawSignal.boxplot.pdf")
 	#las is a parameter of par. 0: always parallel to the axis [_default_],
 	#1: always horizontal, 2: always perpendicular to the axis, 
 	#3: always vertical.
@@ -299,9 +300,13 @@ eset_expr <- exprs(eset)
 
 #
 print("##Normalized boxplot")
+pdf(file="${prefix}.${midname}.normalized.MA.plot.pdf",onefile=FALSE, paper="special",
+pointsize=9)
+MAplot(eset, pairs=TRUE, plot.method="smoothScatter")  #slow
+dev.off() #needed to save the picture
 #The boxplot, to see the expression variation after normalization
 pdf("$prefix.${midname}.boxplot.normalization.pdf")
-boxplot(as.data.frame(eset_expr), las=2, main="Boxplot of raw signal")  
+boxplot(as.data.frame(eset_expr), las=2, main="Boxplot of normalized signal")  
 dev.off()
 print("hclust of all samples")
 #hcluster of RMA normalization
