@@ -64,6 +64,8 @@ def flankTSS_TES(TSS, TTS, end, regionL, strand, name_base, score, chr):
             name = name_base + '.TSS' + str(seg)
         elif strand == '-':
             name = name_base + '.TTS' + str(seg)
+        else:
+            name = name_base + 'unstranded' + str(seq)
         tmpLineL = [chr,str(newstart),str(newend),name, \
             score,strand]
         print "\t".join(tmpLineL)
@@ -379,7 +381,6 @@ tmpDict = {strand:'+',  (0, 100):'exon', (80, 83):'start_codon', \
 def parse(tmpDict, key, name_label,cs_dict,regionL):
     strand = tmpDict.pop('strand')
     chr    = tmpDict.pop('chr')
-    chrom_end = cs_dict[chr]
     score, name, unused_315 = key.split('#')
     name += '_'+name_label
     keyL = tmpDict.keys()
@@ -387,8 +388,10 @@ def parse(tmpDict, key, name_label,cs_dict,regionL):
     keyL.sort()
     get_coding_exon_intron(chr,keyL,tmpDict,name,'0',strand)
     start, end = get_gene_body(chr,keyL,tmpDict,name,score,strand)
-    flankTSS_TES(start, end, chrom_end, regionL, strand, name, '0', chr)
-    outTSS_TES(start, end, chrom_end, regionL, strand, name, '0', chr)
+    if cs_dict:
+        chrom_end = cs_dict[chr]
+        flankTSS_TES(start, end, chrom_end, regionL, strand, name, '0', chr)
+        outTSS_TES(start, end, chrom_end, regionL, strand, name, '0', chr)
     if strand == '+':
         #------find UTR5--------------
         tmpL = []
@@ -639,22 +642,25 @@ def parse(tmpDict, key, name_label,cs_dict,regionL):
 
 def main():
     lensysargv = len(sys.argv)
-    if lensysargv < 3:
+    if lensysargv < 2:
         print >>sys.stderr, "This parses GTF file to extract UTR5, \
 UTR3, coding exon, intron, TSS, TTS, upstream and downstream regions."
         print >>sys.stderr, 'Using python %s filename[GTF, sorted \
 first by gene, then column 4 and 5(using program sortGTF.py); - means \
-sys.stdin] chromsome_size' % sys.argv[0]
+sys.stdin] chromsome_size [if given, upstream and downstream regions \
+will be output; Otherwise only outputting inner regions]' % sys.argv[0]
         sys.exit(0)
     #-----------------------------------
     regionL = [500,1000,2000,5000]
     accepted_regionL = ['exon', 'stop_codon', 'start_codon']
     #------get chromosome size-----------------
-    chrom_size = sys.argv[2]
+    chrom_size = ''
     cs_dict = {}
-    for line in open(chrom_size):
-        lineL = line.split()
-        cs_dict[lineL[0]] = int(lineL[1])
+    if len(sys.argv) > 2:
+        chrom_size = sys.argv[2]
+        for line in open(chrom_size):
+            lineL = line.split()
+            cs_dict[lineL[0]] = int(lineL[1])
     #------get chromosome size-----------------
     file = sys.argv[1]
     if file == '-':
@@ -671,7 +677,10 @@ sys.stdin] chromsome_size' % sys.argv[0]
         # GTF coordinate starts with 1. Here transfer to bed format.
         if region_name in accepted_regionL:
             start_end = (int(lineL[3])-1,int(lineL[4])) 
+            #print >>sys.stderr, line
+            #print >>sys.stderr, lineL
             attributeL = lineL[8].split('; ')[:2]
+            #print >>sys.stderr, attributeL
             gene_id = attributeL[0].replace("gene_id ", "").strip('\"')
             transcript_id = attributeL[1].replace("transcript_id ","").strip('\"')
             key = '#'.join([gene_id, transcript_id, lineL[0]])
