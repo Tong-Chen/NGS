@@ -59,7 +59,7 @@ The sample file we used is the output of \
 in this file are smaller than those in the file given to -t.")
     parser.add_option("-s", "--m-separtor", dest="m_name_sep",
         default='@', help="The separtor for names in bed file. \
-Default '@' for sample files.")
+Default '@' for motif files.")
     parser.add_option("-f", "--m-filter", dest="m_filter_file",
         help="The files containing filters with each at one row. \
 Only lines matched with filters will be used for following analysis.")
@@ -106,12 +106,18 @@ def computePos(m_start, m_end, t_start, t_end, t_strand, suffix):
             return "UP_"+str(dist) + suffix
     else:
         if m_start < t_start:
+            if m_end >= t_end:
+                return 'IN_-1' + suffix
+            #-------------------------------
             overlap = m_end - t_start
             if t_strand == '+':
                 return "OUP_"+str(overlap) + suffix
             elif t_strand == '-':
                 return "ODW_"+str(overlap) + suffix
         elif m_end > t_end:
+            if m_start <= t_start:
+                return 'IN_-1' + suffix
+            #---------------------------------
             overlap = t_end - m_start
             if t_strand == '+':
                 return "ODW_"+str(overlap) + suffix
