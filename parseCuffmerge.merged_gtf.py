@@ -53,13 +53,15 @@ sys.stdin]' % sys.argv[0]
     trDict   = {}
     oldTr = ''
     header = 0
-    withRef = ['=', 'j', 's', 'x', 'o', 'c']
+    withRef = ['=', 'j', 's', 'x', 'o', 'c', 'i', 'p', 'e', '.']
+    newISO = ['u', 'r' ]
     tmpL = set()
     for line in fh:
         if header:
             header -= 1
             continue
         #here is your reading
+        #print line
         if oldTr == '' or line.find(oldTr) == -1: 
             lineL = line.strip().strip(';').split('\t')
             focus = lineL[-1]
@@ -67,9 +69,13 @@ sys.stdin]' % sys.argv[0]
                 i.split(" ")[1].replace('"', '')] \
                 for i in focus.split("; ")])
             #tmpL = tmpL.union(set(focusDict.keys()))
+            #print focusDict
             class_code = focusDict['class_code']
             if 'contained_in' in focusDict:
                 class_code = 'c'
+            if class_code in [".", "-"]:
+                if 'gene_name' not in focusDict:
+                    class_code = 'u'
             gn = focusDict['gene_id']
             tr = focusDict['transcript_id']
             oldTr = 'transcript_id "'+tr+'"'
@@ -79,11 +85,14 @@ sys.stdin]' % sys.argv[0]
                 if class_code in withRef:
                     geneDict[gn].append([focusDict['gene_name'], gn, class_code])
                     #----------------------------------------
-                elif class_code == 'u':
+                elif class_code in newISO:
                     geneDict[gn].append([\
                         '.'.join(focusDict['oId'].split('.')[:-1]),gn, class_code])
                 else:
-                    print >>sys.stderr, "UNpected class_code %s" % tr
+                    print >>sys.stderr, line
+                    print >>sys.stderr, focusDict
+                    print >>sys.stderr, "UNpected class_code \
+<%s> for <%s>" % (class_code, tr)
                     sys.exit(1)
             else:
                 if class_code in withRef:
@@ -103,7 +112,7 @@ sys.stdin]' % sys.argv[0]
                     #    tmp89L = geneDict[gn].split('__')
                     #    tmp89L[0] += '&'+focusDict['gene_name']
                     #    geneDict[gn] = '__'.join(tmp89L)
-                elif class_code == 'u':
+                elif class_code in newISO:
                     oId = '.'.join(focusDict['oId'].split('.')[:-1])
                     new = 1
                     for itemL in geneDict[gn]:
@@ -121,17 +130,23 @@ sys.stdin]' % sys.argv[0]
                     #    tmp89L[0] += '&'+oId
                     #    geneDict[gn] = '__'.join(tmp89L)
                 else:
-                    print >>sys.stderr, "UNpected class_situation %s" % tr
+                    print >>sys.stderr, line
+                    print >>sys.stderr, focusDict
+                    print >>sys.stderr, "UNpected class_situation \
+<%s> for <%s>" % (class_code, tr)
                     sys.exit(1)
             #--------------------------------------------------
             if tr not in trDict:
                 if class_code in withRef:
                     trDict[tr] = '__'.join([focusDict['gene_name'], \
                         focusDict['nearest_ref'], tr, class_code])
-                elif class_code == 'u':
+                elif class_code in newISO:
                     trDict[tr] = '__'.join([tr, class_code])
                 else:
-                    print >>sys.stderr, "UNpected class_code %s" % tr
+                    print >>sys.stderr, line
+                    print >>sys.stderr, focusDict
+                    print >>sys.stderr, "UNpected class_code <%s> \
+for <%s>" % (class_code, tr)
                     sys.exit(1)
             else:
                 print >>sys.stderr, "Should not be here %s" % tr
