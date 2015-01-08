@@ -234,12 +234,18 @@ def main():
               left_strand, right_strand, overlap, 
               match_type, chr]
     '''
+    header = ['left_name', 'left_pos', 'right_pos', 'left_strand',
+            'right_name', 'right_pos', 'right_pos', 'right_strand', 
+            'overlap', 'overlap_percent', 'match_type', 'chr',
+            'pair_type']
+    print '\t'.join(header)
     for keyT, valueL in aDict.items():
         if keyT in duplicateD:
             continue
         pair_pos = determineOverlap_pos(valueL)
         maxPercent = determineMaxPercent(valueL)
-        match_type = '@'.join(['-'.join(pair) for pair in valueL[7]])
+        match_type = '@'.join(['-'.join(sorted(pair)) for pair in
+            sorted(valueL[7])])
         print "%s\t%d\t%d\t%s\t%s\t%d\t%d\t%s\t%d\t%.2f\t%s\t%s\t%s" % \
                 (keyT[0], valueL[0], valueL[1], valueL[4],
                 keyT[1], valueL[2], valueL[3], valueL[5], valueL[6],
