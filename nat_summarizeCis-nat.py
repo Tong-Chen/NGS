@@ -93,7 +93,24 @@ def get_overlap(posL):
         return right - left
     else:
         return -1
+#--------------------------------------------------------------------
 
+def determineMaxPercent(valueL):
+    '''
+    valueL = [left_start, left_end, 
+        right_start, right_end, left_strand, right_strand, 
+        overlap, match_type, chr]
+    '''
+    left_start = valueL[0]
+    left_end   = valueL[1]
+    left_len = left_end - left_start
+    right_start = valueL[2]
+    right_end   = valueL[3]
+    right_len = right_end - right_start
+    minLen = left_len if left_len < right_len else right_len
+    return float(valueL[6]) / minLen
+    
+#---------------------END determineOverlap_pos-----------------
 #-----overlap-------------------------------
 def determineOverlap_pos(valueL):
     '''
@@ -221,11 +238,12 @@ def main():
         if keyT in duplicateD:
             continue
         pair_pos = determineOverlap_pos(valueL)
+        maxPercent = determineMaxPercent(valueL)
         match_type = '@'.join(['-'.join(pair) for pair in valueL[7]])
-        print "%s\t%d\t%d\t%s\t%s\t%d\t%d\t%s\t%d\t%s\t%s\t%s" % \
+        print "%s\t%d\t%d\t%s\t%s\t%d\t%d\t%s\t%d\t%.2f\t%s\t%s\t%s" % \
                 (keyT[0], valueL[0], valueL[1], valueL[4],
                 keyT[1], valueL[2], valueL[3], valueL[5], valueL[6],
-                match_type, valueL[8], pair_pos)
+                maxPercent, match_type, valueL[8], pair_pos)
         duplicateD[(keyT[1], keyT[0])] = 1
     ###--------multi-process------------------
     #pool = ThreadPool(5) # 5 represents thread_num
