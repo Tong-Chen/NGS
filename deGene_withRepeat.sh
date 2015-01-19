@@ -21,6 +21,8 @@ ${txtbld}OPTIONS${txtrst}:
 		${bldred}[Necessary]${txtrst}
 	-t	The repeat time of treated sample.[integer, default 3]
 	-c	The repeat time of control sample.[integer, default 3]
+	-s	The statistical method you prefer.
+		[Default t.test, accept wilcox.test.]	
 	-p	The accepted maximum p-value.[default 0.05]
 	-d	The accepted maximum fdr.[defaultault 0.3]
 	-o	The accepted minimum fold change.
@@ -42,6 +44,7 @@ EOF
 file=
 install='FALSE'
 run='TRUE'
+test_m='t.test'
 controlR=3
 treatR=3
 pvalue=0.05
@@ -51,7 +54,7 @@ log2="TRUE"
 checkNames="TRUE"
 onlySelect='FALSE'
 
-while getopts "hf:t:c:p:d:o:O:l:i:r:" OPTION
+while getopts "hf:t:c:s:p:d:o:O:l:i:r:" OPTION
 do
 	case $OPTION in
 		h)
@@ -72,6 +75,9 @@ do
 			;;
 		c)
 			controlR=$OPTARG
+			;;
+		s)
+			test_m=$OPTARG
 			;;
 		p)
 			pvalue=$OPTARG
@@ -100,7 +106,7 @@ if [ -z $file ] ; then
 	exit 1
 fi
 
-midname=".de"
+midname=".de.${test_m}"
 
 cat <<EOF >$file${midname}.r
 
@@ -123,22 +129,44 @@ if (! ${onlySelect}){
 		esetF <- log2(esetF)
 	}
 
-	Ttest <- rowttests(esetF, as.factor(c(rep(1,$controlR),rep(2,$treatR))))
-	Ttest <- Ttest[, 2-3]
-	colnames(Ttest) <- c('log2FC', 'p.value')
+	if ("${test_m}" == 't.test'){
+		sta_test <- rowttests(esetF, as.factor(c(rep(1,$controlR),rep(2,$treatR))))
+		sta_test <- sta_test[, 2-3]
+		colnames(sta_test) <- c('log2FC', 'p.value')
+	} else if ("${test_m}" == 'wilcox.test') {
+		rowwilcox.test <- function(x, controlR, treatR) {
+			p_fc_list <- c()
+			inner_wilcox.test <- function (x, p_fc_list, controlR,treatR){
+				control <- x[1:controlR]
+				treat <- x[(controlR+1):(controlR+treatR)]
+				p <- wilcox.test(control, treat)\$p.value
+				fc <- log2(mean(control)/mean(treat))
+				if(length(p_fc_list)==0){
+					p_fc_list <<- c(fc, p)
+				}else {
+					p_fc_list <<- rbind(p_fc_list, c(fc, p))
+				}
+			}
+			apply(x, 1, function(x) inner_wilcox.test(x,p_fc_list,controlR,treatR))
+			rownames(p_fc_list) <- rownames(x)
+			return (as.data.frame(p_fc_list))
+		}
+		sta_test <- rowwilcox.test(esetF, ${controlR}, ${treatR})
+		colnames(sta_test) <- c('log2FC', 'p.value')
+	}
 	print('method "BH" gives the false discovery rate ?p.adjust. We declare a collection of 100 genes with a maximum FDR of 0.10 to be differentially expressed (DE), then we expect a maximum of 10 genes to be false positives.')
-	p.adjust <- p.adjust(Ttest\$p.value, method="BH")
-	TtestAdj <- cbind(Ttest, p.adjust)
-	esetFF <- cbind(esetF, TtestAdj)
+	p.adjust <- p.adjust(sta_test\$p.value, method="BH")
+	sta_testAdj <- cbind(sta_test, p.adjust)
+	esetFF <- cbind(esetF, sta_testAdj)
 
 	esetFF <- esetFF[order(esetFF\$p.value), ]
 
 	print("Output all gene expression with t-test results")
 	write.table(esetFF,
-		file="${file}${midname}.expr.ttest",
+		file="${file}${midname}.expr",
 		sep="\t", row.names=TRUE, col.names=TRUE, quote=FALSE)
 } else {
-	esetFF <- read.table(file="${file}${midname}.expr.ttest", sep="\t",
+	esetFF <- read.table(file="${file}${midname}.expr", sep="\t",
 		header=T, row.names=1)
 } 
 
@@ -177,7 +205,7 @@ EOF
 if [ "$run" = 'TRUE' ];then
 	Rscript $file${midname}.r 
 	/bin/rm -f $file${midname}.r 
-	sed -i '1 s/^/Gene\t/' ${file}${midname}.expr.ttest
+	sed -i '1 s/^/Gene\t/' ${file}${midname}.expr
 	sed -i '1 s/^/Gene\t/' ${file}${midname}_${foldc}_${pvalue}_${fdr}.de.expr
 	sed -i '1 s/^/Gene\t/' ${file}${midname}_${foldc}_${pvalue}_${fdr}.de.dw.expr
 	sed -i '1 s/^/Gene\t/' ${file}${midname}_${foldc}_${pvalue}_${fdr}.de.up.expr
