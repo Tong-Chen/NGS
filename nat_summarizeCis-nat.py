@@ -74,6 +74,9 @@ def cmdparameter(argv):
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
         metavar="FILEIN", help="Normally the output of <intersectBed -a tr.bed -b tr.bed -wo -S >output>")
+    parser.add_option("-o", "--output_prefix", dest="out_pre",
+        help="The prefix of ouput files. Default the name \
+(including path) of input files for <-i>")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -148,6 +151,10 @@ def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
     file = options.filein
+    if options.out_pre:
+        out_p = options.out_pre
+    else:
+        out_p = file
     #trpos = options.trpos
     global verbose
     verbose = options.verbose
@@ -234,29 +241,48 @@ def main():
               left_strand, right_strand, overlap, 
               match_type, chr]
     '''
+    #---------output-----------
+    out_p_summary = open(out_p+'.summary', 'w')
+    out_p_match_size = open(out_p+'.match_size', 'w')
+    out_p_match_percent = open(out_p+'.match_percent', 'w')
+    out_p_pair_type = open(out_p+'.pair_type', 'w')
+    pairT = {}
     header = ['left_name', 'left_pos', 'right_pos', 'left_strand',
             'right_name', 'right_pos', 'right_pos', 'right_strand', 
             'overlap', 'overlap_percent', 'match_type', 'chr',
             'pair_type']
-    print '\t'.join(header)
+    print >>out_p_summary, '\t'.join(header)
     for keyT, valueL in aDict.items():
         if keyT in duplicateD:
             continue
+        duplicateD[(keyT[1], keyT[0])] = 1
         pair_pos = determineOverlap_pos(valueL)
         maxPercent = determineMaxPercent(valueL)
         match_type = '@'.join(['-'.join(sorted(pair)) for pair in
             sorted(valueL[7])])
-        print "%s\t%d\t%d\t%s\t%s\t%d\t%d\t%s\t%d\t%.2f\t%s\t%s\t%s" % \
-                (keyT[0], valueL[0], valueL[1], valueL[4],
-                keyT[1], valueL[2], valueL[3], valueL[5], valueL[6],
-                maxPercent, match_type, valueL[8], pair_pos)
-        duplicateD[(keyT[1], keyT[0])] = 1
-    ###--------multi-process------------------
-    #pool = ThreadPool(5) # 5 represents thread_num
-    #result = pool.map(func, iterable_object)
-    #pool.close()
-    #pool.join()
-    ###--------multi-process------------------
+        print >>out_p_summary, \
+            "%s\t%d\t%d\t%s\t%s\t%d\t%d\t%s\t%d\t%.2f\t%s\t%s\t%s" % \
+            (keyT[0], valueL[0], valueL[1], valueL[4],
+            keyT[1], valueL[2], valueL[3], valueL[5], valueL[6],
+            maxPercent, match_type, valueL[8], pair_pos)
+        #--------------------------------------
+        if match_type == 'tr@tr':
+            print >>out_p_match_size, valueL[6]
+            print >>out_p_match_percent, maxPercent
+            if pair_pos not in pairT:
+                pairT[pair_pos] = 1
+            else:
+                pairT[pair_pos] += 1
+        #-------------------------
+    #----------------------------
+    pairTKL = sorted(pairT.keys())
+    for key in pairT:
+        print >>out_p_pair_type, "%s\t%s" % (key, pairT[key])
+    out_p_summary.close()
+    out_p_match_size.close()
+    out_p_match_percent.close()
+    out_p_pair_type.close()
+    ###--------tr@tr summarize------------------
     if verbose:
         print >>sys.stderr,\
             "--Successful %s" % strftime(timeformat, localtime())
