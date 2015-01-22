@@ -19,8 +19,10 @@ This script is used to detect DE genes by t-test.
 ${txtbld}OPTIONS${txtrst}:
 	-f	Gene expression matrix file.
 		${bldred}[Necessary]${txtrst}
-	-t	The repeat time of treated sample.[integer, default 3]
-	-c	The repeat time of control sample.[integer, default 3]
+	-c	The repeat time of control sample (first several columns).
+		[integer, default 3]
+	-t	The repeat time of treated sample (last several columns).
+		[integer, default 3]
 	-s	The statistical method you prefer.
 		[Default t.test, accept wilcox.test.]	
 	-p	The accepted maximum p-value.[default 0.05]
@@ -38,6 +40,12 @@ ${txtbld}OPTIONS${txtrst}:
 		TRUE to -i to install all needed ones.
 		${bldred}Default [FALSE]${txtrst}
 	-r	Run the script[default] or only produce the script[FALSE].
+
+Attention:
+1. An integer matrix will cause an error 
+	Invalid argument 'x': must be a real matrix
+	Chenge any number to float number and re-run the script.
+
 EOF
 }
 
@@ -140,7 +148,7 @@ if (! ${onlySelect}){
 				control <- x[1:controlR]
 				treat <- x[(controlR+1):(controlR+treatR)]
 				p <- wilcox.test(control, treat)\$p.value
-				fc <- log2(mean(control)/mean(treat))
+				fc <- mean(control) - mean(treat)
 				if(length(p_fc_list)==0){
 					p_fc_list <<- c(fc, p)
 				}else {
