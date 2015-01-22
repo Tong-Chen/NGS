@@ -35,7 +35,7 @@ ${txtbld}OPTIONS${txtrst}:
 	-l	The data is already log2 transferred.
 		${bldred}[Default TRUE, set to FALSE if not log2 transferred]${txtrst}
 	-i	If error happends when loading needed packages, plaease give
-		TRUE to -i to install all needed ones.
+		TRUE to -i to install all needed packages.
 		${bldred}Default [FALSE]${txtrst}
 	-r	Run the script[default] or only produce the script[FALSE].
 EOF
@@ -107,14 +107,17 @@ midname="DE.${sta_m}"
 
 cat <<EOF >$file.${midname}.r
 
-library('genefilter')
+if ("${sta_m}" == "t.test"){
+	library('genefilter')
+}
 
 
 run_DE <- function 
 (a, 
  lena,
  data, 
- sampleName
+ sampleName,
+ genelistFile
 ){
 	for(i in 1:(lena-1)){
 		if (i>1) {
@@ -136,7 +139,7 @@ run_DE <- function
 			#print(v2)
 			samp2 <- sampleName[j]
 			currentSample <- as.matrix(data[, c(start1:end1, start2:end2)])
-			de_compute(currentSample, samp1, samp2, v1, v2)		
+			de_compute(currentSample, samp1, samp2, v1, v2, genelistFile)		
 		}
 	}
 }
@@ -178,7 +181,8 @@ esetF,
 samp1, 
 samp2,
 v1,
-v2
+v2,
+genelistFile
  ){
  	print(paste("Perform ${sta_m} for", samp1, "and", samp2))
 	if ("${sta_m}" == "t.test"){
@@ -208,6 +212,14 @@ v2
 	fileO <- paste("${file}","${midname}",sampC,"${foldc}","${pvalue}","${fdr}","deexpr.dw", sep=".")
 	write.table(diffExpr, file=fileO, sep="\t", row.names=TRUE, col.names=TRUE, quote=FALSE)
 	system(paste("sed -i '1 s/^/Gene\t/'", fileO))
+	diffExpr <- subset(esetFF,  abs(TtestAdj\$log2FC)>=abs($foldc))
+	diffExpr <- subset(diffExpr, diffExpr\$p.value<=$pvalue)
+	diffExpr <- subset(diffExpr, diffExpr\$p.adjust<=$fdr)
+	if (dim(diffExpr)[1] > 0) {
+		gene_label <- cbind(rownames(diffExpr), sampC)
+		write.table(gene_label, file=genelistFile, sep="\t", row.names=F,
+	    	col.names=F, quote=FALSE, append=T)
+	}
 }
 
 data <- as.matrix(read.table(file="${file}", header=T, sep="\t",row.names=1))
@@ -219,9 +231,15 @@ if(! ${log2}){
 replication <- c(${replication})
 sampleName  <- c(${sampleName})
 
+
+genelist <- paste("${file}","${midname}","${foldc}","${pvalue}","${fdr}","deexpr.genelist", sep=".")
+
+system(paste("/bin/rm -rf ", genelist))
+system(paste("touch ", genelist))
+
 len_replication <- length(replication)
 
-run_DE(replication, len_replication, data, sampleName)
+run_DE(replication, len_replication, data, sampleName, genelist)
 
 EOF
 
