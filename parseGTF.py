@@ -643,6 +643,7 @@ def parse(tmpDict, key, name_label,cs_dict,regionL):
 def main():
     lensysargv = len(sys.argv)
     if lensysargv < 2:
+        print >>sys.stderr, "***Print results to screen.***"
         print >>sys.stderr, "This parses GTF file to extract UTR5, \
 UTR3, coding exon, intron, TSS, TTS, upstream and downstream regions."
         print >>sys.stderr, 'Using python %s filename[GTF, sorted \
