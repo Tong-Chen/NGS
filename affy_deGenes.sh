@@ -10,7 +10,7 @@ cat <<EOF
 ${txtcyn}
 Usage (the least parameter):
 
-$0 -f pheno.txt -s prefix${txtrst}
+$0 -f gene_expression.matrix -s prefix${txtrst}
 
 ${bldblu}Function${txtrst}:
 
@@ -26,6 +26,8 @@ ${txtbld}OPTIONS${txtrst}:
 	-v	The sample name of each group.
 		${bldred}NECESSARY, in format like "'samp1','samp2','samp3'".
 		Thr order matters.{txtrst}
+	-s	Statistical method one wmat to used.
+		${bldred}Defaulr t.test, accept wilcox.test.${txtrst}
 	-p	The accepted maximum p-value.[default 0.05]
 	-d	The accepted maximum fdr.[defaultault 0.3]
 	-o	The accepted minimum fold change.
@@ -48,9 +50,10 @@ pvalue=0.05
 fdr=0.3
 foldc=1
 log2='TRUE'
+sta_m='t.test'
 
 
-while getopts "hf:R:v:r:l:i:p:d:o:" OPTION
+while getopts "hf:R:s:v:r:l:i:p:d:o:" OPTION
 do
 	case $OPTION in
 		h)
@@ -65,6 +68,9 @@ do
 			;;
 		v)
 			sampleName=$OPTARG
+			;;
+		s)
+			sta_m=$OPTARG
 			;;
 		l)
 			log2=$OPTARG
@@ -135,6 +141,35 @@ run_DE <- function
 	}
 }
 
+my_wilcox.test <- function
+(esetF,
+controlR, 
+treatR
+) {
+	rowwilcox.test <- function(x, controlR, treatR) {
+		p_fc_list <- c()
+		inner_wilcox.test <- function (x, p_fc_list, controlR,treatR){
+			control <- x[1:controlR]
+			treat <- x[(controlR+1):(controlR+treatR)]
+			p <- wilcox.test(control, treat)\$p.value
+			fc <- mean(control) - mean(treat)
+			if(length(p_fc_list)==0){
+				p_fc_list <<- c(fc, p)
+			}else {
+				p_fc_list <<- rbind(p_fc_list, c(fc, p))
+			}
+		}
+		apply(x, 1, function(x) inner_wilcox.test(x,p_fc_list,controlR,treatR))
+		rownames(p_fc_list) <- rownames(x)
+		return (as.data.frame(p_fc_list))
+	}
+	sta_test <- rowwilcox.test(esetF, controlR, treatR)
+	colnames(sta_test) <- c('log2FC', 'p.value')
+	return sta_test
+}
+
+
+
 de_compute <- function
 (
 esetF,
@@ -143,8 +178,14 @@ samp2,
 v1,
 v2
  ){
- 	print(paste("Perform T-test for", samp1, "and", samp2))
-	Ttest <- rowttests(esetF, as.factor(c(v1,v2)))
+ 	print(paste("Perform ${sta_m} for", samp1, "and", samp2))
+	if ("${sta_m}" == "t.test"){
+		Ttest <- rowttests(esetF, as.factor(c(v1,v2)))
+		Ttest <- sta_test[, 2-3]
+		colnames(Ttest) <- c('log2FC', 'p.value')
+	} else if ("${sta_m}" == "t.test"){
+		Ttest <- my_wilcox.test(esetF, length(v1), length(v2))
+	}
 	p.adjust <- p.adjust(Ttest\$p.value, method="BH")
 	TtestAdj <- cbind(Ttest, p.adjust)
 	esetFF <- cbind(esetF, TtestAdj)
@@ -152,14 +193,14 @@ v2
 	fileO <- paste("${file}","${midname}",sampC,"${foldc}","${pvalue}","${fdr}","expr.ttest", sep=".")
 	write.table(esetFF, file=fileO, sep="\t", row.names=TRUE, col.names=TRUE, quote=FALSE)
 	system(paste("sed -i '1 s/^/Gene\t/'", fileO))
-	diffExpr <- subset(esetFF,  TtestAdj\$dm>=$foldc)
+	diffExpr <- subset(esetFF,  TtestAdj\$log2FC>=$foldc)
 	diffExpr <- subset(diffExpr, diffExpr\$p.value<=$pvalue)
 	diffExpr <- subset(diffExpr, diffExpr\$p.adjust<=$fdr)
 	fileO <- paste("${file}","${midname}",sampC,"${foldc}","${pvalue}","${fdr}","deexpr.up", sep=".")
 	write.table(diffExpr, file=fileO, sep="\t", row.names=TRUE, col.names=TRUE, quote=FALSE)
 	system(paste("sed -i '1 s/^/Gene\t/'", fileO))
 	foldc <- (-1) * ${foldc}
-	diffExpr <- subset(esetFF,  TtestAdj\$dm<=foldc)
+	diffExpr <- subset(esetFF,  TtestAdj\$log2FC<=foldc)
 	diffExpr <- subset(diffExpr, diffExpr\$p.value<=$pvalue)
 	diffExpr <- subset(diffExpr, diffExpr\$p.adjust<=$fdr)
 	fileO <- paste("${file}","${midname}",sampC,"${foldc}","${pvalue}","${fdr}","deexpr.dw", sep=".")
