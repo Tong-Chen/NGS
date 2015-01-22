@@ -127,7 +127,6 @@ if ((${op} == 0) || (${op} == 1)){
 		biocLite(c("genefilter"))
 	}
 
-	library('genefilter')
 
 	esetF <- read.table(file="${file}", sep="\t", header=TRUE,
 	row.names=1, check.names=${checkNames})
@@ -140,6 +139,7 @@ if ((${op} == 0) || (${op} == 1)){
 	}
 
 	if ("${test_m}" == 't.test'){
+		library('genefilter')
 		sta_test <- rowttests(esetF, as.factor(c(rep(1,$controlR),rep(2,$treatR))))
 		sta_test <- sta_test[, 2-3]
 		colnames(sta_test) <- c('log2FC', 'p.value')
