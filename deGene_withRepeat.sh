@@ -30,7 +30,9 @@ ${txtbld}OPTIONS${txtrst}:
 	-o	The accepted minimum fold change.
 		[log2 based, default 1 means 2 times fold change.]
 	-O	Only select DE genes, no statistical needed.
-		[Default FALSE, accept TRUE]
+		[0 (default): do statistical test and select DE genes
+	 	1: only do statistical test
+	 	2: only select DE genes]
 	-l	Is the data log2 transformed.
 		[default TRUE, meaning expression data is already log2
 		transformed.
@@ -60,7 +62,7 @@ fdr=0.3
 foldc=1
 log2="TRUE"
 checkNames="TRUE"
-onlySelect='FALSE'
+op=0
 
 while getopts "hf:t:c:s:p:d:o:O:l:i:r:" OPTION
 do
@@ -97,7 +99,7 @@ do
 			foldc=$OPTARG
 			;;
 		O)
-			onlySelect=$OPTARG
+			op=$OPTARG
 			;;
 		l)
 			log2=$OPTARG
@@ -118,7 +120,7 @@ midname=".de.${test_m}"
 
 cat <<EOF >$file${midname}.r
 
-if (! ${onlySelect}){
+if ((${op} == 0) || (${op} == 1)){
 
 	if ($install){
 		source("http://bioconductor.org/biocLite.R")
@@ -178,6 +180,7 @@ if (! ${onlySelect}){
 		header=T, row.names=1)
 } 
 
+if ((${op}==0) || (${op}==2)){
 data_len <- ${controlR} + ${treatR}
 diffExpr <- subset(esetFF, esetFF\$p.value<=$pvalue)
 diffExpr <- subset(diffExpr, diffExpr\$p.adjust<=$fdr)
@@ -207,6 +210,7 @@ write.table(diffExpr_dw,
 write.table(diffExpr_dw[,1:data_len], 
 	file="${file}${midname}_${foldc}_${pvalue}_${fdr}.de.dw.expronly",
 	sep="\t", row.names=TRUE, col.names=TRUE, quote=FALSE)
+}
 
 EOF
 
