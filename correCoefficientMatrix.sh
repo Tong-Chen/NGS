@@ -60,6 +60,9 @@ ${txtbld}OPTIONS${txtrst}:
  		rowname, all columns are tab seperated)${bldred}[NECESSARY]${txtrst}
 	-m	The method.[${bldred}Default pearson, accept "kendall",
 		"spearman".${txtrst}]
+	-T	Compute correlation coefficient for all columns instead of all
+		rows.
+		[${bldred}Default FALSE, accept TRUE.${txtrst}]
 	-t	Transfer correlation coefficient matrix to three column file
 		in format like below
 		gene1	gene2	correlation_coefficient
@@ -77,8 +80,9 @@ execute='TRUE'
 ist='FALSE'
 method='pearson'
 transfer='FALSE'
+col_cor='FALSE'
 
-while getopts "hf:t:m:e:i:" OPTION
+while getopts "hf:t:T:m:e:i:" OPTION
 do
 	case $OPTION in
 		h)
@@ -90,6 +94,9 @@ do
 			;;
 		t)
 			transfer=$OPTARG
+			;;
+		T)
+			col_cor=$OPTARG
 			;;
 		m)
 			method=$OPTARG
@@ -107,7 +114,6 @@ do
 	esac
 done
 
-midname=".cor"
 
 if [ -z $file ] ; then
 	echo 1>&2 "Please give filename."
@@ -115,13 +121,23 @@ if [ -z $file ] ; then
 	exit 1
 fi
 
+if [ "$col_cor" == "FALSE" ]; then
+	midname=".row.${method}.cor"
+else
+	midname=".col.${method}.cor"
+fi
 
 cat <<END >${file}${midname}.r
 
 data <- read.table(file="$file", sep="\t", header=T, row.names=1)
-attach(data)
 
-cc <- t(cor(t(data), use="everything", method="$method"))
+#attach(data)
+
+if ($col_cor) {
+	cc <- cor(data, use="everything", method="$method")
+} else {
+	cc <- t(cor(t(data), use="everything", method="$method"))
+}
 
 if ($transfer){
 
@@ -130,10 +146,10 @@ if ($transfer){
 	}
 	library(reshape2)
 	cc.m <- melt(cc)
-	write.table(cc.m, file="${file}.$method.cor", sep="\t",
+	write.table(cc.m, file="${file}$midname", sep="\t",
 	col.names=T, row.names=F, quote=F)
 }else{
-	write.table(cc, file="${file}.$method.cor", sep="\t", col.names=NA,
+	write.table(cc, file="${file}$midname", sep="\t", col.names=NA,
 	row.names=T, quote=F)
 }
 
@@ -141,7 +157,8 @@ END
 
 if [ "$execute" == "TRUE" ]; then
 	Rscript ${file}${midname}.r
-	sed -i 's/^\t/label\t/' ${file}.$method.cor
+	sed -i 's/^\t/label\t/' ${file}$midname
+	/bin/rm -f ${file}${midname}.r
 fi
 
 #convert -density 200 -flatten ${file}${midname}.eps ${first}${midname}.png
