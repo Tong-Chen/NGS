@@ -116,6 +116,9 @@ def main():
     else:
         #fh = sys.stdin
         content = sys.stdin.read()
+    #--------------------
+    content += '\n\nPlease DO NOT respond to this address. \n\n\
+Mail to chentong_biology@163.com for more information.'
     recipient = options.receiver
     if options.attachment:
         attach = [i.strip() for i in options.attachment.split(',')]
