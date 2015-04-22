@@ -11,16 +11,22 @@ __author_email__ = 'chentong_biology@163.com'
 desc = '''
 Functionla description
 
-This is designed to paste multiple files and remove labels of
+This is designed to paste multiple files (no matter the number of
+columns) and remove labels of
 non-first file and confirm all lines have same label as listed in the
-first column.
+first column of the first file.
+
+This requires all files have same number of rows and same labels in
+the first column.
 
 Test passed compared with paste --- 20131111
+
 '''
 
 import sys
 import os
 from time import localtime, strftime 
+import re
 timeformat = "%Y-%m-%d %H:%M:%S"
 from optparse import OptionParser as OP
 
@@ -35,23 +41,25 @@ def cmdparameter(argv):
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
         metavar="FILEIN", help="Multiple files can be separated with \
-<,> like <'file1,file2,file3'>." )
+<,> or <space> like <'file1,file2,file3'> or <'file1 file2 , file3'>. \
+Any number of ',' and <space> is allowed" )
     parser.add_option("-l", "--file-label", dest="file_label",
         metavar="FILE_LABEL", help="The labels should have the same \
 format and order as filenames given to <-i>. \
-The sort matters since a file will \
-be outputed containling labels each at one line.")
+The order matters since a file will \
+containling labels by row will be output.")
     parser.add_option("-o", "--output", dest="output",
         metavar="OUTPUT", help="The name of output file containing \
-pasted files. The line order of output file is the same as first file. \
-Also a file nameed <OUTPUT>.label will be outputed \
-as described in -i.")
+pasted files. The order of rows in output file is the same as first file. \
+Also a file named <OUTPUT>.label will be output as described in -l.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
         default=False, help="Debug the program")
     (options, args) = parser.parse_args(argv[1:])
     assert options.filein != None, "A filename needed for -i"
+    assert options.file_label != None, "A filelabel needed for -l"
+    assert options.output != None, "Output file needed for -o"
     return (options, args)
 #--------------------------------------------------------------------
 
@@ -59,8 +67,9 @@ as described in -i.")
 def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
-    fileL = options.filein.split(',')
-    file_labelL = options.file_label.split(',')
+    fileL = re.split('[, ]*', options.filein.strip())
+    file_labelL = re.split('[, ]*', options.file_label.strip())
+    #file_labelL = options.file_label.split(',')
     output = options.output
     fh = open(output+".label", 'w')
     print >>fh, '\n'.join(file_labelL)
@@ -72,6 +81,8 @@ def main():
     labelL = []
     i = 0
     for file in fileL:
+        if debug:
+            print >>sys.stderr, file
         aDict[file] = {}
         i += 1
         for line in open(file):
@@ -79,6 +90,8 @@ def main():
             key = lineL[0]
             if i == 1:
                 labelL.append(key)
+            if debug:
+                print >>sys.stderr, lineL
             value = lineL[1]
             if key not in aDict[file]:
                 aDict[file][key] = value
