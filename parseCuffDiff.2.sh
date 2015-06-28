@@ -52,6 +52,10 @@ output=FILENAME"_x"; print $0 >output; \
 output=FILENAME"_u"; print $0 >output; \
 output=FILENAME"_c"; print $0 >output; \
 output=FILENAME"_o"; print $0 >output; \
+output=FILENAME"_e"; print $0 >output; \
+output=FILENAME"_i"; print $0 >output; \
+output=FILENAME"_p"; print $0 >output; \
+output=FILENAME"_r"; print $0 >output; \
 output=FILENAME"_s"; print $0 >output; } \
 else { a=split($1,b,"__"); cc=b[a]; \
 if(cc=="=" || cc=="j") cc="g"; output=FILENAME"_"cc; \
