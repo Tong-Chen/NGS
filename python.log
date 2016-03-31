@@ -1,0 +1,18 @@
+/home/chentong/home/server/pybin/addExtraColumn.py -i test -n 3 -N 2 -e 3 -v NA
+	Run time : 2015-04-23 15:55:57 - 2015-04-23 15:55:57 
+/home/chentong/home/server/pybin/addExtraColumn.py -i test -n 3 -N 2 -e 3 -v NA
+	Run time : 2015-04-23 15:58:12 - 2015-04-23 15:58:12 
+/home/chentong/home/server/pybin/addExtraColumn.py -i test -n 2 -N 4 -e 2 -v NA
+	Run time : 2015-04-23 15:58:36 - 2015-04-23 15:58:36 
+./freeCompareAnnoVenn.py -i test -s samp1+samp2;samp1+samp2+samp3;samp1-samp2;samp1&samp2-samp3;samp1&samp2-samp3&samp4 -p +- -t up;up,up;dw,dw;up,dw
+	Run time : 2015-09-28 05:07:01 - 2015-09-28 05:07:01 
+./freeCompareAnnoVenn.py -i test -s samp1+samp2;samp1+samp2+samp3;samp1-samp2;samp1&samp2-samp3;samp1&samp2-samp3&samp4 -p +- -t up;up,up;dw,dw;up,dw -d 1
+	Run time : 2015-09-28 05:07:05 - 2015-09-28 05:07:05 
+./freeCompareAnnoVenn.py -i test -s samp1+samp2;samp1+samp2+samp3;samp1-samp2;samp1&samp2-samp3;samp1&samp2-samp3&samp4 -p +- -t up;up,up;dw,dw;up,dw -d 1
+	Run time : 2015-09-28 05:10:14 - 2015-09-28 05:10:14 
+/MPATHB/self/NGS/regSearch.py -i 1 -p \sA
+	Run time : 2016-01-20 22:25:38 - 2016-01-20 22:25:38 
+/MPATHB/self/NGS/keggSearch.py -i test -t compound -T compund_formula_mw
+	Run time : 2016-01-28 05:55:41 - 2016-01-28 05:55:46 
+/MPATHB/self/NGS/countCpG_CHH_CHG.py -i test.fa
+	Run time : 2016-03-02 05:56:01 - 2016-03-02 05:56:01 

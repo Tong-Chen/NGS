@@ -1,0 +1,52 @@
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p + -d 1
+	Run time : 2015-09-28 18:17:24 - 2015-09-28 18:17:24 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p + -d 1
+	Run time : 2015-09-28 18:19:07 - 2015-09-28 18:19:07 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p + -d 1
+	Run time : 2015-09-28 18:21:36 - 2015-09-28 18:21:36 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p +- -d 1
+	Run time : 2015-09-28 18:22:56 - 2015-09-28 18:22:56 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p - -d 1
+	Run time : 2015-09-28 18:23:54 - 2015-09-28 18:23:54 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p - -d 1
+	Run time : 2015-09-28 18:31:47 - 2015-09-28 18:31:47 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p +- -d 1
+	Run time : 2015-09-28 18:32:21 - 2015-09-28 18:32:21 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p +- -d 1
+	Run time : 2015-09-28 18:36:27 - 2015-09-28 18:36:27 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p +- -d 1
+	Run time : 2015-09-28 18:43:46 - 2015-09-28 18:43:46 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p +- -d 1
+	Run time : 2015-09-28 18:46:51 - 2015-09-28 18:46:51 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p +- -d 1
+	Run time : 2015-09-28 18:49:52 - 2015-09-28 18:49:52 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p +-
+	Run time : 2015-09-28 19:14:07 - 2015-09-28 19:14:07 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s a+b+c;a+b;a&b+d;a&b-c
+	Run time : 2015-09-28 20:45:29 - 2015-09-28 20:45:29 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p +-
+	Run time : 2015-09-28 20:51:39 - 2015-09-28 20:51:39 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d
+	Run time : 2015-09-28 20:52:53 - 2015-09-28 20:52:53 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d -t .up;.dw
+	Run time : 2015-09-28 22:00:08 - 2015-09-28 22:00:08 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d -t .up;.dw
+	Run time : 2015-10-12 18:50:02 - 2015-10-12 18:50:02 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d -t .up;.dw -d 1
+	Run time : 2015-10-12 20:24:42 - 2015-10-12 20:24:42 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d -t .up;.dw -d 1
+	Run time : 2015-10-12 20:42:47 - 2015-10-12 20:42:47 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d -t .up;.dw -d 1
+	Run time : 2015-10-12 20:47:00 - 2015-10-12 20:47:00 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d -t .up;.dw -d 1
+	Run time : 2015-10-12 20:53:19 - 2015-10-12 20:53:19 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d -t .up;.dw -d 1
+	Run time : 2015-10-12 21:28:20 - 2015-10-12 21:28:20 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d -t .up;.dw -d 1
+	Run time : 2015-10-12 21:36:39 - 2015-10-12 21:36:39 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d -t .up;.dw -d 1
+	Run time : 2015-10-12 21:51:16 - 2015-10-12 21:51:16 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d -t .up;.dw -d 1
+	Run time : 2015-10-12 21:51:23 - 2015-10-12 21:51:23 
+/MPATHB/self/NGS/freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d -t .up;.dw -d 1
+	Run time : 2015-10-12 22:35:24 - 2015-10-12 22:35:24 

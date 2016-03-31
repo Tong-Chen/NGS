@@ -42,8 +42,8 @@ def cmdparameter(argv):
 file. Separated FATSA fiel for each chromosome in one folder \
 will be supported laterly.")
     parser.add_option("-u", "--upper", dest="upper",
-        default=0, help="Do you want to keep sequences as \
-original[default, or give 0] or uppercase all letters[please give 1]")
+        default='N', help="Do you want to keep sequences as \
+original[default, or give N] or uppercase all letters[please give Y]")
     parser.add_option("-b", "--bed-files", dest="bedL",
         help="One bed file or alist of bedfiles separated by \
 comma(,) and quoted by quotes like 'bed1,bed2,bed3'.")

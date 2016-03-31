@@ -35,6 +35,7 @@ and
 '''
 
 import sys
+import re
 import os
 from time import localtime, strftime 
 timeformat = "%Y-%m-%d %H:%M:%S"
@@ -52,7 +53,8 @@ def cmdparameter(argv):
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
         metavar="FILEIN", help="Input file must be separated by \
-comma only, like 'file1.bed,file2.bed,file3.bed'")
+comma or blank or both, like 'file1.bed,file2.bed,file3.bed' \
+'file1 file2 file3'")
     parser.add_option("-l", "--label", dest="label",
         metavar="FILEIN", help="Unique string to represent \
 input files, like 'file1,file2,file3'. Label must be consistent with \
@@ -94,15 +96,14 @@ is number,  no NA will be used.")
 def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
-    file = options.filein
-    fileL = file.split(',')
+    fileL = re.split('[, ]*', options.filein.strip())
     lenFileL = len(fileL)
     assert lenFileL > 1, "At least two files are needed"
     label = options.label
     if label == None:
         labeL = fileL
     else:
-        labeL = label.split(',')
+        labeL = re.split('[, ]*', label.strip())
         lenLabel = len(labeL)
         if lenLabel < lenFileL:
             lenFileL = lenLabel

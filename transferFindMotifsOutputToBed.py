@@ -152,10 +152,12 @@ def main():
             #----------------------------------
             if type == 'DNA':
                 outputL = [chr, str(newstart), str(newend),
-                        key+'@'+str(label)+item[5], item[2], item[3], item[4]]
+                        '@'.join([key, str(label), item[5]]), 
+                        item[2], item[3], item[4]]
             else:
                 outputL = [chr, str(newstart), str(newend),
-                        key+'@'+str(label)+item[5], item[2], strand, item[4]]
+                        '@'.join([key, str(label), item[5]]), 
+                        item[2], strand, item[4]]
             print '\t'.join(outputL)
             label += 1
     #----------finish output------------

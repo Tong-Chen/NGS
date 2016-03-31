@@ -21,6 +21,8 @@ ${txtbld}OPTIONS${txtrst}:
 		[${txtred}Default 0 means all columns.${txtrst}]
 	-r	The number of rows you want to use
 		[${txtred}Default 0 means all rows.${txtrst}]
+	-s	Scale data by rows instead of computing Z-scores.
+		[${txtred}Default FALSE, Accept TRUE.${txtrst}]
 	-z	Is there a header[${bldred}Default TRUE${txtrst}]
 	-e	Execute or not[${bldred}Default TRUE${txtrst}]
 EOF
@@ -29,10 +31,11 @@ EOF
 file=
 row=0
 col=0
+scale='FALSE'
 header='TRUE'
 execute='TRUE'
 
-while getopts "hf:r:c:z:e:" OPTION
+while getopts "hf:r:c:s:z:e:" OPTION
 do
 	case $OPTION in
 		h)
@@ -47,6 +50,9 @@ do
 			;;
 		c)
 			col=$OPTARG
+			;;
+		s)
+			scale=$OPTARG
 			;;
 		z)
 			header=$OPTARG
@@ -65,6 +71,12 @@ if [ -z $file ]; then
 	exit 1
 fi
 
+if [ "$scale" == "TRUE" ]; then
+	mid="scale"
+else
+	mid="zscore"
+fi
+
 cat <<END >${file}.r
 
 data <- read.table(file="${file}", sep="\t", header=$header,
@@ -72,28 +84,32 @@ row.names=1, check.names=F)
 
 data.m <- as.matrix(data)
 
-if (${row} + ${col} == 0) {
-	data.v <- as.vector(data.m)
-	data.o <- (data-mean(data.v))/sd(data.v)
-}else if (${row} == 0){
-	col_name_bak <- colnames(data.m)
-	data.c <- data.m[, 1:${col}]
-	data.v <- as.vector(data.c)
-	data.vo <- (data.c-mean(data.v))/sd(data.v)
-	data.o <- cbind(data.vo, data[,-(1:${col})])
-	colnames(data.o) <- col_name_bak
-}else if (${col} == 0){
-	row_name_bak <- rownames(data.m)
-	data.r <- data.m[1:${row},]
-	data.v <- as.vector(data.r)
-	data.vo <- (data.r-mean(data.v))/sd(data.v)
-	print(mean(data.v))
-	print(sd(data.v))
-	data.o <- rbind(data.vo, data[-(1:${row}),])
-	rownames(data.o) <- row_name_bak
+if (${scale}) {
+	data.o <- t(scale(t(data.m)))
+} else {
+	if (${row} + ${col} == 0) {
+		data.v <- as.vector(data.m)
+		data.o <- (data-mean(data.v))/sd(data.v)
+	}else if (${row} == 0){
+		col_name_bak <- colnames(data.m)
+		data.c <- data.m[, 1:${col}]
+		data.v <- as.vector(data.c)
+		data.vo <- (data.c-mean(data.v))/sd(data.v)
+		data.o <- cbind(data.vo, data[,-(1:${col})])
+		colnames(data.o) <- col_name_bak
+	}else if (${col} == 0){
+		row_name_bak <- rownames(data.m)
+		data.r <- data.m[1:${row},]
+		data.v <- as.vector(data.r)
+		data.vo <- (data.r-mean(data.v))/sd(data.v)
+		print(mean(data.v))
+		print(sd(data.v))
+		data.o <- rbind(data.vo, data[-(1:${row}),])
+		rownames(data.o) <- row_name_bak
+	}
 }
 
-write.table(data.o, file="${file}.Zscore", 
+write.table(data.o, file="${file}.${mid}", 
 row.names=T, col.names=NA, sep="\t", quote=F)
 
 
@@ -101,6 +117,6 @@ END
 
 if [ "$execute" == "TRUE" ]; then
 	Rscript ${file}.r
-	sed '1s/^\t/label\t/' -i ${file}.Zscore
+	sed '1s/^\t/label\t/' -i ${file}.${mid}
 	rm -f ${file}.r
 fi

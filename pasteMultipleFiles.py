@@ -52,8 +52,10 @@ containling labels by row will be output.")
         metavar="OUTPUT", help="The name of output file containing \
 pasted files. The order of rows in output file is the same as first file. \
 Also a file named <OUTPUT>.label will be output as described in -l.")
-    parser.add_option("-v", "--verbose", dest="verbose",
-        default=0, help="Show process information")
+    parser.add_option("-e", "--num-extra-col", dest="num_extra_col",
+        default=0, help="The number of extra columns to add. Default 0 means no adding.")
+    parser.add_option("-v", "--val-extra-col", dest="val_extra_col",
+        default='0', help="The values in extra columns.")
     parser.add_option("-d", "--debug", dest="debug",
         default=False, help="Debug the program")
     (options, args) = parser.parse_args(argv[1:])
@@ -71,15 +73,21 @@ def main():
     file_labelL = re.split('[, ]*', options.file_label.strip())
     #file_labelL = options.file_label.split(',')
     output = options.output
+    num_extra_col = int(options.num_extra_col)
+    if num_extra_col:
+        val_extra_col = '\t'.join([options.val_extra_col] *
+            num_extra_col)
+    #--------------------------------------------
+
     fh = open(output+".label", 'w')
     print >>fh, '\n'.join(file_labelL)
     fh.close()
-    verbose = options.verbose
     debug = options.debug
     #-----------------------------------
     aDict = {}
     labelL = []
     i = 0
+    lenFileL = len(fileL)
     for file in fileL:
         if debug:
             print >>sys.stderr, file
@@ -93,6 +101,8 @@ def main():
             if debug:
                 print >>sys.stderr, lineL
             value = lineL[1]
+            if i < lenFileL and num_extra_col:
+                value = '\t'.join([value, val_extra_col])
             if key not in aDict[file]:
                 aDict[file][key] = value
             else:
@@ -106,9 +116,6 @@ def main():
             % (key, '\t'.join([aDict[file][key] for file in fileL]))
     fh.close()
     #-----------end close fh-----------
-    if verbose:
-        print >>sys.stderr,\
-            "--Successful %s" % strftime(timeformat, localtime())
 if __name__ == '__main__':
     startTime = strftime(timeformat, localtime())
     main()

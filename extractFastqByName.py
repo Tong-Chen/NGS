@@ -12,17 +12,24 @@ __author_email__ = 'chentong_biology@163.com'
 import sys
 
 def main():
-    if len(sys.argv) != 3:
-        print >>sys.stderr, "Extract sequences from fastq files. It \
-was first planned for extract unmapped sequences and delete adaptor."
+    if len(sys.argv) < 3:
+        print >>sys.stderr, "Extract sequences from fastq files.\
+It was first planned for extract unmapped sequences \
+and delete adaptor. Besides, one can also specify to \
+output fasta files."
         print >>sys.stderr, "Print the result to screen"
-        print >>sys.stderr, 'Using python %s fastq name' % sys.argv[0]
+        print >>sys.stderr, 'Using python %s fastq name out_fasta' % sys.argv[0]
         sys.exit(0)
     #-----------------------------------------------------------
     aDict = {}
     for name in open(sys.argv[2]):
         aDict[name.strip()] = 1
     #--------------------------------
+    if len(sys.argv) == 4:
+        out_fasta = 1
+    else:
+        out_fasta = 0
+    #----------------------
     output = 0
     i = 1
     for line in open(sys.argv[1]):
@@ -36,11 +43,17 @@ was first planned for extract unmapped sequences and delete adaptor."
             #else:
             #    print >>sys.stderr, key
         elif i % 4 == 0:
-            if output:
+            if output and not out_fasta:
                 print line,
             output = 0
         if output:
-            print line, 
+            if out_fasta:
+                if i % 4 == 1:
+                    print ">%s" % line,
+                elif i % 4 == 2:
+                    print line,
+            else:
+                print line, 
         i += 1
     #----------------------------------------------------------
 #-------------------------------------------------------------------

@@ -45,10 +45,14 @@ outputted matrix. Default 3 means the third column.")
     parser.add_option("-H", "--header-line", dest="header",
         default=1, help="The number of header lines one want to skip. \
 Default 1.")
+    parser.add_option("-l", "--full-list-row-name", dest="full_row",
+        help="A file contains full list of row names.")
+    parser.add_option("-m", "--missing-value", dest="miss_value",
+        default="NA", help="Specifying missing values. Default <NA>.")
     parser.add_option("-D", "--duplicate_names", dest="dpn",
         default=1, help="A number to represent the number of duplicate \
 names in name column. Default 1 means no duplicate names allowed. \
-An integer allowed..")
+A specified integer indicating the number of duplicate names.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -66,7 +70,9 @@ def main():
     row = int(options.row) - 1
     col = int(options.col) - 1
     value = int(options.value) - 1
+    miss_value = options.miss_value
     header = int(options.header)
+    full_row = options.full_row
     dpn = int(options.dpn)
     verbose = options.verbose
     debug = options.debug
@@ -109,15 +115,21 @@ def main():
         sampleSet2.sort()
         print "Name\t%s" % '\t'.join(sampleSet2)
         for gene, sampleD in aDict.items():
-            tmpL = ['\t'.join(sampleD.get(sample, ['NA']*dpn)) for sample in sampleSet]
+            tmpL = ['\t'.join(sampleD.get(sample, [miss_value]*dpn)) for sample in sampleSet]
             print "%s\t%s" % (gene, '\t'.join(tmpL))
     #---------------------------------------------------------------------
     elif dpn == 1:
         sampleSet = list(sampleSet)
         sampleSet.sort()
         print "Name\t%s" % '\t'.join(sampleSet)
-        for gene, sampleD in aDict.items():
-            tmpL = [sampleD.get(sample, 'NA') for sample in sampleSet]
+        if full_row:
+            geneL = [line.strip() for line in open(full_row)]
+        else:
+            geneL = aDict.keys()
+        for gene in geneL:
+            sampleD = aDict.get(gene, {})
+        #for gene, sampleD in aDict.items():
+            tmpL = [sampleD.get(sample, miss_value) for sample in sampleSet]
             print "%s\t%s" % (gene, '\t'.join(tmpL))
     #----close file handle for files-----
     if file != '-':

@@ -1,0 +1,12 @@
+11384  2015-11-21 00:05:35 cd AS
+11385  2015-11-21 00:05:45 cat <<END >README
+Alternative splicing
+We used ASTALAVISTA version 2.2 [51] to quantify alternative splicing events. This program takes as input a GTF file (FPKM > 3) and outputs all splicing events in the annotation together with a code representing type of event (exon skipping, intron retention, alternative acceptor site, alternative donor site). We used python scripts to extract and count events from the ASTALAVISTA output (summary.py and events.py).
+END
+11386  2015-11-21 00:06:00 cp /MPATHB/soft/astalavista-3.2/bin/*.py .
+11387  2015-11-21 00:06:00 ls
+11388  2015-11-21 00:06:21 ln -s `pwd`/*.py /MPATHB/bin/
+11744  2015-11-25 13:11:44 cd ../self/NGS/AS
+11745  2015-11-25 13:11:45 ltr
+11746  2015-11-25 13:13:21 less README 
+11747  2015-11-25 13:29:56 less summary.py 

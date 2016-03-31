@@ -1,0 +1,11 @@
+ 8757  2015-10-13 18:28:13 cd a/
+ 8758  2015-10-13 18:28:17 freeCompare
+ 8759  2015-10-13 18:28:19 freeCompare.py 
+ 8760  2015-10-13 18:28:58 freeCompare.py -i freeCompareAnnoVenn.testData -o a -s a+b-c&d;a+c-b&d
+ 8761  2015-10-13 18:29:06 freeCompare.py -i freeCompareAnnoVenn.testData -o a -s "a+b-c&d;a+c-b&d" -d 1
+ 8762  2015-10-13 18:29:19 freeCompare.py 
+ 8763  2015-10-13 18:29:34 freeCompare.py -i freeCompareAnnoVenn.testData -o a -s "a+b-c&d;a+c-b&d" -d 1 -t "up"
+ 8764  2015-10-13 18:29:41 freeCompare.py -i freeCompareAnnoVenn.testData -o a -s "a+b-c&d;a+c-b&d" -d 1 -t ".up"
+ 8765  2015-10-13 18:31:39 vim freeCompareAnnoVenn.testData 
+ 8766  2015-10-13 18:32:08 freeCompare.py -i freeCompareAnnoVenn.testData -o a -s "a+b-c&d;a+c-b&d" -d 1
+ 8767  2015-10-13 18:34:21 vim `which freeCompare.py`

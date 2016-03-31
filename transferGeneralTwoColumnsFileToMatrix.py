@@ -57,11 +57,11 @@ The second column will be used as the colname in output file.")
     parser.add_option("-l", "--absent-present", dest="ap",
         default=0, help="Default only show absent present \
 information. If any non-zero number given, will output the \
-count of each element in first column appers in the second \
+count of each element in first column grouped by the second \
 column.")
     parser.add_option("-s", "--sep-second-col", dest="sep",
-        help="separtor for second column if multiple values contained lije \
-exanple input file type 2.")
+        help="Separtor for second column if multiple values contained \
+like example input file type 2.")
     parser.add_option("-I", "--full-colname", dest="fullcol",
         help="This file contains the full list of items in \
 the second column of file given to -i. This is optional, only \

@@ -107,6 +107,7 @@ def main():
     #--------------------------------
     keyL = adict.keys()
     keyL.sort(reverse=True)
+    #keyL = sys.argv[2:]
     #print adict
     outputPie(adict, keyL, prefix)
     outputProfile(adict, keyL, 'TSS', prefix)

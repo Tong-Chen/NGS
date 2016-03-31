@@ -1,0 +1,10 @@
+/MPATHB/self/NGS/freeCompare.py -i freeCompareAnnoVenn.testData -o a -s a+b-c
+	Run time : 2015-10-13 18:28:58 - 2015-10-13 18:28:58 
+/MPATHB/self/NGS/freeCompare.py -i freeCompareAnnoVenn.testData -o a -s a+b-c&d;a+c-b&d -d 1
+	Run time : 2015-10-13 18:29:06 - 2015-10-13 18:29:06 
+/MPATHB/self/NGS/freeCompare.py -i freeCompareAnnoVenn.testData -o a -s a+b-c&d;a+c-b&d -d 1 -t up
+	Run time : 2015-10-13 18:29:34 - 2015-10-13 18:29:34 
+/MPATHB/self/NGS/freeCompare.py -i freeCompareAnnoVenn.testData -o a -s a+b-c&d;a+c-b&d -d 1 -t .up
+	Run time : 2015-10-13 18:29:41 - 2015-10-13 18:29:41 
+/MPATHB/self/NGS/freeCompare.py -i freeCompareAnnoVenn.testData -o a -s a+b-c&d;a+c-b&d -d 1
+	Run time : 2015-10-13 18:32:08 - 2015-10-13 18:32:08 

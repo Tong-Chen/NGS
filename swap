@@ -1,10 +1,41 @@
-chr7	52823164	52823749	NR_038165_1.Coding_exon.1	0	-
-chr7	52829782	52829892	NR_038165_1.Coding_exon.2	0	-
-chr7	52829977	52830147	NR_038165_1.Coding_exon.3	0	-
-chr7	52830496	52830546	NR_038165_1.Coding_exon.4	0	-
-chr7	52823164	52823749	NR_038166_2.Coding_exon.1	0	-
-chr7	52826355	52826562	NR_038166_2.Coding_exon.2	0	-
-chr7	52829782	52829892	NR_038166_2.Coding_exon.3	0	-
-chr7	52829977	52830147	NR_038166_2.Coding_exon.4	0	-
-chr7	52830496	52830546	NR_038166_2.Coding_exon.5	0	-
-chr5	31351045	31351129	NM_027855_3.Coding_exon.1	0	+
+import sys
+import os
+from json import dumps as json_dumps
+from time import localtime, strftime 
+timeformat = "%Y-%m-%d %H:%M:%S"
+from optparse import OptionParser as OP
+#from multiprocessing.dummy import Pool as ThreadPool
+
+debug = 0
+
+def fprint(content):
+    print json_dumps(content,indent=1)
+
+def cmdparameter(argv):
+    if len(argv) == 1:
+        global desc
+        print >>sys.stderr, desc
+        cmd = 'python ' + argv[0] + ' -h'
+        os.system(cmd)
+        sys.exit(1)
+    usages = "%prog -i file"
+    parser = OP(usage=usages)
+    parser.add_option("-i", "--input-file", dest="filein",
+        metavar="FILEIN", help="")
+    parser.add_option("-v", "--verbose", dest="verbose",
+        default=0, help="Show process information")
+    parser.add_option("-d", "--debug", dest="debug",
+        default=False, help="Debug the program")
+    (options, args) = parser.parse_args(argv[1:])
+    assert options.filein != None, "A filename needed for -i"
+    return (options, args)
+#--------------------------------------------------------------------
+
+
+def main():
+    options, args = cmdparameter(sys.argv)
+    #-----------------------------------
+    file = options.filein
+    verbose = options.verbose
+    global debug
+    debug = options.debug

@@ -26,7 +26,8 @@ Default <chentong_biology@163.com>.")
             metavar="SUBJECT", help="The subject for your mail")
     parser.add_option("-c", "--context", dest='context',
             metavar="CONTEXT", help="The main context for your mail. \
-Symbol <-> should be given if you want SYS.STDIN as the mail content.")
+Symbol <-> should be given if you want SYS.STDIN as the mail content." \
+, default= '\n\nPlease DO NOT respond to this address. \n\nMail to chentong_biology@163.com for more information.')
     parser.add_option("-a", "--attachement", dest='attachment',
             metavar="ATTACHEMENT", help="The attachment for your mail. \
 Multiple attachments should be separated by ','.")
@@ -85,18 +86,20 @@ def getAttachment(attachmentFilePath):
         contentType = 'application/octet-stream'  
   
     mainType, subType = contentType.split('/', 1)  
-    file = open(attachmentFilePath, 'rb')  
-  
     if mainType == 'text':  
+        file = open(attachmentFilePath, 'r')  
         attachment = MIMEText(file.read())  
-    elif mainType == 'message':  
-        attachment = email.message_from_file(file)  
-    elif mainType == 'image':  
-        attachment = MIMEImage(file.read(),_subType=subType)  
-    elif mainType == 'audio':  
-        attachment = MIMEAudio(file.read(),_subType=subType)  
-    else:  
-        attachment = MIMEBase(mainType, subType)  
+    else:
+        file = open(attachmentFilePath, 'rb')  
+      
+        if mainType == 'message':  
+            attachment = email.message_from_file(file)  
+        elif mainType == 'image':  
+            attachment = MIMEImage(file.read(),_subType=subType)  
+        elif mainType == 'audio':  
+            attachment = MIMEAudio(file.read(),_subType=subType)  
+        else:  
+            attachment = MIMEBase(mainType, subType)  
     attachment.set_payload(file.read())  
     encode_base64(attachment)  
   

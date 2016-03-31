@@ -37,6 +37,10 @@ def cmdparameter(argv):
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
         metavar="FILEIN", help="The HTML output of fastqc.")
+    parser.add_option("-a", "--adaptor", dest="adaptor",
+        default="/MPATHB/soft/FastQC/Configuration/fastqc_adaptor.fa", 
+        help="A two column file containing the adaptor sequences used \
+by fastq. Default: /MPATHB/soft/FastQC/Configuration/fastqc_adaptor.fa")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -46,14 +50,32 @@ def cmdparameter(argv):
     return (options, args)
 #--------------------------------------------------------------------
 
+def findComm(adaptor_part, adaptor_full):
+    #print "---------------------"
+    #print adaptor_part
+    #print adaptor_full
+    #print "---------------------"
+    if adaptor_part.find(adaptor_full) != -1:
+        return adaptor_full
+    elif adaptor_full.find(adaptor_part) != -1:
+        return adaptor_part
+    else:
+        len_part = len(adaptor_part) - 8
+        for i in range(1,len_part):
+            if adaptor_full.find(adaptor_part[i:]) != -1:
+                return adaptor_part[i:]
+    return ''
+#--------------findComm---------------
 
 def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
     file = options.filein
+    adaptor = options.adaptor
     verbose = options.verbose
     debug = options.debug
     #-----------------------------------
+    adaptorD = dict([line.strip().split('\t') for line in open(adaptor)])
     if file == '-':
         fh = sys.stdin
     else:
@@ -74,8 +96,19 @@ def main():
     for key in keyL:
         valueL = aDict[key]
         if len(valueL) >= 1:
-            if 'No Hit' != valueL[3]:
-                print ">%d %s\n%s" % (key, valueL[3], valueL[0])
+            adaptor_name = valueL[3].split('(')[0].strip()
+            if adaptor_name in adaptorD:
+                #adaptor = findComm(valueL[0], adaptorD[adaptor_name])
+                adaptor = adaptorD[adaptor_name]
+                #print adaptor
+                #print '========='
+                if adaptor and len(adaptor) >= 13:
+                    print ">%d %s\n%s" % (key, adaptor_name, adaptor)
+                    #print '========='
+                    #print
+                else:
+                    print >>sys.stderr, file, adaptor_name, \
+                        valueL[0], adaptorD[adaptor_name]
     #----close file handle for files-----
     if file != '-':
         fh.close()

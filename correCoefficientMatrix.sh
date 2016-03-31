@@ -58,6 +58,7 @@ The parameters for logical variable are either TRUE or FALSE.
 ${txtbld}OPTIONS${txtrst}:
 	-f	Data file (with header line, the first column is the
  		rowname, all columns are tab seperated)${bldred}[NECESSARY]${txtrst}
+	-s	Scale data by rows.${bldred}[FALSE]${txtrst}
 	-m	The method.[${bldred}Default pearson, accept "kendall",
 		"spearman".${txtrst}]
 	-T	Compute correlation coefficient for all columns instead of all
@@ -81,8 +82,9 @@ ist='FALSE'
 method='pearson'
 transfer='FALSE'
 col_cor='FALSE'
+scale_row='FALSE'
 
-while getopts "hf:t:T:m:e:i:" OPTION
+while getopts "hf:s:t:T:m:e:i:" OPTION
 do
 	case $OPTION in
 		h)
@@ -91,6 +93,9 @@ do
 			;;
 		f)
 			file=$OPTARG
+			;;
+		s)
+			scale_row=$OPTARG
 			;;
 		t)
 			transfer=$OPTARG
@@ -129,36 +134,55 @@ fi
 
 cat <<END >${file}${midname}.r
 
+library(psych)
+
 data <- read.table(file="$file", sep="\t", header=T, row.names=1)
 
 #attach(data)
+if (${scale_row}){
+	data <- t(apply(data, 1, scale))
+}
 
 if ($col_cor) {
-	cc <- cor(data, use="everything", method="$method")
+	ct <- corr.test(data, method="$method",adjust="none")
+	#cc <- cor(data, use="everything", method="$method")
 } else {
-	cc <- t(cor(t(data), use="everything", method="$method"))
+	ct <- corr.test(t(data), method="$method",adjust="none")
+	#cc <- t(cor(t(data), use="everything", method="$method"))
 }
 
-if ($transfer){
+ci <- ct\$ci
+p <- ci\$p
+q <- p.adjust(p, "holm")
+result <- cbind(ci, q)
+result\$pair <- rownames(result) 
+result <- subset(result, select=c("pair", "r", "p", "q"))
 
-	if(${ist}){
-		install.packages("reshape2", repo="http://cran.us.r-project.org")
-	}
-	library(reshape2)
-	cc.m <- melt(cc)
-	write.table(cc.m, file="${file}$midname", sep="\t",
-	col.names=T, row.names=F, quote=F)
-}else{
-	write.table(cc, file="${file}$midname", sep="\t", col.names=NA,
-	row.names=T, quote=F)
-}
+colnames(result) <- c("Pair", "${method}_correlation", "p-value", "q-value")
+
+write.table(result, file="${file}$midname", sep="\t", col.names=T,
+row.names=F, quote=F)
+
+#if ($transfer){
+#
+#	if(${ist}){
+#		install.packages("reshape2", repo="http://cran.us.r-project.org")
+#	}
+#	library(reshape2)
+#	cc.m <- melt(cc)
+#	write.table(cc.m, file="${file}$midname", sep="\t",
+#	col.names=T, row.names=F, quote=F)
+#}else{
+#	write.table(cc, file="${file}$midname", sep="\t", col.names=NA,
+#	row.names=T, quote=F)
+#}
 
 END
 
 if [ "$execute" == "TRUE" ]; then
 	Rscript ${file}${midname}.r
-	sed -i 's/^\t/label\t/' ${file}$midname
-	/bin/rm -f ${file}${midname}.r
+	#sed -i 's/^\t/label\t/' ${file}$midname
+	#/bin/rm -f ${file}${midname}.r
 fi
 
 #convert -density 200 -flatten ${file}${midname}.eps ${first}${midname}.png

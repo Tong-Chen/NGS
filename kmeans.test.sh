@@ -2,6 +2,7 @@
 #############
 #CT##########
 #############
+
 #set -x
 set -e
 set -u
@@ -231,6 +232,27 @@ mns <- sapply(split(data, fit\$cluster), function(x) mean(unlist(x)))
 data.order <- data[order(order(mns)[fit\$cluster]),]
 write.table(data.order, file="${file}${mid}.$center.kmeans.result", 
 sep="\t", row.names=T, col.names=T, quote=F)
+
+cluster <- clust.out
+cluster <- as.data.frame(cluster)
+
+dataWithClu <- cbind(ID=rownames(data), data, cluster)
+dataWithClu <- dataWithClu[order(dataWithClu\$cluster),]
+write.table(as.data.frame(dataWithClu), 
+	file="${file}${mid}.${center}.kmeans.result.final", 
+	sep="\t", row.names=F, col.names=T, quote=F)
+
+cluster_out <- cbind(ID=rownames(cluster), cluster)
+cluster_out <- cluster_out[order(cluster_out\$cluster),]
+write.table(as.data.frame(cluster_out), 
+	file="${file}${mid}.${center}.kmeans.result.factor_labeling", 
+	sep="\t", row.names=F, col.names=F, quote=F)
+
+#cluster_
+#for(i in cluster){
+#	ids <- 
+#}
+
 print("Plot the cluster data") 
 png("${file}${mid}.$center.kmeans.result.png")
 xlabels <- colnames(data)
@@ -280,16 +302,30 @@ Rscript ${file}${mid}.$center.kmeans.r
 echo 1>&2 "Please pay attention to one element cluster and correct
 the result if any."
 if [ $? == 0 ]; then
-	s-plot lines -f ${file}${mid}.$center.kmeans.cluster.mean.lines -B 0.5
-for i in `ls | grep "${file}${mid}.$center.kmeans.cluster.[0-9]"`; do
-	awk 'BEGIN{OFS="\t" }{if(NR==1){print "Sample",$0}else print $0}' $i >$i.tmp
-	transpose.py $i.tmp >$i.lines
-	s-plot lines -f $i.lines -P none -B 0.5
-	/bin/rm -f $i.tmp
+	s-plot lines -f ${file}${mid}.$center.kmeans.cluster.mean.lines -B 0.5 -P top -o TRUE -R 45 -x "" -y "" -c TRUE -C "rainbow($center)"
+dir=$(dirname ${file})
+for i in `ls ${dir} | grep "${file}${mid}.$center.kmeans.cluster.[0-9]"`; do
+	awk 'BEGIN{OFS="\t"}{if(NR==1){print "Sample",$0}else print $0}' ${dir}/$i >${dir}/$i.tmp
+	transpose.py ${dir}/$i.tmp >${dir}/$i.lines
+	s-plot lines -f ${dir}/$i.lines -P none -B 0.5 -o TRUE -R 45 -x "" -y ""
+	/bin/rm -f ${dir}/$i.tmp
 done
 else
 	echo "Wrong"
 fi
+
+echo "Generate heatmap"
+
+parseHeatmapSoutput.2.py -i \
+	${file}${mid}.${center}.kmeans.result.final \
+	>${file}${mid}.${center}.kmeans.result.final.sort
+
+s-plot heatmapS -f ${file}${mid}.${center}.kmeans.result.final.sort \
+	-A 90 -b TRUE -v 30 -F 9 -j TRUE -E png -M yellow -x green -y red -Z TRUE
+
+s-plot heatmapS -f ${file}${mid}.${center}.kmeans.result.final.sort \
+	-A 90 -b TRUE -v 30 -F 9 -j TRUE -M yellow -x green -y red -Z TRUE
+
 echo <<EOF >${file}${mid}.$center.kmeans.makefile
 ${file}${mid}.$center.kmeans.centroid.png:
 	echo "The centroid plot against 1st 2 discriminant functions."

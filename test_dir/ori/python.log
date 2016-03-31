@@ -1,0 +1,2 @@
+/MPATHB/self/NGS/freeCompareAnnoVennOld.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d -t .up;.dw -d 1
+	Run time : 2015-10-12 20:49:57 - 2015-10-12 20:49:57 

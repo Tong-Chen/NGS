@@ -1,0 +1,2 @@
+Alternative splicing
+We used ASTALAVISTA version 2.2 [51] to quantify alternative splicing events. This program takes as input a GTF file (FPKM > 3) and outputs all splicing events in the annotation together with a code representing type of event (exon skipping, intron retention, alternative acceptor site, alternative donor site). We used python scripts to extract and count events from the ASTALAVISTA output (summary.py and events.py).

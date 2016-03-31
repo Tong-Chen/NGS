@@ -1,0 +1,4 @@
+ 8657  2015-10-12 20:49:34 cd ori/
+ 8658  2015-10-12 20:49:41 #freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8659  2015-10-12 20:49:57 freeCompareAnnoVennOld.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8660  2015-10-12 20:50:00 ltr

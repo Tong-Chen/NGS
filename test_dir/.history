@@ -1,0 +1,159 @@
+ 7151  2015-09-28 17:47:41 cd test_dir/
+ 7152  2015-09-28 17:47:41 ls
+ 7153  2015-09-28 17:48:36 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+'
+ 7153  2015-09-28 17:48:36 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+'
+ 7153  2015-09-28 17:48:36 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+'
+ 7153  2015-09-28 17:48:36 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+'
+ 7153  2015-09-28 17:48:36 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+'
+ 7154  2015-09-28 18:03:22 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+' -d 1
+ 7154  2015-09-28 18:03:22 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+' -d 1
+ 7154  2015-09-28 18:03:22 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+' -d 1
+ 7154  2015-09-28 18:03:22 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+' -d 1
+ 7154  2015-09-28 18:03:22 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+' -d 1
+ 7155  2015-09-28 18:17:44 ltr
+ 7156  2015-09-28 18:18:39 ls -a
+ 7157  2015-09-28 18:19:07 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+' -d 1
+ 7157  2015-09-28 18:19:07 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+' -d 1
+ 7157  2015-09-28 18:19:07 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+' -d 1
+ 7158  2015-09-28 18:22:56 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+-' -d 1
+ 7159  2015-09-28 18:23:54 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '-' -d 1
+ 7159  2015-09-28 18:23:54 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '-' -d 1
+ 7159  2015-09-28 18:23:54 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '-' -d 1
+ 7160  2015-09-28 18:32:20 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+-' -d 1
+ 7160  2015-09-28 18:32:20 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+-' -d 1
+ 7160  2015-09-28 18:32:20 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+-' -d 1
+ 7160  2015-09-28 18:32:20 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+-' -d 1
+ 7160  2015-09-28 18:32:20 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+-' -d 1
+ 7161  2015-09-28 19:13:17 python
+ 7162  2015-09-28 19:14:07 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+-'
+ 7163  2015-09-28 19:14:09 ltr
+ 7164  2015-09-28 19:14:14 less freeCompareAnnoVenn.c__special__a
+ 7164  2015-09-28 19:14:14 less freeCompareAnnoVenn.c__special__a
+ 7165  2015-09-28 19:39:36 less freeCompareAnnoVenn.testData
+ 7166  2015-09-28 19:39:57 less freeCompareAnnoVenn.a__comm__b
+ 7167  2015-09-28 19:39:59 less freeCompareAnnoVenn.testData
+ 7168  2015-09-28 20:45:29 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c"
+ 7169  2015-09-28 20:45:35 ltr
+ 7142  2015-09-28 20:51:32 cd /MPATHB/self/NGS/test_dir
+ 7143  2015-09-28 20:51:33 ls
+ 7170  2015-09-28 20:51:38 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -p '+-'
+ 7144  2015-09-28 20:52:14 mkdir old; mv `ls | grep '__'` old
+ 7145  2015-09-28 20:52:15 ls
+ 7171  2015-09-28 20:52:52 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d"
+ 7146  2015-09-28 20:52:55 ltr
+ 7147  2015-09-28 20:53:05 diff freeCompareAnnoVenn.a__comm__b old/freeCompareAnnoVenn.a__comm__b
+ 7148  2015-09-28 20:53:14 head freeCompareAnnoVenn.*
+ 7172  2015-09-28 20:53:40 less freeCompareAnnoVenn.testData
+ 7149  2015-09-28 21:56:22 vim freeCompareAnnoVenn.testData 
+ 7150  2015-09-28 21:57:33 ltr
+ 7173  2015-09-28 21:59:06 freeCompareAnnoVenn.py
+ 7174  2015-09-28 21:59:21 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -y '.up;.dw'
+ 7175  2015-09-28 21:59:27 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw'
+ 7151  2015-09-28 21:59:43 cp freeCompareAnnoVenn.testData ../
+ 7152  2015-09-28 21:59:53 less freeCompareAnnoVenn.
+ 7153  2015-09-28 21:59:55 less freeCompareAnnoVenn.testData 
+ 7154  2015-09-28 22:00:00 vim freeCompareAnnoVenn.testData 
+ 7175  2015-09-28 21:59:27 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw'
+ 7176  2015-09-28 22:00:10 ltr
+ 7177  2015-09-28 22:00:42 less freeCompareAnnoVenn.a.up__comm__b.up__comm__c.up__comm__d.up
+ 7178  2015-09-28 22:01:00 less freeCompareAnnoVenn.a.dw__comm__b.dw__comm__c.dw__comm__d.dw
+ 7179  2015-09-28 22:01:22 less freeCompareAnnoVenn.a.dw__comm__b.dw
+ 7180  2015-09-28 22:01:42 less freeCompareAnnoVenn.d.dw__special__a.dw__comm__b.dw__comm__c.dw
+ 7181  2015-09-28 22:01:58 less freeCompareAnnoVenn.c.up__comm__d.up__special__a.up__comm__b.up
+ 7182  2015-09-28 22:02:42 less freeCompareAnnoVenn.c.dw__special__a.dw__comm__b.dw
+ 7183  2015-09-28 22:03:08 less freeCompareAnnoVenn.a.up__comm__b.up__comm__c.up
+ 7184  2015-09-28 22:04:07 less freeCompareAnnoVenn.a.dw__comm__b.dw__special__c.dw__comm__d.dw
+ 7155  2015-09-28 22:00:35 less freeCompareAnnoVenn.testData 
+ 7156  2015-09-28 22:12:45 top
+ 7425  2015-10-01 06:09:07 cd test_dir/
+ 7426  2015-10-01 06:09:07 ls
+ 7427  2015-10-01 06:09:09 ltr
+ 7428  2015-10-01 06:09:39 #tar -czf DESeq2.sh.tar.gz DESeq2.sh 
+ 8618  2015-10-12 18:36:45 cd test_dir/
+ 8619  2015-10-12 18:36:46 ltr
+ 8620  2015-10-12 18:37:00 rm -rf old/
+ 8621  2015-10-12 18:37:10 #mv freeCompareAnnoVenn.* ol
+ 8622  2015-10-12 18:37:12 mkdir old
+ 8623  2015-10-12 18:37:16 mv freeCompareAnnoVenn.* old/
+ 8624  2015-10-12 18:37:18 ls
+ 8625  2015-10-12 18:37:26 less test 
+ 8626  2015-10-12 18:37:43 mv old/freeCompareAnnoVenn.testData .
+ 8627  2015-10-12 18:37:49 less freeCompareAnnoVenn.testData 
+ 8628  2015-10-12 18:38:32 less .history 
+ 8629  2015-10-12 18:38:47 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw'
+ 8629  2015-10-12 18:38:47 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw'
+ 8630  2015-10-12 18:50:03 ltr
+ 8631  2015-10-12 18:54:35 python
+ 8632  2015-10-12 19:00:20 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw'
+ 8632  2015-10-12 19:00:20 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw'
+ 8633  2015-10-12 19:08:42 top
+ 8634  2015-10-12 19:08:48 python
+ 8635  2015-10-12 19:26:53 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw'
+ 8635  2015-10-12 19:26:53 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw'
+ 8635  2015-10-12 19:26:53 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw'
+ 8636  2015-10-12 20:19:05 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8636  2015-10-12 20:19:05 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8636  2015-10-12 20:19:05 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8636  2015-10-12 20:19:05 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8636  2015-10-12 20:19:05 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8636  2015-10-12 20:19:05 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8636  2015-10-12 20:19:05 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8636  2015-10-12 20:19:05 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8637  2015-10-12 20:43:15 ltr
+ 8638  2015-10-12 20:43:46 #rm -f freeCompareAnnoVenn.
+ 8639  2015-10-12 20:44:02 cp freeCompareAnnoVenn.testData test.freeCompare
+ 8640  2015-10-12 20:44:04 ltr
+ 8641  2015-10-12 20:44:38 rm -f freeCompareAnnoVenn.a*
+ 8642  2015-10-12 20:44:40 rm -f freeCompareAnnoVenn.b*
+ 8643  2015-10-12 20:44:42 rm -f freeCompareAnnoVenn.c*
+ 8644  2015-10-12 20:44:44 rm -f freeCompareAnnoVenn.d*
+ 8645  2015-10-12 20:44:46 ltr
+ 8646  2015-10-12 20:47:00 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8647  2015-10-12 20:47:02 ltr
+ 8648  2015-10-12 20:47:20 diff freeCompareAnnoVenn.a.up__common__b.up__common__c.up old/freeCompareAnnoVenn.a.up__common__b.up__common__c.up
+ 8649  2015-10-12 20:49:05 ls old/
+ 8650  2015-10-12 20:49:13 ltr
+ 8653  2015-10-12 20:49:21 cd ../
+ 8654  2015-10-12 20:49:23 ltr
+ 8655  2015-10-12 20:49:25 mkdir ori
+ 8656  2015-10-12 20:49:32 cp freeCompareAnnoVenn.testData ori/
+ 8661  2015-10-12 20:50:02 cd ../
+ 8662  2015-10-12 20:50:15 diff freeCompareAnnoVenn.a.up__common__b.up__common__c.up ori/freeCompareAnnoVenn.a.up__common__b.up__common__c.up
+ 8665  2015-10-12 20:52:22 cd test_dir/
+ 8666  2015-10-12 20:52:23 ltr
+ 8667  2015-10-12 20:53:01 rm `ls | grep 'common'`
+ 8668  2015-10-12 20:53:11 ltr
+ 8669  2015-10-12 20:53:19 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8670  2015-10-12 20:53:24 diff freeCompareAnnoVenn.a.up__common__b.up__common__c.up ori/freeCompareAnnoVenn.a.up__common__b.up__common__c.up
+ 8671  2015-10-12 20:53:34 diff freeCompareAnnoVenn.a.up__comm__b.up__comm__c.up ori/freeCompareAnnoVenn.a.up__comm__b.up__comm__c.up
+ 8672  2015-10-12 20:54:06 less freeCompareAnnoVenn.testData 
+ 8672  2015-10-12 20:54:06 less freeCompareAnnoVenn.testData 
+ 8673  2015-10-12 21:28:20 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8674  2015-10-12 21:28:24 diff freeCompareAnnoVenn.a.up__comm__b.up__comm__c.up ori/freeCompareAnnoVenn.a.up__comm__b.up__comm__c.up
+ 8616  2015-10-12 21:33:41 cd /MPATHB/self/NGS/test_dir
+ 8617  2015-10-12 21:33:42 ltr
+ 8618  2015-10-12 21:34:09 less freeCompareAnnoVenn.testData
+ 8675  2015-10-12 21:36:39 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8619  2015-10-12 21:37:19 #freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8676  2015-10-12 21:51:16 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1 | less
+ 8677  2015-10-12 21:51:23 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1 
+ 8620  2015-10-12 22:12:29 cim ../../pandoc/main_degene_std_doc.py 
+ 8621  2015-10-12 22:12:32 vim ../../pandoc/main_degene_std_doc.py 
+ 8621  2015-10-12 22:12:32 vim ../../pandoc/main_degene_std_doc.py 
+ 8677  2015-10-12 21:51:23 freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1 
+ 8622  2015-10-12 22:40:17 blastdbcmd -help
+ 8678  2015-10-12 23:03:52 ltr
+ 8679  2015-10-12 23:04:24 rm `ls | grep 'combine'`
+ 8680  2015-10-12 23:04:30 rm -f `ls | grep 'combine'`
+ 8681  2015-10-12 23:04:31 ltr
+ 8682  2015-10-12 23:05:15 less freeCompareAnnoVenn.d.dw__special__a.dw__union__b.dw__union__c.dw
+ 8623  2015-10-12 23:55:52 ##freeCompareAnnoVenn.py -i freeCompareAnnoVenn.testData -o freeCompareAnnoVenn -s "a+b+c;a+b;a&b+d;a&b-c;a&b&c-d;a&b+c&d;a&b-c&d" -t '.up;.dw' -d 1
+ 8624  2015-10-12 23:56:00 vim `which freeCompare.py`
+ 8683  2015-10-13 00:15:01 vim `which main_degene_std_doc.py`
+ 8625  2015-10-13 00:05:34 vim `which functionalEnrichment.py`
+ 8753  2015-10-13 18:27:48 cd /MPATHB/self/NGS/test_dir/
+ 8754  2015-10-13 18:27:49 ltr
+ 8755  2015-10-13 18:28:04 mkdir a
+ 8756  2015-10-13 18:28:10 cp freeCompareAnnoVenn.testData a/
+ 8812  2015-10-15 05:50:52 cd test_dir/
+ 8813  2015-10-15 05:50:53 ltr

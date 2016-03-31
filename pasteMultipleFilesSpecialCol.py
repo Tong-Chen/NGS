@@ -44,14 +44,19 @@ format and order as filenames given to <-i>. \
 The sort matters since a file will \
 be outputed containling labels each at one line. \
 However this parameter is not necessary if you do not \
-want this file.")
+want this file. This should be given when HEADER is TRUE.")
     parser.add_option("-c", "--col", dest="column",
         default=0, help="Select the columns you want to output. \
 Normally the first column is label column, and will only be output \
-once. Default 0 means output only the second column of all files \
+once. Default 0 means output all (but not the first) columns of all files \
 with IDs in the first file. \
 Accept '2,3,4' or '2-5' or '2,3-6,7' to indicate the columns wanted. \
 '2,3-6,7' means column 2-7 will all be output.")
+    parser.add_option("-r", "--row-list", dest="row_list",
+        help="Blank separated lists (normally a subset of the first \
+column in each file, other items not in given files are also \
+accepted. However their value wolud be 0.) \
+represent the items you want to output and their order.")
     parser.add_option("-o", "--output", dest="output",
         metavar="OUTPUT", help="The name of output file containing \
 pasted files. The line order of output file is the same as first file. \
@@ -59,6 +64,9 @@ Also a file nameed <OUTPUT>.label will be outputed \
 as described in -i.")
     parser.add_option("-H", "--HEADER", dest="header",
         default=0, help="Add header to output file. Default FALSE.")
+    parser.add_option("-s", "--skip", dest="skip",
+        default=0, help="The number of lines to skip in input file. \
+Default 0 indicating output all lines of input file.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -90,16 +98,21 @@ def main():
         #--------------------------------------
     #---------------------------------------------
     output = options.output
+    header = options.header
     if options.file_label:
         #file_labelL = options.file_label.split(',')
         file_labelL = re.split('[, ]*', options.file_label.strip())
-        fh = open(output+".label", 'w')
-        print >>fh, '\n'.join(file_labelL)
-        fh.close()
+        if not header:
+            fh = open(output+".label", 'w')
+            print >>fh, '\n'.join(file_labelL)
+            fh.close()
     #--------------------------------
-    header = options.header
+    skip = int(options.skip)
     verbose = options.verbose
     debug = options.debug
+    rowlist = options.row_list
+    if rowlist:
+        rowlist = re.split('[, ]*', rowlist.strip())
     #-----------------------------------
     aDict = {}
     labelL = []
@@ -108,7 +121,12 @@ def main():
     for file in fileL:
         aDict[file] = {}
         i += 1
+        tmpSkip = skip
         for line in open(file):
+            if tmpSkip:
+                tmpSkip -= 1
+                continue
+            #---------------------------
             specifyCol = len(colL)
             if specifyCol == 0:
                 lineL = line.strip().split("\t", 1)
@@ -124,9 +142,13 @@ def main():
                 if i == 1:
                     labelL.append(key)
                     if header and not headerL:
-                        headerL = [i+"_"+str(j) \
-                                    for i in file_label \
-                                    for j in range(specifyCol)] 
+                        if specifyCol > 1:
+                            headerL = [i127+"_"+str(j) \
+                                        for i127 in file_labelL \
+                                        for j in range(specifyCol)] 
+                        else:
+                            headerL = [i127 for i127 in file_labelL] 
+                    #---------------------------------------
                 valueL = [lineL[j] for j in colL]
                 value = '\t'.join(valueL)
             #--------------------------------------
@@ -140,9 +162,11 @@ def main():
     fh = open(output, 'w')
     if header and headerL:
         print >>fh, "ID\t%s" % '\t'.join(headerL)
+    if rowlist:
+        labelL = rowlist
     for key in labelL:
         print >>fh, "%s\t%s" \
-            % (key, '\t'.join([aDict[file][key] for file in fileL]))
+            % (key, '\t'.join([aDict[file].get(key, '0') for file in fileL]))
     fh.close()
     #-----------end close fh-----------
     if verbose:
