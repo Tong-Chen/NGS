@@ -165,22 +165,24 @@ def generateCDS(trannoL, transL, depletedD):
     count = 0
     #print transL
     for trans in transL:
-        count += 1
         start = trans[0][0] -  1
         end   = trans[0][1]  
         if strand in ['+', '-']:
             if trans[1] == '+':
                 cdsSeg = cds(posL[:], start, end, strand)
+                count += 1
                 output(trannoL, cdsSeg, strand, strand, count)
             else:
                 depletedD[trans[2]] = 0
         elif strand == '.':
             if trans[1] == '+':
                 cdsSeg = cds(posL[:], start, end, '+')
+                count += 1
                 #print cdsSeg
                 output(trannoL, cdsSeg, '.', '+', count)
             elif trans[1] == '-':
                 cdsSeg = cds(posL[:], start, end, '-')
+                count += 1
                 #print cdsSeg
                 output(trannoL, cdsSeg, '.', '-', count)
         else:
@@ -188,6 +190,9 @@ def generateCDS(trannoL, transL, depletedD):
             sys.exit(1)
         #---------END strand ---------------
     #----------END for trans------------
+    #------For GTF strand inconsistent with translation strand
+    if count == 0:
+        print "".join(trannoL),
 #---------------------------------------------
 
 def main():
@@ -233,6 +238,8 @@ def main():
         if tr and lineL[3] != tr:
             if tr in transD:
                 generateCDS(tmpL, transD[tr], depletedD)
+            else:
+                print ''.join(tmpL),
             tmpL = []
         tr = lineL[3]
         tmpL.append(line)    
@@ -240,6 +247,8 @@ def main():
     if tr:
         if tr in transD:
             generateCDS(tmpL, transD[tr], depletedD)
+        else:
+            print ''.join(tmpL),
         tmpL = []
     #-------------END reading file----------
     #----close file handle for files-----
