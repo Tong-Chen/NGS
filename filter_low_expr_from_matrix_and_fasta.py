@@ -125,9 +125,9 @@ def main():
         #-------------------------------------
         lineL = line.strip().split('\t')
         if no_less:
-            tmpL = [1 for i in lineL[2:] if float(i)>=min_expr]
+            tmpL = [1 for i in lineL[1:] if float(i)>=min_expr]
         else:
-            tmpL = [1 for i in lineL[2:] if float(i)>min_expr]
+            tmpL = [1 for i in lineL[1:] if float(i)>min_expr]
         #-----------------------------------
         if tmpL:
             print >>matrix_fh, line,
