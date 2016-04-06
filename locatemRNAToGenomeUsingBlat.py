@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#  !/usr/bin/env python
 # -*- coding: utf-8 -*-
 #from __future__ import division, with_statement
 '''
@@ -144,11 +144,11 @@ file %s, %d sequences can be mapped to given database and \
 (len(inputSet), file, len(mappedSet), len(finalSet))
     if inputSet.difference(mappedSet):
         print >>sys.stderr, "The following sequences have \
-not been mapped to database", '\t'.join(inputSet.difference(mappedSet))
+    not been mapped to database:", '\t'.join(inputSet.difference(mappedSet))
     if mappedSet.difference(finalSet):
         print >>sys.stderr, "The following sequences have \
 no perfect match to database, you may want to \
-extend their sequence", '\t'.join(mappedSet.difference(finalSet))
+extend their sequence.\n", '\t'.join(mappedSet.difference(finalSet))
     #------------------------------------
     if verbose:
         print >>sys.stderr,\
