@@ -175,7 +175,8 @@ def annoDE_results(DE_results, annoD, annoH, exprD, exprH):
             #print >>sys.stderr, exprD.keys()
             #print >>sys.stderr, annoD.keys()
 
-            print >>file_fh, '\t'.join([line, exprD[key], annoD[key]])
+            print >>file_fh, '\t'.join([line, exprD[key],
+                annoD.get(key, "No annotation")])
     file_fh.close()
 #_----------------------------------------
 
@@ -193,7 +194,8 @@ def annoSubset(annoD, annoH, *subset):
                 header -= 1
             else:
                 key = line.split('\t', 1)[0]
-                print >>file_fh, '\t'.join([line, annoD[key]])
+                print >>file_fh, '\t'.join([line, 
+                    annoD.get(key, "No annotation")])
                 print '%s\t%s' % (key, label.replace('-', '_'))
         file_fh.close()
 #_----------------------------------------
@@ -250,13 +252,13 @@ def main():
         #readDepleted([labelA, subsetA_depleted], [labelB,
         #    subsetB_depleted])
         
-        getTopTerm('BP', prefix, 50, subsetA_enriched+'.xls',
+        getTopTerm('BP', prefix, 20, subsetA_enriched+'.xls',
             subsetB_enriched+'.xls')
 
-        getTopTerm('MF', prefix, 50, subsetA_enriched+'.xls',
+        getTopTerm('MF', prefix, 20, subsetA_enriched+'.xls',
             subsetB_enriched+'.xls')
 
-        getTopTerm('CC', prefix, 50, subsetA_enriched+'.xls',
+        getTopTerm('CC', prefix, 20, subsetA_enriched+'.xls',
             subsetB_enriched+'.xls')
 
 #        getTopTerm('BP', prefix, 50, subsetA_enriched+'.xls',
