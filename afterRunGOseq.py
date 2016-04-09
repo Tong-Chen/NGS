@@ -98,7 +98,12 @@ def readEnriched(*enriched):
         header = 1
         for line in open(file):
             lineL = line.strip().split('\t')
+            if len(lineL) < 9:
+                print >>sys.stderr, "%s NO ENRICHEMNT" % file
+                break
             goNum = lineL[0]
+            #print >>sys.stderr, file
+            #print >>sys.stderr, lineL
             newLineL = [goNum,lineL[8], lineL[1], lineL[3], lineL[7]]
 
             if header:
