@@ -45,7 +45,22 @@ def cmdparameter(argv):
         metavar="FILEIN", help="A matrix file normally with \
 one header line.")
     parser.add_option("-p", "--pattern", dest="pattern",
-        help="Words or regular expressions used as filter.")
+        help="Words or regular expressions used as filter. \
+Multiple separtors can be separated by giving separtors \
+specified to <-s>. \
+<-p> could be a word like <'pattern'> or <'pattern pat'> \
+or <'pat*'> or <'pat1;pat2'> (need assigning ';' to <-s> \
+if this represents two patterns).")
+    parser.add_option("-s", "--separtor", dest="sep",
+        help="Separtor used to separate multiple \
+patterns. No default value. One should specify it \
+when multiple patterns are given.")
+    parser.add_option("-m", "--mode", dest="mode",
+        default='union', help="To specify whether to \
+union or intersection set of multiple patterns. \
+A string <union> (default) represents to get the \
+union set; A string <intersect> represents to get \
+the intersection set.")
     parser.add_option("-H", "--header", dest="header",
         default=1, help="Output the header line. \
 Default the first line will be treated as header line and \
@@ -71,6 +86,12 @@ def main():
     #-----------------------------------
     file = options.filein
     pat = options.pattern
+    sep = options.sep
+    mode = options.mode
+    if sep:
+        patL = pat.split(sep)
+    else:
+        patL = [pat]
     header = int(options.header)
     nocase = int(options.nocase)
     filter_l = options.filter_l
@@ -80,9 +101,10 @@ def main():
         filterD = ''
     #--------------------------
     if nocase:
-        pat_re = re.compile(r'%s' % pat, flags=re.IGNORECASE)
+        pat_reL = [re.compile(r'%s' % pat, flags=re.IGNORECASE) \
+            for pat in patL]
     else:
-        pat_re = re.compile(r'%s' % pat)
+        pat_reL = [re.compile(r'%s' % pat) for pat in patL]
     #-------------------------------
     verbose = options.verbose
     global debug
@@ -104,8 +126,19 @@ def main():
             if key not in filterD:
                 continue
         #--------------------------------
-        if pat_re.search(line):
-            print line,
+        if mode == "union":
+            for pat_re in pat_reL:
+                if pat_re.search(line):
+                    print line,
+                    break
+        elif mode == "intersect":
+            save = 1
+            for pat_re in pat_reL:
+                if not pat_re.search(line):
+                    save = 0
+                    break
+            if save: print line, 
+        #-------------------------------
     #-------------END reading file----------
     #----close file handle for files-----
     if file != '-':
