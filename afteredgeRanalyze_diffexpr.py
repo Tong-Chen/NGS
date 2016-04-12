@@ -121,13 +121,20 @@ def getTopTerm(type, prefix, top, *file):
                 break
     #---------------------------------------
     file_out.close()
-    cmd = ['s-plot scatterplotDoubleVariable -f', file_out_n, 
-        '-o Sample -v Term -c neg_log10pvalue -s Count -w 40 -a 70 -E pdf -R 90 -H 0 -V 1']
-    os.system(' '.join(cmd))
-    convert = ['convert -density 150 -quality 90',
-            file_out_n+'.scatterplot.dv.pdf',
-            file_out_n+'.scatterplot.dv.png']
-    os.system(' '.join(convert))
+    if count:
+        height = count / 3
+        if height < 8:
+            height = 10
+        elif height < 25:
+            height = 25
+        cmd = ['s-plot scatterplotDoubleVariable -f', file_out_n, 
+            '-o Sample -v Term -c neg_log10pvalue -s Count -w 25 -a', 
+            str(height), '-E pdf -R 90 -H 0 -V 1']
+        os.system(' '.join(cmd))
+        convert = ['convert -density 150 -quality 90',
+                file_out_n+'.scatterplot.dv.pdf',
+                file_out_n+'.scatterplot.dv.png']
+        os.system(' '.join(convert))
 #------------------------------------
 
 def readAnno(anno, index):

@@ -98,7 +98,7 @@ def mergeResult(anno, comparePL, go_dir, allDE, top=50, max_len=70):
         height = len(annoL) / 3
         if height < 8:
             height = 10
-        if height < 25:
+        elif height < 25:
             height = 25
         height = str(height)
         width = str(30)
