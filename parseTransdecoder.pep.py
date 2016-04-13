@@ -102,6 +102,8 @@ def main():
         op = file
     gene_out    = op + '.gene_singleton.fa'
     isoform_out = op + '.isoform_singleton.fa'
+    gene_out_xls    = op + '.gene_singleton.xls'
+    isoform_out_xls = op + '.isoform_singleton.xls'
 
     typeD = {'3prime_partial':1, '5prime_partial':1, 'complete':2,
             'internal':1}
@@ -179,16 +181,23 @@ def main():
     #--------------------------------------
     if all:
         gene_out_fh = open(gene_out, 'w')
+        gene_out_xls_fh = open(gene_out_xls, 'w')
         for valueL in seqGeneD.values():
             print >>gene_out_fh, '>%s\t%d\n%s' % \
                 ('\t'.join(valueL[:4]), valueL[4], valueL[5])
+            print >>gene_out_xls_fh, "%s\t%s" % (valueL[0], valueL[5])
         gene_out_fh.close()
-            
+        gene_out_xls_fh.close()
+
         isoform_out_fh = open(isoform_out, 'w')
+        isoform_out_xls_fh = open(isoform_out_xls, 'w')
         for valueL in seqIsoformD.values():
             print >>isoform_out_fh, '>%s\t%d\n%s' % \
                 ('\t'.join(valueL[:4]), valueL[4], valueL[5])
+            print >>isoform_out_xls_fh, "%s\t%s" % (valueL[0], valueL[5])
         isoform_out_fh.close()
+        isoform_out_xls_fh.close()
+
     if substitute:
         os.system("/bin/mv %s %s.original" % (file, file))
         fh = open(file, 'w')
