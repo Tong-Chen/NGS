@@ -81,21 +81,64 @@ def saveDict(aDict, key, value):
     return aDict[key][value]
 #------------------------------------
 
+#def readTFfamily(file):
+#    head = 1
+#    existDict = {}
+#    '''
+#    existDict = {
+#        'PF00643' : {1:{'PF06203':{1:{'C2C2    CO-like':'C2C2
+#        CO-like'}}}}
+#    }
+#    '''
+#    excludeDict = {}
+#    '''
+#    excludeDict = {
+#        'C2H2    C2H2': ['PF00929']
+#        'C3H     C3H' : ['PF00076', 'PF00271']
+#    }
+#    '''
+#    for line in open(file):
+#        if head:
+#            head -= 1
+#            continue
+#        #--------------------------
+#        lineL = line.strip().rsplit('\t', 1)
+#        family, pfam = lineL
+#        pfamL = pfam.split(';')
+#        pfamL.sort()
+#
+#        pfam, count = pfamL[0].split(':')
+#        count = int(count)
+#        if count > 0:
+#            tmpD = saveDict(existDict, pfam, count)
+#        else:
+#            if family not in excludeDict:
+#                excludeDict[family] = []
+#            excludeDict[family].append(pfam)
+#
+#        for pfam_count in pfamL[1:]:
+#            pfam, count = pfam_count.split(':')
+#            count = int(count)
+#            if count > 0:
+#                tmpD = saveDict(tmpD, pfam, count)
+#            else:
+#                if family not in excludeDict:
+#                    excludeDict[family] = []
+#                excludeDict[family].append(pfam)
+#        #------------------------------------
+#        tmpD[family] = family   
+#    #-----------------------------------------------
+#    return existDict, excludeDict
+##-----END readTFfamily-----------------------
+
 def readTFfamily(file):
     head = 1
-    existDict = {}
+    tfDict = {}
+    weightTf = {}
     '''
-    existDict = {
-        'PF00643' : {1:{'PF06203':{1:{'C2C2    CO-like':'C2C2
-        CO-like'}}}}
-    }
-    '''
-    excludeDict = {}
-    '''
-    excludeDict = {
-        'C2H2    C2H2': ['PF00929']
-        'C3H     C3H' : ['PF00076', 'PF00271']
-    }
+    tfDict = {"family\tsubfamily": {
+            'includD':{'PF1':1, 'PF2':2}, 
+            'excludD':{'PF3':1}}}
     '''
     for line in open(file):
         if head:
@@ -106,30 +149,29 @@ def readTFfamily(file):
         family, pfam = lineL
         pfamL = pfam.split(';')
         pfamL.sort()
-
-        pfam, count = pfamL[0].split(':')
-        count = int(count)
-        if count > 0:
-            tmpD = saveDict(existDict, pfam, count)
-        else:
-            if family not in excludeDict:
-                excludeDict[family] = []
-            excludeDict[family].append(pfam)
-
-        for pfam_count in pfamL[1:]:
+        assert family not in tfDict, "Duplicate family %s" % family
+        tfDict[family] = {}
+        tfDict[family]['includD'] = {}
+        tfDict[family]['excludD'] = {}
+        weightTf[family] = 0
+        for pfam_count in pfamL:
             pfam, count = pfam_count.split(':')
             count = int(count)
             if count > 0:
-                tmpD = saveDict(tmpD, pfam, count)
+                tfDict[family]['includD'][pfam] = count
+                weightTf[family] += count
+                weightTf[family] += 1
             else:
-                if family not in excludeDict:
-                    excludeDict[family] = []
-                excludeDict[family].append(pfam)
+                tfDict[family]['excludD'][pfam] = count
+                weightTf[family] += 10
         #------------------------------------
-        tmpD[family] = family   
     #-----------------------------------------------
-    return existDict, excludeDict
+    tfKeysL = weightTf.keys()
+    tfKeysL.sort(key=lambda x: weightTf[x], reverse=True)
+    return tfDict, tfKeysL
 #-----END readTFfamily-----------------------
+
+
 
 def readTrinotate(trinotate, name_col=0, pfam_col=11):
     geneD = {}
@@ -140,22 +182,25 @@ def readTrinotate(trinotate, name_col=0, pfam_col=11):
     }
     '''
     head = 1
-    if head:
-        head -= 1
-        continue
-    #--------------------------
-    lineL  = line.split('\t')
-    gene   = lineL[name_col]
-    assert gene not in geneD, "Duplicate %s" % gene
-    geneD[gene] = {}
-    pfam_c = lineL[pfam_col].split('`')
-    for pfam_i in pfam_c:
-        pfam，desp1, desp2 = pfam_i.split('^')
-        pfam = pfam.split('.')[0]
-        if pfam not in geneD[gene]:
-            geneD[gene][pfam] = [1, desp1]
-        else:
-            geneD[gene][pfam][0] = geneD[gene][pfam][0] + 1
+    for line in open(trinotate):
+        if head:
+            head -= 1
+            continue
+        #--------------------------
+        lineL  = line.split('\t')
+        gene   = lineL[name_col]
+        assert gene not in geneD, "Duplicate %s" % gene
+        geneD[gene] = {}
+        pfam_c = lineL[pfam_col].split('`')
+        for pfam_i in pfam_c:
+            pfam, desp1, desp2 = pfam_i.split('^')
+            pfam = pfam.split('.')[0]
+            if pfam not in geneD[gene]:
+                geneD[gene][pfam] = [1, desp1]
+            else:
+                geneD[gene][pfam][0] = geneD[gene][pfam][0] + 1
+        #---------------------------------
+    #---------------------------------------------------
     return geneD
 #-------------------------------------
 
@@ -166,28 +211,83 @@ def pfamFamily(geneD, existDict, excludeDict):
         pfamK.sort()
         for pfam in pfamK:
             if pfam not in existDict:
-                
+                pass    
     #---------------------------------------
 #--------------pfamFamily----------------
+
+def searchFamily(tfDict, tfKeysL, pfamD):
+    '''
+    tfDict = {"family\tsubfamily": {
+            'includD':{'PF1':1, 'PF2':2}, 
+            'excludD':{'PF3':1}}}
+    '''
+    print pfamD
+    for tfFamily in tfKeysL:
+        in_exD = tfDict[tfFamily]
+        includD = in_exD['includD']
+        excludD = in_exD['excludD']
+        belong = 1
+        for pfam, count in includD.items():
+            print "---IN %s\t%d" % (pfam, count)
+            if pfamD.get(pfam, 0) < count:
+                belong = 0
+                break
+        if belong:
+            for pfam, count in excludD.items():
+                print "---EX %s\t%d" % (pfam, count)
+                if pfamD.get(pfam, 0) >= count:
+                    belong = 0
+                    break
+        if belong:
+            return tfFamily
+    #----------------------------------------
+    return ''
+#---------END searchFamily----------------
+
 
 def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
     anno = options.filein
     type = options.file_type
-    if type == 'trinotate':
-        geneD = readTrinotate(anno)
-    elif type == 'pfam':
-        geneD = readPfam(anno)
-    else:
-        print >>sys.stderr, "Unknown annotation type"
     #-----------------------------------------
     family = options.family
     verbose = options.verbose
     global debug
     debug = options.debug
     #-----------------------------------
-    existDict, excludeDict = readTFfamily(family)
+    tfDict, tfKeysL = readTFfamily(family)
+    #pfam_col = 12
+    
+    if type == 'trinotate':
+        head = 1
+        for line in open(anno):
+            lineL  = line.split('\t')
+            if head:
+                head -= 1
+                pfam_col = lineL.index('Pfam') 
+                continue
+            #--------------------------
+            gene   = lineL[1]
+            pfam_m = lineL[pfam_col]
+            if pfam_m == '.':
+                continue
+            pfam_c = pfam_m.split('`')
+            pfamD = {}
+            for pfam_i in pfam_c:
+                pfam = pfam_i.split('^')[0]
+                pfam = pfam.split('.')[0]
+                pfamD[pfam] = pfamD.get(pfam, 0) + 1
+            #---------------------------------
+            tfFamily = searchFamily(tfDict, tfKeysL, pfamD)
+            if tfFamily:
+                print "%s\t%s\t%s" % (gene, tfFamily, pfam_m)
+        #---------------------------------------------------
+    #---------------------------------------------------
+    elif type == 'pfam':
+        print >>sys.stderr, "Currently not supported"
+    else:
+        print >>sys.stderr, "Unknown annotation type"
     #print existDict
     #print excludeDict
     ###--------multi-process------------------
