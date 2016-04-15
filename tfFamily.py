@@ -221,20 +221,20 @@ def searchFamily(tfDict, tfKeysL, pfamD):
             'includD':{'PF1':1, 'PF2':2}, 
             'excludD':{'PF3':1}}}
     '''
-    print pfamD
+    #print pfamD
     for tfFamily in tfKeysL:
         in_exD = tfDict[tfFamily]
         includD = in_exD['includD']
         excludD = in_exD['excludD']
         belong = 1
         for pfam, count in includD.items():
-            print "---IN %s\t%d" % (pfam, count)
+            #print "---IN %s\t%d" % (pfam, count)
             if pfamD.get(pfam, 0) < count:
                 belong = 0
                 break
         if belong:
             for pfam, count in excludD.items():
-                print "---EX %s\t%d" % (pfam, count)
+                #print "---EX %s\t%d" % (pfam, count)
                 if pfamD.get(pfam, 0) >= count:
                     belong = 0
                     break
@@ -266,6 +266,7 @@ def main():
             if head:
                 head -= 1
                 pfam_col = lineL.index('Pfam') 
+                print "Isoform\tFamily\tSubfamily\tPfam"
                 continue
             #--------------------------
             gene   = lineL[1]
