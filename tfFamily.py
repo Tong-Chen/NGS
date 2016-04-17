@@ -266,10 +266,11 @@ def main():
             if head:
                 head -= 1
                 pfam_col = lineL.index('Pfam') 
-                print "Isoform\tFamily\tSubfamily\tPfam"
+                print "Gene\tIsoform\tFamily\tSubfamily\tPfam"
                 continue
             #--------------------------
-            gene   = lineL[1]
+            gene  = lineL[0]
+            isoform   = lineL[1]
             pfam_m = lineL[pfam_col]
             if pfam_m == '.':
                 continue
@@ -282,7 +283,7 @@ def main():
             #---------------------------------
             tfFamily = searchFamily(tfDict, tfKeysL, pfamD)
             if tfFamily:
-                print "%s\t%s\t%s" % (gene, tfFamily, pfam_m)
+                print "%s\t%s\t%s\t%s" % (gene, isoform, tfFamily, pfam_m)
         #---------------------------------------------------
     #---------------------------------------------------
     elif type == 'pfam':
