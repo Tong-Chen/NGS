@@ -43,6 +43,22 @@ ACGATCGAGGTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 ACGATCGAGGTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 ACGATCAGTCAGGAGTAGGATGTAGGAGTAGCATG
 
+Sample file (header line needed) given to -s (optional)
+    
+    Samp    conditions
+    SC_1    SC
+    SC_2    SC
+    SC_3    SC
+    SC_11bA.SS_1    SC_11bA.SS
+    SC_11bA.SS_2    SC_11bA.SS
+    SC_can.SS_1     SC_can.SS
+    SC_can.SS_2     SC_can.SS
+    SG_1    SG
+    SG_2    SG
+    SG_3    SG
+    SG_bam_1        SG_bam
+    SG_bam_2        SG_bam
+
 '''
 
 import sys
@@ -52,6 +68,7 @@ from time import localtime, strftime
 timeformat = "%Y-%m-%d %H:%M:%S"
 from optparse import OptionParser as OP
 #from bs4 import BeautifulSoup
+from getAverageExpr import readSamp
 
 #reload(sys)
 #sys.setdefaultencoding('utf8')
@@ -87,6 +104,15 @@ transcript to be kept.")
 sample no less than the minimum expression level will be kept by \
 default. Given 0 here to exclude transcrpts with expression value \
 exactly the same as given <minmum-expr-value>.")
+    parser.add_option("-s", "--sample", dest="sample",
+        help="The sample file in format as listed above. \
+When supplied, the program will treat all replicates together \
+to get their average value or requires all replicates meet \
+the standard.")
+    parser.add_option("-t", "--type", dest="type",
+        help="When a sample file supplied, <average> means \
+comparing the mean value of all replicates, and <each> \
+means each value of replicates shall meet the standard.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -104,6 +130,10 @@ def main():
     fasta = options.fasta
     min_expr = float(options.min_expr)
     no_less = int(options.no_less)
+    sample  = options.sample
+    if sample:
+        sampD = readSamp(sample)
+    type    = options.type
     verbose = options.verbose
     global debug
     debug = options.debug
@@ -118,17 +148,62 @@ def main():
     #--------------------------------
     savedD = {}
     for line in fh:
+        lineL = line.strip().split('\t')
         if header:
             print >>matrix_fh, line,
+            headerL = lineL[:]
             header -= 1
             continue
         #-------------------------------------
-        lineL = line.strip().split('\t')
-        if no_less:
-            tmpL = [1 for i in lineL[1:] if float(i)>=min_expr]
+        if sample:
+            lenLineL = len(lineL)
+            exprD = {}
+            for i in range(1,lenLineL):
+                samp = sampD[headerL[i]]
+                if samp not in exprD:
+                    exprD[samp] = [float(lineL[i])]
+                else:
+                    exprD[samp].append(float(lineL[i]))
+                #-------------------------------
+            print exprD
+            #------------------------------------------------
+            if type == 'average':
+                if no_less:
+                    tmpL = [1 for valueL in exprD.values() \
+                        if sum(valueL)//len(valueL)>=min_expr]
+                else:
+                    tmpL = [1 for valueL in exprD.values() \
+                        if sum(valueL)//len(valueL)>min_expr]
+                #----------------------------------------------
+            elif type == 'each':
+                tmpL = []
+                keep = 0
+                for valueL in exprD.values():
+                    keep = 1
+                    print valueL
+                    for value in valueL:
+                        if no_less:
+                            if value < min_expr:
+                                keep = 0
+                                break
+                        else:
+                            if value <= min_expr:
+                                keep = 0
+                                break
+                    #-------------------
+                    print keep
+                    if keep:
+                        break
+                if keep:
+                    tmpL = [1]
+            #-----------------END each---------------------------
         else:
-            tmpL = [1 for i in lineL[1:] if float(i)>min_expr]
+            if no_less:
+                tmpL = [1 for i in lineL[1:] if float(i)>=min_expr]
+            else:
+                tmpL = [1 for i in lineL[1:] if float(i)>min_expr]
         #-----------------------------------
+        print tmpL
         if tmpL:
             print >>matrix_fh, line,
             savedD[lineL[0]] = 1
