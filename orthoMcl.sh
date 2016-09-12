@@ -20,20 +20,50 @@ orthomcl.
 Before running this script, one must have one mysql database and a
 mysql user which can perform operation on this database.
 
+<protein_dir>
+Aco.fasta  Ath.fasta  Dca.fasta  Pab.fasta  Sly.fasta  Stu.fasta
+And.fasta  Csa.fasta  Osa.fasta  Sin.fasta  Smi.fasta  Tca.fasta
+
+<cds_dir>
+Aco.fasta  Ath.fasta  Dca.fasta  Pab.fasta  Sly.fasta  Stu.fasta
+And.fasta  Csa.fasta  Osa.fasta  Sin.fasta  Smi.fasta  Tca.fasta
+
+<one_fasta_file_as_example>
+#####<spe_name|seq_id>
+>And|And00001.1
+MATKKGELNKSDTKKVAKLATKGNAFEQMRFVNMAVFVQHELLKAKSHIV
+EKGFDWPNFSDELIRWVSEKELLQLLENPVEYVNVAIVIGFYANLHTKKY
+MDSVFVGGISLDNAIDNRLRR
+>And|And00002.1
+MDGEEGEAGSTLSALSSVVWLEFEELAREKISSPSLFAIIEELKVDSSAH
+PGYELLGGTLYYRGCLVIAEGSSWIPKLLKEFHDTLQGGHASTYHTYRRL
+VVGLYWRGMNKTIQEYVWACLVCQRSKHEAMSPTGPIQPLPILSALWEDI
+SMDFITGLPRSHGYKVILVVVVWLSNFGHFIALRRSLSAKKYADIFV
+
 
 ${txtbld}OPTIONS${txtrst}:
-	-d	Mysql database name (using user_name as prefix to avoid
-		duplication) ${bldred}[Necessary]${txtrst}
+	-d	Mysql database name (normally one should add user_name or
+		other specific sstrings as prefix to avoid tautonomy) 
+		The database should be created before running the program and
+		the user should have operations to the database.
+		One can use <createSqlDB.sh> to create database and new users
+		before running this script.
+		${bldred}[Necessary]${txtrst}
 	-u	Mysql database username ${bldred}[Necessary]${txtrst}
 	-p	Mysql database password ${bldred}[Necessary]${txtrst}
 	-s	Target species of this analysis 
 		(Any representing string is OK, the shorter the better)
 		${bldred}[Necessary]${txtrst}
-	-D	A directory containing FASTA files for all proteins.
+	-D	A directory containing only FASTA files for all proteins.
+		${bldred}[Necessary]${txtrst}
+	-N	A directory containing only FASTA files for all coding
+		sequences. The sequence names for each CDS should correspond
+		with protein names.
 		${bldred}[Necessary]${txtrst}
 	-S	Sequences downloaded from orthMCL website.
 		${bldred}[Optional, for example:
-		/MPATHB/data/orthomcl/aa_seqs_OrthoMCL-5.fasta]${txtrst}
+		/MPATHB/data/orthomcl/aa_seqs_OrthoMCL-5.fasta. 
+		This parameter is depleted.]${txtrst}
 	-t	Number of threads for blast. ${bldred}[Default 50]${txtrst}
 EOF
 }
@@ -42,11 +72,12 @@ database=
 user=
 passwd=
 prefix=
-datadir=
+protdir=
+nucldir=
 orthofa=
 threads=50
 
-while getopts "hd:u:p:s:D:S:t:" OPTION
+while getopts "hd:u:p:s:D:N:S:t:" OPTION
 do
 	case $OPTION in
 		h)
@@ -66,7 +97,10 @@ do
 			prefix=$OPTARG
 			;;
 		D)
-			datadir=$OPTARG
+			protdir=$OPTARG
+			;;
+		N)
+			nucldir=$OPTARG
 			;;
 		S)
 			orthofa=$OPTARG
@@ -109,7 +143,7 @@ if ! test -s ${prefix}.orthoInit.OK; then
 fi
 
 if ! test -s ${prefix}.goodProt.fasta; then
-	orthomclFilterFasta ${datadir} 10 20 \
+	orthomclFilterFasta ${protdir} 10 20 \
 		${prefix}.goodProt.fasta ${prefix}.poorProt.fasta 
 fi
 
@@ -136,7 +170,7 @@ if ! test -s ${prefix}.orthomcl.blastout.2; then
 fi
 
 if ! test -s ${prefix}.similarSequences.txt; then
-	orthomclBlastParser ${prefix}.orthomcl.blastout.2 ${datadir} \
+	orthomclBlastParser ${prefix}.orthomcl.blastout.2 ${protdir} \
 		>${prefix}.similarSequences.txt
 	perl -p -i -e 's/0\t0/1\t-181/' ${prefix}.similarSequences.txt
 fi
@@ -162,6 +196,16 @@ if ! test -s mclOutput; then
 fi
 
 if ! test -s ${prefix}.groups.xls; then
-	orthomclMclToGroups ${prefix}_ 10000 <mclOutput >${prefix}.groups.xls
+	orthomclMclToGroups C 10000 <mclOutput >${prefix}.groups.xls
 fi
 
+if ! test -s ${prefix}.orthomcl.${prefix}.specific_cluster.xls; then
+	echo 1>&2 "Parse orthoMcl output"
+	parseOrthoMclResult.py -i ${prefix}.groups.xls -t ${prefix} \
+		-P ${protdir} -N ${nucldir} -o ${prefix}
+fi
+
+#if ! test -s ${prefix}.MSA.OK; then
+#	orthoMclPhyloGenetic.py -i ${prefix}.orthomcl.conserved_single_member_orthlog
+#	echo "${prefix}.MSA.OK " >${prefix}.MSA.OK 
+#fi
