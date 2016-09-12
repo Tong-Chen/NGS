@@ -74,15 +74,18 @@ def readEnriched(*enriched):
         label += "-UP.enriched"
         out_fh = open(file_out, 'w')
         header = 1
-        for line in open(file):
-            lineL = line.strip().split('\t')
-            newLineL = [lineL[8], lineL[1], lineL[3], lineL[7]]
-            if header:
-                newLineL.append("Sample")
-                header -= 1
-            else:
-                newLineL.append(label)
-            print >>out_fh, '\t'.join(newLineL)
+        if os.path.exists(file):
+            for line in open(file):
+                lineL = line.strip().split('\t')
+                newLineL = [lineL[8], lineL[1], lineL[3], lineL[7]]
+                if header:
+                    newLineL.append("Sample")
+                    header -= 1
+                else:
+                    newLineL.append(label)
+                print >>out_fh, '\t'.join(newLineL)
+        else:
+            print >>sys.stderr, "%s does not exist" % file
         out_fh.close()
     #--------------------------------------
 #--------------------------------------
@@ -108,6 +111,7 @@ def readDepleted(*depleted):
 #--------------------------------------
 
 def getTopTerm(type, prefix, top, *file):
+    maxLen = 70
     file_out_n = prefix+".DE_genes.GOseq."+type+'.xls'
     file_out = open(file_out_n, 'w')
     print >>file_out, "Term\tneg_log10pvalue\tCount\tFDR\tSample"
@@ -115,7 +119,9 @@ def getTopTerm(type, prefix, top, *file):
         count = 0
         for line in open(single):
             if line.startswith(type):
-                print >>file_out, line,
+                lineL = line.split("\t")
+                lineL[0] = lineL[0][:maxLen]
+                print >>file_out, '\t'.join(lineL),
                 count += 1
             if count >= top:
                 break
@@ -123,13 +129,13 @@ def getTopTerm(type, prefix, top, *file):
     file_out.close()
     if count:
         height = count / 3
-        if height < 8:
-            height = 10
+        if height < 20:
+            height = 20
         elif height < 25:
             height = 25
         cmd = ['s-plot scatterplotDoubleVariable -f', file_out_n, 
             '-o Sample -v Term -c neg_log10pvalue -s Count -w 25 -a', 
-            str(height), '-E pdf -R 90 -H 0 -V 1']
+            str(height), '-E pdf -R 30 -H 1 -V 1 -l neg_log10pvalue']
         os.system(' '.join(cmd))
         convert = ['convert -density 150 -quality 90',
                 file_out_n+'.scatterplot.dv.pdf',
