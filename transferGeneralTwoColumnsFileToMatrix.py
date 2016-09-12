@@ -49,9 +49,10 @@ def cmdparameter(argv):
     usages = "%prog -i file"
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
-        metavar="FILEIN", help="A two colum file. \
+        metavar="FILEIN", help="A two columns file. \
 The first column will be used as the rowname in output file. \
-The second column will be used as the colname in output file.")
+The second column will be used as the colname in output file. \
+<-> represents STDIN.")
     parser.add_option("-H", "--header", dest="header",
         default=1, help="Number of header lines to skip. Default 1.")
     parser.add_option("-l", "--absent-present", dest="ap",
@@ -62,6 +63,12 @@ column.")
     parser.add_option("-s", "--sep-second-col", dest="sep",
         help="Separtor for second column if multiple values contained \
 like example input file type 2.")
+    parser.add_option("-S", "--skip-blank-item-in-second-col",
+        dest="skip_b", default=0, 
+        help="Normally blank items in second column after splitting \
+represents wrong duplication of separtors. Default <0> meaning \
+not skip for backtrack. Normally this parameter should be set \
+to <1> to trigger the skipping.")
     parser.add_option("-I", "--full-colname", dest="fullcol",
         help="This file contains the full list of items in \
 the second column of file given to -i. This is optional, only \
@@ -84,6 +91,7 @@ def main():
     file2 = options.fullcol
     debug = options.debug
     verbose = options.debug
+    skip_b = int(options.skip_b)
     #-----------------------------------
     if file == '-':
         fh = sys.stdin
@@ -103,6 +111,10 @@ def main():
             colname = colname.split(sep)
             rownameS.add(rowname)
             for each_colname in colname:
+                if skip_b:
+                    each_colname = each_colname.strip()
+                    if not each_colname:
+                        continue
                 if each_colname not in aDict:
                     aDict[each_colname] = {}
                 if rowname not in aDict[each_colname]:
