@@ -404,6 +404,38 @@ def readFasta(file, locusL=[]):
             aDict[locus] += line.strip('*')
             #-------------------------------------------
     return aDict
+#------------------readFasta----------------------------
+
+
+def readStdFasta(file):
+    '''
+    >locus |annotation
+    or
+    >locus|annotation
+    asdsdlsdkflsdsdsldlsdkfsdsd
+    asdsdlsdkflsdsdsldlsdkfsdsd
+    TAIR_CDS, PEP fills first format.
+    SATIVA_CDSi, _PEP fills second 
+    '''
+    #------------------------------------------
+    aDict = {}
+    locus = ''
+    for line in open(file):
+        if line[0] == '>':
+            if locus:
+                aDict[locus] = ''.join(tmpL)
+            locus = line[1:].strip()
+            tmpL = []
+        else:
+            line = line.strip()
+            tmpL.append(line.strip('*'))
+            #-------------------------------------------
+    #----------------------------------------------
+    if locus:
+        aDict[locus] = ''.join(tmpL)
+    return aDict
+#------------------readStdFasta----------------------------
+
 
 
 def readStdPro(file, noduplex=1):
