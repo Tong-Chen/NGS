@@ -10,7 +10,7 @@ __author_email__ = 'chentong_biology@163.com'
 #=========================================================
 desc = '''
 Functional description:
-
+    Simplify Trinotate annotation and summary the annotation results.
 '''
 
 import sys
@@ -54,13 +54,15 @@ Trinotate/Trinotate.sqlite report.")
 
 def process(item, label, tmpL, header=0):
     blastL = ['sprot_Top_BLASTX_hit', 'TrEMBL_Top_BLASTX_hit',
-        'sprot_Top_BLASTP_hit', 'TrEMBL_Top_BLASTP_hit']
+        'sprot_Top_BLASTP_hit', 'TrEMBL_Top_BLASTP_hit',
+        'TrEMBL_BLASTX', 'TrEMBL_BLASTP']
     #'Pfam', 'SignalP', 'TmHMM', 'eggnog',
     eggnog = ['eggnog']
     pfam = ['Pfam']
     #go = ['gene_ontology_blast', 'gene_ontology_pfam']
     depleted = ['RNAMMER', 'prot_coords', 'transcript', 'peptide']
-    directReturn = ['prot_id', 'gene_ontology_blast', 'gene_ontology_pfam']
+    directReturn = ['prot_id','eggnog','SignalP', 'Kegg', 'TmHMM',
+        'gene_ontology_blast', 'gene_ontology_pfam']
     if label in blastL:
         if header:
             tmpL.append(item+'_id')
@@ -103,6 +105,13 @@ def process(item, label, tmpL, header=0):
     elif label in depleted:
         pass
 #---------------------------------
+def save(annoD, labelD, gene, item, label):
+    '''
+    
+    '''
+    if item == '.': return
+
+#--------------------------------------
 
 def main():
     options, args = cmdparameter(sys.argv)
@@ -117,8 +126,19 @@ def main():
     else:
         fh = open(file)
     #--------------------------------
+    annoD = {} #annoD = {"sprot":["g1", "g2"], "TrEMBL":["g1", "g3"]}
+    labelD = {"sprot_Top_BLASTX_hit": "SwissProt",
+            "TrEMBL_Top_BLASTX_hit":"TrEMBL", 
+            "TrEMBL_BLASTX":"TrEMBL", 
+            "TrEMBL_BLASTP":"TrEMBL", 
+            "sprot_Top_BLASTP_hit":"SwissProt",
+            "TrEMBL_Top_BLASTP_hit":"TrEMBL", "Pfam":"Pfam",
+            "SignalP":"SignalP", "Kegg":"KEGG"}
+    
     header = 1
     for line in fh:
+        if debug:
+            print >>sys.stderr, line, 
         tmpL = []
         if header:
             headerL = line.strip().split('\t')
@@ -132,18 +152,29 @@ def main():
             print '\t'.join(tmpL)
             continue
         lineL = line.strip().split('\t')
+        gene = lineL[0]
+        annoD[gene] = set(['All'])
+        #tr   = lineL[1]
         tmpL.extend(lineL[:2])
         otuputL = lineL[:2]
         for i in range(2, len_header):
             item  = lineL[i]
             label = headerL[i]
             process(item, label, tmpL)
+            if item != '.' and label in labelD:
+                annoD[gene].add(labelD[label])
         print '\t'.join(tmpL)
     #-------------END reading file----------
     #----close file handle for files-----
     if file != '-':
         fh.close()
     #-----------end close fh-----------
+    #--------Output statistis information------
+    anno_fp = open(file+".sta.xls", 'w')
+    for gene, labelL in annoD.items():
+        for label in labelL:
+            print >>anno_fp, "%s\t%s" % (gene, label)
+    anno_fp.close()
     ###--------multi-process------------------
     #pool = ThreadPool(5) # 5 represents thread_num
     #result = pool.map(func, iterable_object)
