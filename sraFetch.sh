@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#set -x
+set -x
 set -e
 set -u
 
@@ -68,8 +68,18 @@ do
 	#prefetch -v $sra
 	#prefetch -v $sra
 	#/bin/cp ~/ncbi/public/sra/${sra}.sra ${name}.sra
-	fastq-dump -v --split-3 --gzip ${sra}
+	while true
+	do
+		fastq-dump -v --split-3 --gzip ${sra}
+		a=$?
+		if [ "$a" == "0" ]; then break; fi
+		sleep 5m
+	done
+	
 	#/bin/cp ~/ncbi/public/sra/${sra}* .
-	rename "${sra}" "${name}" ${sra}*
-	/bin/rm ~/ncbi/public/sra/${sra}.sra
+	if [ "$a" == "0" ]
+	then
+		rename "${sra}" "${name}" ${sra}*
+		/bin/rm ~/ncbi/public/sra/${sra}.sra
+	fi
 done
