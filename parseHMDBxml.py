@@ -15,7 +15,9 @@ Functional description:
 
     It will extract HMDB accession, cas_registry_number, 
     kegg_id, biocyc_id, 
-    iupac_name, traditional_iupac,  synonyms
+    iupac_name, traditional_iupac,  synonyms,
+    average_molecular_weight, chemical_formula, 
+    smiles
 '''
 
 import sys
@@ -80,7 +82,9 @@ def main():
     biocyc_id = null(xml_soup.biocyc_id.string)
     iupac_name = null(xml_soup.iupac_name.string)
     traditional_iupac = null(xml_soup.traditional_iupac.string)
+    average_molecular_weight = null(xml_soup.average_molecular_weight.string)
     chemical_formula = null(xml_soup.chemical_formula.string)
+    smiles = null(xml_soup.smiles.string)
     synonyms = xml_soup.synonyms.strings
     synonymL = []
     if synonyms:
@@ -96,11 +100,13 @@ def main():
     #print synonymL
     print '\t'.join(['hmdb_accession', 'hmdb_name',
         'cas_registry_number', 'chemspider_id', 'kegg_id', 'biocyc_id', 'iupac_name',
-        'traditional_iupac', 'chemical_formula', 'synonyms'])
+        'traditional_iupac', 'chemical_formula', 'synonyms',
+        'average_molecular_weight', 'smiles'])
     print '\t'.join([hmdb_accession, hmdb_name, 
         cas_registry_number, chemspider_id, kegg_id,
         biocyc_id, iupac_name, traditional_iupac,
-        chemical_formula, '___'.join(synonymL)])
+        chemical_formula, '___'.join(synonymL),
+        average_molecular_weight, smiles])
     ###--------multi-process------------------
     #pool = ThreadPool(5) # 5 represents thread_num
     #result = pool.map(func, iterable_object)
