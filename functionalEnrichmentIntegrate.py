@@ -63,7 +63,7 @@ def readGOtxt(gotxt, header=1):
     return GOL
 #-------------------------
 
-def mergeResult(anno, comparePL, go_dir, allDE, top=50, max_len=70):
+def mergeResult(anno, comparePL, go_dir, allDE, top=20, max_len=70):
     fileL = ['/'.join([go_dir, i, anno]) for i in comparePL]
     i = -1
     unanno = -1
@@ -109,7 +109,7 @@ def mergeResult(anno, comparePL, go_dir, allDE, top=50, max_len=70):
         else:
             dv_plot = ["s-plot scatterplotDoubleVariable -f", file96, 
                 "-o Sample -v Term -c neg_log10FDR -s Count -w 30 -a", height, 
-                "-E pdf -R 90 -H 0 -V 1"]
+                "-E pdf -R 30 -H 1 -V 1"]
         print ' '.join(dv_plot)
         os.system(' '.join(dv_plot))
         convert = ["convert -density 150 -quality 90",
