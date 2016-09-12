@@ -38,8 +38,8 @@ def cmdparameter(argv):
     parser.add_option("-s", "--separator", dest="sep",
         default="IdoNotThinkThisWillAppear, DoyouThinkSo", 
         metavar="SEPARATOR", help="The separator used to get ID names. \
-Default full line except leading > and trailing '\n' is \
-used as ID names.")
+Default full line (no splitting) except leading > and trailing '\\n' is \
+used as ID names. Please use <tab> to specify '\\t' as separtor.")
     parser.add_option("-F", "--first-x-words", dest="count",
         default=1, help="Default 1 means extracting the first \
 word before separator. Accept other number (x) to extract the \
@@ -61,9 +61,13 @@ def main():
     #-----------------------------------
     file = options.filein
     sep = options.sep
+    #print "*%s*" % sep
+    if sep == 'tab':
+        sep = "\t"
     count = int(options.count)
     nameF = options.name
     nameD = dict([[line.strip(), 1] for line in open(nameF)])
+    #print nameD.keys()[:5]
     verbose = options.verbose
     debug = options.debug
     #-----------------------------------
@@ -83,6 +87,8 @@ def main():
                 tmpL = []
                 output = 0
             key = sep.join(line[1:].strip().split(sep)[:count])
+            #print key
+            #break
             oldline = line
             if key in nameD:
                 output = 1
