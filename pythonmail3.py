@@ -1,11 +1,16 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-  
-
+from __future__ import unicode_literals
 desc='''
 Send emails.
 '''
 
 import sys
+
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
+
 import os
 from optparse import OptionParser as OP
 
@@ -27,7 +32,7 @@ Default <chentong_biology@163.com>.")
     parser.add_option("-c", "--context", dest='context',
             metavar="CONTEXT", help="The main context for your mail. \
 Symbol <-> should be given if you want SYS.STDIN as the mail content." \
-, default= '\n\nPlease DO NOT respond to this address. \n\nMail to chentong_biology@163.com for more information.')
+, default= '')
     parser.add_option("-a", "--attachement", dest='attachment',
             metavar="ATTACHEMENT", help="The attachment for your mail. \
 Multiple attachments should be separated by ','.")
@@ -53,6 +58,7 @@ from email.MIMEText import MIMEText
 from email.MIMEAudio import MIMEAudio  
 from email.MIMEImage import MIMEImage  
 from email.Encoders import encode_base64  
+from email.header import Header 
   
 def sendMail(subject, text, recipient, attachmentFilePaths, user,
         passwd, smtp):  
@@ -62,8 +68,8 @@ def sendMail(subject, text, recipient, attachmentFilePaths, user,
     msg = MIMEMultipart()  
     msg['From'] = gmailUser  
     msg['To'] = recipient  
-    msg['Subject'] = subject  
-    msg.attach(MIMEText(text))  
+    msg['Subject'] = Header(subject, "utf-8")
+    msg.attach(MIMEText(text, 'html', 'utf-8'))  
   
     for attachmentFilePath in attachmentFilePaths:  
         if attachmentFilePath:
@@ -122,6 +128,7 @@ def main():
     #--------------------
     content += '\n\nPlease DO NOT respond to this address. \n\n\
 Mail to chentong_biology@163.com for more information.'
+    content = content.decode('utf-8')
     recipient = options.receiver
     if options.attachment:
         attach = [i.strip() for i in options.attachment.split(',')]
