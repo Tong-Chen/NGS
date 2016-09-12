@@ -10,8 +10,14 @@ __author_email__ = 'chentong_biology@163.com'
 #=========================================================
 desc = '''
 Functional description:
-    This is designed to transfer FATSA files with sequence 
-    in multiple line format to single line format.
+    This is designed for two purposes:
+
+    1. Transfer FATSA files with sequence 
+       in multiple line format to single line fasta format.
+    2. Transfer any type of FASTA files to table format with 
+       the first column containing sequence names and the
+       second column containing sequences.
+
 '''
 
 import sys
@@ -31,6 +37,17 @@ def cmdparameter(argv):
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
         metavar="FILEIN", help="Multiple line FATSA.")
+    parser.add_option("-o", "--outformat", dest="ofmt",
+        default='single_line_fasta', 
+        help="Default `single_line_fasta` to transfer to format 1, \
+accept `table` to transfer to format 2.")
+    parser.add_option("-s", "--nameSep", dest="nameSep",
+        default="haha_no_thisSeP_cT", help="Default using originally \
+full name as new name. Accept a separtor to extract part of original \
+name as new name.")
+    parser.add_option("-p", "--position-index", dest="pos_index",
+        default=1, help="Default <1> representing get the first part of original name \
+as new name. Accept other numbers to extract corresponding parts.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -45,6 +62,9 @@ def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
     file = options.filein
+    ofmt = options.ofmt
+    nameSep = options.nameSep
+    pos_index = int(options.pos_index)-1
     verbose = options.verbose
     debug = options.debug
     #-----------------------------------
@@ -58,16 +78,22 @@ def main():
     for line in fh:
         if line[0] == '>':
             if key:
-                print key,
-                print ''.join(tmpL)
+                seq = ''.join(tmpL)
+                if ofmt == "single_line_fasta":
+                    print "%s\n%s" % (key, seq)
+                elif ofmt == "table":
+                    print "%s\t%s" % (key[1:], seq)
                 tmpL = []
-            key = line
+            key = line.strip().split(nameSep)[pos_index]
         else:
             tmpL.append(line.strip())
     #-------------END reading file----------
     if key:
-        print key,
-        print ''.join(tmpL)
+        seq = ''.join(tmpL)
+        if ofmt == "single_line_fasta":
+            print "%s\n%s" % (key, seq)
+        elif ofmt == "table":
+            print "%s\t%s" % (key[1:], seq)
     #----close file handle for files-----
     if file != '-':
         fh.close()
