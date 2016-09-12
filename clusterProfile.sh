@@ -31,18 +31,28 @@ entrez_8       samp_c
 
 
 ${txtbld}OPTIONS${txtrst}:
-	-f	Data file containing ENTREZ ids ${bldred}[NECESSARY]${txtrst}
+	-f	Data file containing ENTREZ ids. Normally gene symbols would
+		be OK too. ${bldred}[NECESSARY]${txtrst}
 	-s	Species names as listed in 
 		<http://www.genome.jp/kegg/catalog/org_list.html>.
 		Like, hsa, oas, mmu, dme, ath.
+		"anopheles","arabidopsis","bovine","canine","celegans",
+		"chicken","chimp","coelicolor","ecolik12","ecsakai",
+		"fly","gondii","human","malaria","mouse","pig","rat",
+		"rhesus","xenopus","yeast" and "zebrafish".
 	-p	P-value[${bldred}Default 0.05${txtrst}]
-	-q	Q-value[${bldred}Default 0.1${txtrst}]
+	-q	Q-value[${bldred}Default 0.2${txtrst}]
 	-l	The minimum IDs required for performing KEGG analysis.
 		[${bldred}Default 10.
 		Enlarging this number may be needed when error information 
 		<checkAtAssignment("logical", "ontology", "character"):
 		‘ontology’ is not a slot in class "logical">
 		${txtrst}]
+	-r	Genome-wide annotation file like org.Hs.eg.db for hsa.
+		Suitable to get gene symbols when entrez-IDs are used as
+		input.  
+		[${bldred}Optional, accept org.Hs.eg.db, org.At.tair.db,
+		org.Ce.eg.db, org.Dr.eg.db, org.Dm.eg.db, org.Mm.eg.db${txtrst}]
 	-i	Install required packages[${bldred}Default FALSE${txtrst}]
 	-e	Execute the script[${bldred}Default TRUE${txtrst}]
 EOF
@@ -53,11 +63,12 @@ header='TRUE'
 install='FALSE'
 execute='TRUE'
 p_value=0.05
-q_value=0.1
+q_value=0.2
 species=
 least_id=10
+anno_db=CTCT
 
-while getopts "hf:s:p:q:l:i:e:" OPTION
+while getopts "hf:s:p:q:l:r:i:e:" OPTION
 do
 	case $OPTION in
 		h)
@@ -78,6 +89,9 @@ do
 			;;
 		q)
 			q_value=$OPTARG
+			;;
+		r)
+			anno_db=$OPTARG
 			;;
 		l)
 			least_id=$OPTARG
@@ -100,18 +114,33 @@ fi
 cat <<END >${file}.clusterProfile.r
 
 if (${install}) {
-	devtools::install_github(c("GuangchuangYu/DOSE", "GuangchuangYu/clusterProfiler"))
+	#library(devtools)
+	#devtools::install_github(c("GuangchuangYu/GOSemSim", "GuangchuangYu/DOSE", "GuangchuangYu/clusterProfiler"))
+	source("http://bioconductor.org/biocLite.R")
+	biocLite("BiocUpgrade") ## you may need this
+	biocLite("clusterProfiler")
+	if ("${anno_db}" != "CTCT"){
+		biocLite("${anno_db}")
+	}
 }
+
+readable=FALSE
+
+if ("${anno_db}" != "CTCT"){
+	library("${anno_db}")
+	readable=TRUE
+} 
 
 library(DOSE)
 library(clusterProfiler)
 
+	
 data <- read.table("${file}", sep="\t", comment="", quote="")
 colnames(data) <- c('gene', 'samp')
 sampC <- unique(data\$samp)
 
 for(samp in sampC) {
-	id <- data[data\$samp==samp, 1]
+	id <- unique(data[data\$samp==samp, 1])
 	if (length(id) < ${least_id}) {
 		print(paste0("Less than 10 ids for ", samp, \
 			". No KEGG enrichment performed."))
@@ -119,8 +148,10 @@ for(samp in sampC) {
 		system(paste0("touch ", output))
 	} else {
 		print(paste0("KEGG enrichment for ", samp))
-		kk <- enrichKEGG(id, species="${species}", pvalueCutoff=${p_value},
-			pAdjustMethod="BH", qvalueCutoff=${q_value})
+
+		kk <- enrichKEGG(id, organism="${species}", pvalueCutoff=${p_value},
+			pAdjustMethod="BH", qvalueCutoff=${q_value},
+			readable=readable)
 		result <- summary(kk)
 		output <- paste("${file}", samp, "KEGG", sep=".")
 		write.table(result, file=output, quote=F, sep="\t", row.names=F,
@@ -134,3 +165,5 @@ END
 if [ "${execute}" == "TRUE" ]; then
 	Rscript ${file}.clusterProfile.r
 fi
+
+
