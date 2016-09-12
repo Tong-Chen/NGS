@@ -93,9 +93,15 @@ def cmdparameter(argv):
         metavar="FILEIN", help="An expression matrix. \
 Filtered matrix will be output to STDOUT.")
     parser.add_option("-f", "--fasta-file", dest="fasta",
-        help="A FASTA file with formats specified above. \
+        help="A list of FASTA file with formats specified above (optional). \
 Filtered FASTA will be saved in original file. \
 Original FASTA will be renamed.")
+    parser.add_option("-a", "--additional-matrix", 
+        dest="additional_matrix", 
+        help="A list of matrix files separated by comma to be filtered (optional). \
+Matching key is the first column. All with header lines. \
+Filtered Matrix will be saved in original file. \
+Original Matrix will be renamed.")
     parser.add_option("-m", "--minimum-expr-value", dest="min_expr",
         default=0, help="The minimum expression level for one \
 transcript to be kept.")
@@ -128,6 +134,14 @@ def main():
     #-----------------------------------
     file = options.filein
     fasta = options.fasta
+    if options.fasta:
+        fastaL = options.fasta.split(',')
+    else:
+        fastaL = []
+    if options.additional_matrix:
+        additional_matrixL = options.additional_matrix.split(',')
+    else:
+        additional_matrixL = []
     min_expr = float(options.min_expr)
     no_less = int(options.no_less)
     sample  = options.sample
@@ -139,16 +153,19 @@ def main():
     debug = options.debug
     #-----------------------------------
     header = 1
-    os.system("/bin/mv -f %s %s.bak" % (file, file))
+    label = ".filter_low_expr_from_matrix_and_fasta.bak"
+    file_bak = file + label
+    if not os.path.exists(file_bak):
+        os.system("/bin/mv -f %s %s" % (file, file_bak))
     matrix_fh = open(file, 'w')
     if file == '-':
         fh = sys.stdin
     else:
-        fh = open(file+'.bak')
+        fh = open(file_bak)
     #--------------------------------
     savedD = {}
     for line in fh:
-        lineL = line.strip().split('\t')
+        lineL = line.rstrip().split('\t')
         if header:
             print >>matrix_fh, line,
             headerL = lineL[:]
@@ -165,7 +182,10 @@ def main():
                 else:
                     exprD[samp].append(float(lineL[i]))
                 #-------------------------------
-            print exprD
+            #print exprD
+            #print exprD["Am_R8"]
+            #print exprD.values()
+            #sys.exit(1)
             #------------------------------------------------
             if type == 'average':
                 if no_less:
@@ -179,8 +199,9 @@ def main():
                 tmpL = []
                 keep = 0
                 for valueL in exprD.values():
+                    #print valueL
                     keep = 1
-                    print valueL
+                    #print valueL
                     for value in valueL:
                         if no_less:
                             if value < min_expr:
@@ -191,9 +212,11 @@ def main():
                                 keep = 0
                                 break
                     #-------------------
-                    print keep
+                    #print keep
                     if keep:
                         break
+                #print keep
+                #sys.exit(1)
                 if keep:
                     tmpL = [1]
             #-----------------END each---------------------------
@@ -203,17 +226,19 @@ def main():
             else:
                 tmpL = [1 for i in lineL[1:] if float(i)>min_expr]
         #-----------------------------------
-        print tmpL
+        #print tmpL
         if tmpL:
             print >>matrix_fh, line,
             savedD[lineL[0]] = 1
         #----------------------
     #-------------END reading file----------
     #print savedD
-    if fasta:
-        os.system("/bin/mv -f %s %s.bak" % (fasta, fasta))
+    for fasta in fastaL:
+        fasta_bak = fasta + label
+        if not os.path.exists(fasta_bak):
+            os.system("/bin/mv -f %s %s" % (fasta, fasta_bak))
         fasta_fh = open(fasta, 'w')
-        for line in open(fasta+'.bak'):
+        for line in open(fasta_bak):
             if line[0] == '>':
                 keep = 0
                 name = line.split()[0][1:]
@@ -230,6 +255,25 @@ def main():
     if file != '-':
         fh.close()
     #-----------end close fh-----------
+    #----------additional_matrixL---------------------
+    for matrix in additional_matrixL:
+        if not os.path.exists(matrix):
+            continue
+        header = 1
+        matrix_bak = matrix + label
+        if not os.path.exists(matrix_bak):
+            os.system("/bin/mv -f %s %s" % (matrix, matrix_bak))
+        matrix_fh = open(matrix, 'w')
+        for line in open(matrix_bak):
+            if header:
+                print >>matrix_fh, line,
+                header -= 1
+                continue
+            key, other = line.split('\t', 1)
+            if key in savedD:
+                print >>matrix_fh, line,
+        #-----------------------------------------
+        matrix_fh.close()
     ###--------multi-process------------------
     #pool = ThreadPool(5) # 5 represents thread_num
     #result = pool.map(func, iterable_object)
