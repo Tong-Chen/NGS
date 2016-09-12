@@ -10,8 +10,8 @@ __author_email__ = 'chentong_biology@163.com'
 #=========================================================
 desc = '''
 Functional description:
-    This is designed to transfer cytoband postion to chromosome
-    postion.
+    This is designed to transfer cytoband position to chromosome
+    position.
 
 
 '''
@@ -122,14 +122,24 @@ def main():
         fh = open(file)
     #--------------------------------
     for line in fh:
+        if line[0] == '#':
+            continue
         lineL = line.strip().split('\t')
-        cyto = lineL[cyto_col].replace('-', '')
+        try:
+            cyto = lineL[cyto_col].replace('-', '')
+        except IndexError:
+            print >>sys.stderr, line
+            print >>sys.stderr, cyto_col
         cytoM = reg.match(cyto)
         if cytoM:
             cytoM = cytoM.groups()
             #print cytoM
             unfound = 0
             chr = 'chr'+cytoM[0].upper()
+            if chr == 'chr':
+                print >>sys.stderr, line,
+                print >>sys.stderr, "Unrecgonized cyoband %s" % cyto
+            #----------------------------------
             position = []
             for sub_cyto in cytoM[1:]:
                 if not sub_cyto:
@@ -146,7 +156,7 @@ def main():
                     line.strip())
         else:
             print >>sys.stderr, line,
-            print >>sys.stderr, "Unracognized cyoband %s" % cyto
+            print >>sys.stderr, "Unrecgonized cyoband %s" % cyto
     #-------------END reading file----------
     #----close file handle for files-----
     if file != '-':
