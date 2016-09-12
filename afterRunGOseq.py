@@ -162,6 +162,7 @@ def readDepleted(*depleted):
 #--------------------------------------
 
 def getTopTerm(type, prefix, top, *file):
+    maxLen = 70
     file_out_n = prefix+".GOseq."+type+'.xls'
     file_out = open(file_out_n, 'w')
     print >>file_out, "Sample\tGO\tTerm\tneg_log10pvalue\tCount\tFDR"
@@ -169,7 +170,9 @@ def getTopTerm(type, prefix, top, *file):
         count = 0
         for line in open(single):
             if line.find("\t"+type) != -1:
-                print >>file_out, '\t'.join(line.split('\t')[:6])
+                lineL = line.split('\t')[:6]
+                lineL[0] = lineL[0][:maxLen]
+                print >>file_out, '\t'.join(lineL)
                 count += 1
             if count >= top:
                 break
@@ -177,13 +180,13 @@ def getTopTerm(type, prefix, top, *file):
     file_out.close()
     if count:
         height = count / 3
-        if height < 8:
-            height = 10
+        if height < 15:
+            height = 15
         elif height < 25:
             height = 25
         cmd = ['s-plot scatterplotDoubleVariable -f', file_out_n, 
             '-o Sample -v Term -c neg_log10pvalue -s Count -w 25 -a', 
-            str(height), '-E pdf -R 90 -H 0 -V 1']
+            str(height), '-E pdf -R 30 -H 1 -V 1 -l neg_log10pvalue']
         os.system(' '.join(cmd))
         convert = ['convert -density 150 -quality 90',
                 file_out_n+'.scatterplot.dv.pdf',
@@ -209,7 +212,7 @@ def readExpr(expr):
     header = 1
     exprD = {}
     for line in open(expr):
-        line = line.strip()
+        line = line.rstrip()
         if header:
             head = 'expr_TMM_FPKM'+line
             header -= 1
@@ -221,9 +224,10 @@ def readExpr(expr):
 #---------------------------
 def annoCluster(geneL, annoD, annoH, exprD, exprH, file_out):
     file_fh = open(file_out, 'w')
-    print >>file_fh, '\t'.join(["ID", exprH, annoH])
+    #print >>file_fh, '\t'.join(["ID", exprH, annoH])
+    print >>file_fh, '\t'.join([exprH, annoH])
     for key in geneL:
-        print >>file_fh, '\t'.join([key, exprD[key], annoD[key]])
+        print >>file_fh, '\t'.join([exprD[key], annoD[key]])
     file_fh.close()
 #_----------------------------------------
 
