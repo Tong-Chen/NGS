@@ -221,7 +221,7 @@ cluster.mean <- aggregate(data, by=list(fit\$cluster), FUN=mean)
 cluster.mean.colnames <- colnames(cluster.mean)
 #cluster.mean.colnames[1] = paste('#',cluster.mean.colnames[1], sep='')
 #colnames(cluster.mean) <- cluster.mean.colnames
-write.table(t(cluster.mean), file="${file}${mid}.$center.kmeans.cluster.mean.lines", sep='\t',col.names=F, row.names=T, quote=F)
+write.table(t(cluster.mean), file="${file}${mid}.$center.kmeans.cluster.mean.xls", sep='\t',col.names=F, row.names=T, quote=F)
 print("Output the total sorted cluster name")
 clust.out <- fit\$cluster
 kclust <- as.matrix(clust.out)
@@ -302,12 +302,12 @@ Rscript ${file}${mid}.$center.kmeans.r
 echo 1>&2 "Please pay attention to one element cluster and correct
 the result if any."
 if [ $? == 0 ]; then
-	s-plot lines -f ${file}${mid}.$center.kmeans.cluster.mean.lines -B 0.5 -P top -o TRUE -R 45 -x "" -y "" -c TRUE -C "rainbow($center)"
+	s-plot lines -f ${file}${mid}.$center.kmeans.cluster.mean.xls -B 0.5 -P top -o TRUE -R 45 -x "Samples" -c TRUE -C "rainbow($center)" -y "FPKM" 
 dir=$(dirname ${file})
 for i in `ls ${dir} | grep "${file}${mid}.$center.kmeans.cluster.[0-9]"`; do
 	awk 'BEGIN{OFS="\t"}{if(NR==1){print "Sample",$0}else print $0}' ${dir}/$i >${dir}/$i.tmp
-	transpose.py ${dir}/$i.tmp >${dir}/$i.lines
-	s-plot lines -f ${dir}/$i.lines -P none -B 0.5 -o TRUE -R 45 -x "" -y ""
+	transpose.py ${dir}/$i.tmp >${dir}/$i.lines.xls
+	s-plot lines -f ${dir}/$i.lines.xls -P none -B 0.5 -o TRUE -R 45 -x "Samples" -y "FPKM" 
 	/bin/rm -f ${dir}/$i.tmp
 done
 else
@@ -321,41 +321,41 @@ parseHeatmapSoutput.2.py -i \
 	>${file}${mid}.${center}.kmeans.result.final.sort
 
 s-plot heatmapS -f ${file}${mid}.${center}.kmeans.result.final.sort \
-	-A 90 -b TRUE -v 30 -F 9 -j TRUE -E png -M yellow -x green -y red -Z TRUE
+	-A 90 -T 1 -V 0.5 -v 18 -u 15 -F 9 -j TRUE -E png -M yellow -x green -y red -Z TRUE
 
 s-plot heatmapS -f ${file}${mid}.${center}.kmeans.result.final.sort \
-	-A 90 -b TRUE -v 30 -F 9 -j TRUE -M yellow -x green -y red -Z TRUE
+	-A 90 -T 1 -V 0.5 -v 18 -u 15 -F 9 -j TRUE -M yellow -x green -y red -Z TRUE
 
-echo <<EOF >${file}${mid}.$center.kmeans.makefile
-${file}${mid}.$center.kmeans.centroid.png:
-	echo "The centroid plot against 1st 2 discriminant functions."
-${file}${mid}.$center.kmeans.cluster.mean.lines
-	echo "The mean value in each cluster."
-${file}${mid}.$center.kmeans.cluster.mean.lines.eps \
-${file}${mid}.$center.kmeans.cluster.mean.lines.pdf:
-	echo "The plot of mean value in each cluster."
-${file}${mid}.$center.kmeans.cluster.mean.lines.plt:
-	echo "The gnuplot script to produce the picture."
-${file}${mid}.$center.kmeans.chooseClusterNumberr.pdf:
-	echo "The picture for choosing the best number of clusters, which
-	shows the changes of within-cluster sum of squares."
-${file}${mid}.$center.kmeans.chooseClusterNumber.r:
-	echo "The script to choose the optimum number of clusters."
-${file}${mid}.$center.kmeans.clustster.*:
-
-${file}${mid}.$center.kmeans.cluster.1.lines
-${file}${mid}.$center.kmeans.cluster.2
-${file}${mid}.$center.kmeans.cluster.2.lines
-${file}${mid}.$center.kmeans.cluster.3
-${file}${mid}.$center.kmeans.cluster.3.lines
-${file}${mid}.$center.kmeans.pc.png
-${file}${mid}.$center.kmeans.png
-${file}${mid}.$center.kmeans.r
-${file}${mid}.$center.kmeans.result:
-	echo "The sorted kmeans result."
-${file}${mid}.$center.kmeans.result.pc:
-	echo "Have no idea what it is. Just copied from otherwhere."
-EOF
+#echo <<EOF >${file}${mid}.$center.kmeans.makefile
+#${file}${mid}.$center.kmeans.centroid.png:
+#	echo "The centroid plot against 1st 2 discriminant functions."
+#${file}${mid}.$center.kmeans.cluster.mean.xls
+#	echo "The mean value in each cluster."
+#${file}${mid}.$center.kmeans.cluster.mean.xls.eps \
+#${file}${mid}.$center.kmeans.cluster.mean.xls.pdf:
+#	echo "The plot of mean value in each cluster."
+#${file}${mid}.$center.kmeans.cluster.mean.xls.plt:
+#	echo "The gnuplot script to produce the picture."
+#${file}${mid}.$center.kmeans.chooseClusterNumberr.pdf:
+#	echo "The picture for choosing the best number of clusters, which
+#	shows the changes of within-cluster sum of squares."
+#${file}${mid}.$center.kmeans.chooseClusterNumber.r:
+#	echo "The script to choose the optimum number of clusters."
+#${file}${mid}.$center.kmeans.clustster.*:
+#
+#${file}${mid}.$center.kmeans.cluster.1.lines
+#${file}${mid}.$center.kmeans.cluster.2
+#${file}${mid}.$center.kmeans.cluster.2.lines
+#${file}${mid}.$center.kmeans.cluster.3
+#${file}${mid}.$center.kmeans.cluster.3.lines
+#${file}${mid}.$center.kmeans.pc.png
+#${file}${mid}.$center.kmeans.png
+#${file}${mid}.$center.kmeans.r
+#${file}${mid}.$center.kmeans.result:
+#	echo "The sorted kmeans result."
+#${file}${mid}.$center.kmeans.result.pc:
+#	echo "Have no idea what it is. Just copied from otherwhere."
+#EOF
 
 /bin/mkdir -p ${file}${mid}.$center.kmeans
 /bin/mv -f ${file}${mid}.$center.kmeans.* ${file}${mid}.$center.kmeans
