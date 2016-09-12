@@ -158,7 +158,7 @@ result <- cbind(ci, q)
 result\$pair <- rownames(result) 
 result <- subset(result, select=c("pair", "r", "p", "q"))
 
-colnames(result) <- c("Pair", "${method}_correlation", "p-value", "q-value")
+colnames(result) <- c("Pair", "${method}_correlation", "p_value", "q_value")
 
 write.table(result, file="${file}$midname", sep="\t", col.names=T,
 row.names=F, quote=F)
