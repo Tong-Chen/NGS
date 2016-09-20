@@ -27,6 +27,8 @@ Input file format given to `-f`
 # <tab>取代基1:取代基最大数目<tab>取代基排列模式<tab>电荷模式
 # <tab>取代基1:取代基最大数目;取代基2:取代基最大数目;<tab>取代基排列模式<tab>电荷模式
 
+#电荷模式可以为-+或+-，含义相同表示既有正电荷又有负电荷模式
+
 #Compound 1
 C6
 	H2O:3   sequential  -
@@ -72,10 +74,10 @@ def readInput(input):
         if line.startswith('#') or line.strip() == "":
             continue
         if line.startswith('\t'):
-            line, type = line.strip().split('\t')
+            line, type, ion_mode = line.strip().split('\t')
             lineL = line.split(';')
             subst_grpL = [item.split(':') for item in lineL]
-            subst_grpL = [subst_grpL, type]
+            subst_grpL = [subst_grpL, type, ion_mode]
             inputD[key].append(subst_grpL)
         else:
             key = line.strip()
@@ -87,19 +89,24 @@ def readInput(input):
 def combine(inputD):
     """
     inputD = {'mother_nucleus': [
-                [[(R1, 3)], 'sequential'], 
-                [[(R2, 3), (R3, 3)], 'permutation']
+                [[(R1, 3)], 'sequential', '+'], 
+                [[(R2, 3), (R3, 3)], 'permutation', '-']
                ], 
              }
-    subgrpLL = [ [[(R1,3)],'sequential'], 
-                 [[(R2,3),(R3,3)], 'permutation'] ]
+    subgrpLL = [ [[(R1,3)],'sequential', '+'], 
+                 [[(R2,3),(R3,3)], 'permutation', '-'] ]
 
-    subgrpL  = [[ (R2,3), (R3,3) ], 'permutation']
+    subgrpL  = [[ (R2,3), (R3,3) ], 'permutation', '+']
 
-    compoundL = [[mother_nucleus,R1],
-                    [mn,R1,R1],[mn,R1,R1,R1], 
-                 [mn,R2,R3], [mn,R2,R3,R2,R3], 
-                     [mn,R2,R3,R2,R3,R2,R3]
+    #compoundL = [[mother_nucleus,R1],
+    #                [mn,R1,R1],[mn,R1,R1,R1], 
+    #             [mn,R2,R3], [mn,R2,R3,R2,R3], 
+    #                 [mn,R2,R3,R2,R3,R2,R3]
+    #            ]
+    compoundL = [[[mother_nucleus,R1], '+'],
+                 [[mn,R1,R1], '+'],[[mn,R1,R1,R1], '+'], 
+                 [[mn,R2,R3], '-'], [[mn,R2,R3,R2,R3], '-'], 
+                 [[mn,R2,R3,R2,R3,R2,R3], '-']
                 ]
 
     """
@@ -110,6 +117,7 @@ def combine(inputD):
             print >>sys.stderr, mn, subgrpLL
         for subgrpL in subgrpLL:
             type = subgrpL[1]
+            ion_mode = subgrpL[2]
             grpL = [i[0] for i in subgrpL[0]]
             if type == "permutation": 
                 combGrpL = list(permutations(grpL, len(grpL)))
@@ -128,7 +136,7 @@ def combine(inputD):
                     cnt += 1
                     tmpL = [mn]
                     tmpL.extend(list(combGrp)*cnt)
-                    compoundL.append(tmpL[:])
+                    compoundL.append([tmpL[:], ion_mode])
                 if debug:
                     print >>sys.stderr, "##compoundL"
                     print >>sys.stderr, compoundL
@@ -160,7 +168,7 @@ def massCompute(formulaAddL, formulaSubstractL=[]):
 #------massCompute----------------------------
 
 
-def massWhole(compound, massSubCpdL):
+def massWhole(compound, massSubCpdL, ion_mode):
     """
     This is used to get the mass of whole molecular.
 
@@ -170,6 +178,7 @@ def massWhole(compound, massSubCpdL):
                        or [mn,R1,R1]
                        or [mn,R2,R3] 
                        or [mn,R2,R3,R2,R3]
+        ion_mode = '-' or '+' or '-+' or '+-'
 
     Process:
         1. Summarized mass of all parts and minus H2O
@@ -181,23 +190,31 @@ def massWhole(compound, massSubCpdL):
     len_cpd = len(compound)
     mass_cpd = massCompute(compound, ["H2O"]*(len_cpd-1))
     massSubCpdL.append([cpd, mass_cpd])
+    
+    addLL = []
+    if '-' in ion_mode:
+        addLL.extend([['COOH'], ['Cl']])
+    if '+' in ion_mode:
+        addLL.extend([['H'],['Na'],['K'],['NH4']])
 
+    for addL in addLL:
+        cpd_cooh = cpd + ';+' + '+'.join(addL)
+        mass_cpd_cooh = mass_cpd + massCompute(addL)
+        massSubCpdL.append([cpd_cooh, mass_cpd_cooh])
     ###Add cooh
-    cpd_cooh = cpd+';'+'cooh'
-    mass_cpd_cooh = mass_cpd + massCompute(["COOH"])
-    massSubCpdL.append([cpd_cooh, mass_cpd_cooh])
+    #cpd_cooh = cpd+';'+'cooh'
+    #mass_cpd_cooh = mass_cpd + massCompute(["COOH"])
+    #massSubCpdL.append([cpd_cooh, mass_cpd_cooh])
 
     ###Add Cl
-    cpd_Cl = cpd+';'+'Cl'
-    mass_cpd_Cl = mass_cpd + massCompute(["Cl"])
-    massSubCpdL.append([cpd_Cl, mass_cpd_Cl])
+    #cpd_Cl = cpd+';'+'Cl'
+    #mass_cpd_Cl = mass_cpd + massCompute(["Cl"])
+    #massSubCpdL.append([cpd_Cl, mass_cpd_Cl])
 
     ###2 * cpd - 1
     cpd2 = cpd + " * 2"
     mass_cpd2 = 2 * mass_cpd - 1
     massSubCpdL.append([cpd2, mass_cpd2])
-
-
 #---massWhole---------------------------------
 
 def massSimulate(compound, massCpdD):
@@ -359,10 +376,10 @@ def massSimulate2(compoundL, massCpdD):
     This is used to simulate the MS process by splitting compounds.
 
     Args:
-        compoundL(list):   [mother_nucleus,R1],
-                       or [mn,R1,R1]
-                       or [mn,R2,R3] 
-                       or [mn,R2,R3,R2,R3]
+        compoundL(list):   [[mother_nucleus,R1], '-'],
+                       or [[mn,R1,R1], '-']
+                       or [[mn,R2,R3], '+']
+                       or [[mn,R2,R3,R2,R3],'+']
 
         massCpdD(dict): {cpd: {
                               whole: [(mode1, mass1), (mode2, mass2), ]
@@ -371,6 +388,9 @@ def massSimulate2(compoundL, massCpdD):
                             }, 
                         } 
     """ 
+    #Add ion_mode
+    ion_mode = compoundL[1]
+    compoundL = compoundL[0]
     #Used to record already computed mass for each compound only.
     #Put this variable at the beginning of the script will make
     #it as a global variable.
@@ -379,7 +399,7 @@ def massSimulate2(compoundL, massCpdD):
     cpd_key = ';'.join(compoundL)
     assert cpd_key not in massCpdD, "Duplicate %s" % cpd
     massSubCpdL = []
-    massWhole(compoundL, massSubCpdL)
+    massWhole(compoundL, massSubCpdL, ion_mode)
     massCpdD[cpd_key] = {}
     massCpdD[cpd_key]['whole'] = massSubCpdL
     
@@ -418,10 +438,21 @@ def massSimulate2(compoundL, massCpdD):
         for part in cpd:
             partL = part.split(';')
             len_partL = len(partL)
-            substractLL = [['H'], ['H', 'H2O']]
-            for substractL in substractLL:
-                cpdMassL.append(\
-                    getMass(part, partL[:], len_partL, [], substractL, massRecord))
+            if '-' in ion_mode:
+                substractLL = [['H'], ['H', 'H2O']]
+                addL = []
+                for substractL in substractLL:
+                    cpdMassL.append(\
+                      getMass(part,partL[:],len_partL,addL,substractL,massRecord))
+            if '+' in ion_mode:
+                addLL = [['H']]
+                substractLL = [[], ['H2O']]
+                for addL in addLL:
+                    for substractL in substractLL:
+                        cpdMassL.append(\
+                          getMass(part,partL[:],len_partL,addL,substractL,massRecord))
+            #-------------------------------------------------------------------
+               
             #name = part+';-H'
             #if name not in massRecord:
             #    substractH = ['H']
@@ -510,10 +541,10 @@ def main():
         print >>sys.stderr, inputD
 
     '''
-    compoundL = [[mother_nucleus,R1],
-                 [mn,R1,R1],[mn,R1,R1,R1], 
-                 [mn,R2,R3], [mn,R2,R3,R2,R3], 
-                 [mn,R2,R3,R2,R3,R2,R3]
+    compoundL = [[[mother_nucleus,R1], '+'],
+                 [[mn,R1,R1], '+'],[[mn,R1,R1,R1], '+'], 
+                 [[mn,R2,R3], '-'], [[mn,R2,R3,R2,R3], '-'], 
+                 [[mn,R2,R3,R2,R3,R2,R3], '-']
                 ]
     '''
     compoundL = combine(inputD)
