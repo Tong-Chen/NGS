@@ -112,7 +112,7 @@ def combine(inputD):
             type = subgrpL[1]
             grpL = [i[0] for i in subgrpL[0]]
             if type == "permutation": 
-                combGrpL = permutations(grpL, len(grpL))
+                combGrpL = list(permutations(grpL, len(grpL)))
             elif type == "sequential":
                 combGrpL = [grpL]
             else:
@@ -121,7 +121,7 @@ def combine(inputD):
             count = int(subgrpL[0][0][1])
             if debug:
                 print >>sys.stderr, "##combGrpL"
-                print >>sys.stderr, list(combGrpL)
+                print >>sys.stderr, combGrpL
             for combGrp in combGrpL:
                 #combGrp = list(combGrp) * count
                 for cnt in range(count):
@@ -135,7 +135,7 @@ def combine(inputD):
     return compoundL
 #--------------------------------------
 
-def getMass(formulaAddL, formulaSubstractL=[]):
+def massCompute(formulaAddL, formulaSubstractL=[]):
     """
     Use chempy.Substance.from_formula to get molecular mass of given
     chemical formulas.
@@ -157,7 +157,7 @@ def getMass(formulaAddL, formulaSubstractL=[]):
         mass -= cpd.mass
 
     return mass
-#------getMass----------------------------
+#------massCompute----------------------------
 
 
 def massWhole(compound, massSubCpdL):
@@ -177,19 +177,19 @@ def massWhole(compound, massSubCpdL):
         3. Result of 1 * 2 - 1
         4. Result of 1 + Cl
     """
-    cpd = '+'.join(compound)
+    cpd = ';'.join(compound)
     len_cpd = len(compound)
-    mass_cpd = getMass(compound, ["H2O"]*(len_cpd-1))
+    mass_cpd = massCompute(compound, ["H2O"]*(len_cpd-1))
     massSubCpdL.append([cpd, mass_cpd])
 
     ###Add cooh
     cpd_cooh = cpd+';'+'cooh'
-    mass_cpd_cooh = mass_cpd + getMass(["COOH"])
+    mass_cpd_cooh = mass_cpd + massCompute(["COOH"])
     massSubCpdL.append([cpd_cooh, mass_cpd_cooh])
 
     ###Add Cl
     cpd_Cl = cpd+';'+'Cl'
-    mass_cpd_Cl = mass_cpd + getMass(["Cl"])
+    mass_cpd_Cl = mass_cpd + massCompute(["Cl"])
     massSubCpdL.append([cpd_Cl, mass_cpd_Cl])
 
     ###2 * cpd - 1
@@ -241,7 +241,7 @@ def massSimulate(compound, massCpdD):
         len_cpd = len(cpd)
         substractH = ['H']
         substractH.extend(["H2O"]*(len_cpd-1))
-        mass = getMass(cpd, substractH)
+        mass = massCompute(cpd, substractH)
         if debug:
             print >>sys.stderr, massSubCpdL
             print >>sys.stderr, cpdStr
@@ -249,7 +249,7 @@ def massSimulate(compound, massCpdD):
         massSubCpdL.append([cpdStr+';-H', mass])
         substractH2O = ["H", "H2O"]
         substractH2O.extend(["H2O"]*(len_cpd-1))
-        mass = getMass(cpd, substractH2O)
+        mass = massCompute(cpd, substractH2O)
         massSubCpdL.append([cpdStr+';-H-H2O', mass])
     #--------------------------------------------------
     massCpdD[cpd_key] = massSubCpdL[:]
@@ -352,7 +352,7 @@ def transferSplitDict(aDict, cpdL, tmpL):
                 print >>sys.stderr, "\tcpdL for transferSplitDict", cpdL
             transferSplitDict(value, cpdL, innertmpL[:])
     #------------END for-----------------------
-#-------------massSplit----------------------------------
+#-------------transferSplitDict----------------------------------
 
 def massSimulate2(compoundL, massCpdD):
     """
@@ -371,6 +371,10 @@ def massSimulate2(compoundL, massCpdD):
                             }, 
                         } 
     """ 
+    #Used to record already computed mass for each compound only.
+    #Put this variable at the beginning of the script will make
+    #it as a global variable.
+    massRecord = {}
     #Compute the mass of whole molecular
     cpd_key = ';'.join(compoundL)
     assert cpd_key not in massCpdD, "Duplicate %s" % cpd
@@ -384,7 +388,9 @@ def massSimulate2(compoundL, massCpdD):
     compoundDict = {}
     massSplit(compoundL, compoundDict)
     transferSplitDict(compoundDict, cpdL, [])
-    cpdL.sort()
+    #sort unneeded, since all variables will be save in a dict
+    #do the sort when output
+    #cpdL.sort()
 
     #Compute the mass for each part
     #cpdL = [  [mn,R2,R3,R4],[mn,R2,R3;R4],
@@ -404,26 +410,51 @@ def massSimulate2(compoundL, massCpdD):
     '''
 
     for cpd in cpdL:
+        #Each split mode
         cpdStr = '+'.join(cpd)
+        #Remove redundant split part
+        cpd = set(cpd)
         cpdMassL = []
         for part in cpd:
             partL = part.split(';')
             len_partL = len(partL)
-            substractH = ['H']
-            substractH.extend(["H2O"]*(len_partL-1))
-            mass = getMass(partL, substractH)
-            if debug:
-                print >>sys.stderr, part
-                print >>sys.stderr, mass
-            cpdMassL.append([part+';-H', mass])
-            substractH2O = ["H", "H2O"]
-            substractH2O.extend(["H2O"]*(len_partL-1))
-            mass = getMass(partL, substractH2O)
-            cpdMassL.append([part+';-H-H2O', mass])
+            substractLL = [['H'], ['H', 'H2O']]
+            for substractL in substractLL:
+                cpdMassL.append(\
+                    getMass(part, partL[:], len_partL, [], substractL, massRecord))
+            #name = part+';-H'
+            #if name not in massRecord:
+            #    substractH = ['H']
+            #    substractH.extend(["H2O"]*(len_partL-1))
+            #    mass = massCompute(partL, substractH)
+            #    if debug:
+            #        print >>sys.stderr, part
+            #        print >>sys.stderr, mass
+            #cpdMassL.append([name, massRecord[name]])
+            #substractH2O = ["H", "H2O"]
+            #substractH2O.extend(["H2O"]*(len_partL-1))
+            #mass = massCompute(partL, substractH2O)
+            #cpdMassL.append([part+';-H-H2O', mass])
         #--------END each part--------------------------------
         massCpdD[cpd_key][cpdStr] = cpdMassL
     #-------END one type of split-----------------------------
 #----massSimulate2----------------------------------
+
+def getMass(name, partL, len_partL, addL, substractL, massRecord):
+    if addL:
+        name += ';+' + '+'.join(addL)
+        partL.extend(addL)
+    if substractL:
+        name += ';-' + '-'.join(substractL)
+    #--Minus H2O for each reaction
+    substractL.extend(["H2O"]*(len_partL-1))
+    mass = massRecord.get(name, '0')
+    if mass == '0':
+        mass = massCompute(partL, substractL)
+        massRecord[name] = mass
+    return [name, mass]
+    
+#-----------------------getMass---------------
 
 
 def fprint(content):
@@ -505,7 +536,11 @@ def main():
     '''
     for compound in compoundL:
         massSimulate2(compound, masscpdD)
-
+    
+    print '''#First line represents the molecular formula.
+#The lines begin with one tab represent different split mode. Each split part is separated by '+'.
+#The lines begin with two tabs represent each split part and its mass.
+    '''
     for cpd, subD in masscpdD.items():
         print cpd
         #print whole
