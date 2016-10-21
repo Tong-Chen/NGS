@@ -72,7 +72,8 @@ the second column.")
         default=1, help="Specify the columns need to be output. \
 Default 1 indicating output the first column.")
     parser.add_option("-g", "--genome_label", dest="genome",
-        help="Species name for geneontology analysis")
+        help="Species name for geneontology analysis. Currently \
+<human, arabidopsis, fly, mouse> are supported.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -100,6 +101,8 @@ def main():
     output_col = int(options.output_col) - 1
     genome = options.genome
     output_dir = os.path.dirname(file)
+    if not output_dir:
+        output_dir = '.'
     #os.system("mkdir -p "+output_dir)
     verbose = options.verbose
     debug = options.debug
