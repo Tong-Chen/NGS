@@ -111,8 +111,8 @@ def main():
     for line in fh:
         lineL = line.strip().split('\t', col+1)
         if header:
-            lineL.insert(col, "family")               
-            lineL.insert(col, "clan")               
+            lineL.insert(col, "CYP_family")               
+            lineL.insert(col, "CYP_clan")               
             print '\t'.join(lineL)
             header -= 1
             continue
