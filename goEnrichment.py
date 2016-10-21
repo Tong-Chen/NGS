@@ -12,7 +12,7 @@ desc = '''
 Functional description:
     This is designed to do the GO enrichment in house.
 
-The format of Gene Ontology file used in this program:
+The format of Gene Ontology file used in this program (could be generated using <generate_go_anno_for_goEnrichment.py>):
 
 #--------Below is the file content--------------------------
 #GO term    GO description  Gene_list   No of Genes under this GO term  Total annotated genes
@@ -49,6 +49,10 @@ def cmdparameter(argv):
         metavar="go", help="The gene ontology file")
     parser.add_option("-g", "--gene", dest="gene",
         metavar="gene", help="The gene list file")
+    parser.add_option("-p", "--pvalue", dest="pvalue",
+        default=0.05, metavar="pvalue", help="pvalue for enriched terms. Default 0.05.")
+    parser.add_option("-o", "--output", dest="output",
+        help="Specify output file name if multiple-test correction is needed. Default STDOUT.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -64,6 +68,12 @@ def main():
     #-----------------------------------
     go_file = options.go
     gene_file = options.gene
+    output = options.output
+    pvalue_thresh = float(options.pvalue)
+    if output:
+        fh_out = open(output, 'w')
+    else:
+        fh_out = sys.stdout
     verbose = options.verbose
     debug = options.debug
     #-----------------------------------
@@ -79,26 +89,30 @@ def main():
     for line in open(go_file):
         lineL = line.strip().split('\t')
         if header:
-            print "%s\t%s\tTargetGene\tTargetCount\tTargetTotal\tp\tfracT" \
+            print >>fh_out, "%s\t%s\tTargetGene\tTargetCount\tTargetTotal\tp\tfracT" \
                 % (lineL[0], lineL[1])
             header -= 1
             continue
-        lineL = line.split('\t')
+        #lineL = line.split('\t')
         go_gene = lineL[2].split(',')
         anno_gene = [gene for gene in go_gene if gene in geneD]
         if anno_gene:
-            termCount = int(lineL[2])
-            totalCount = int(lineL[3])
+            termCount = int(lineL[3])
+            totalCount = int(lineL[4])
             annoCount = len(anno_gene)
-            p= pvalue(annoCount, termCount-annoCount,
+            p = pvalue(annoCount, termCount-annoCount,
                     geneD_len-annoCount,
                     totalCount-geneD_len+annoCount-termCount)
+            p = p.two_tail
             fracT = annoCount * 1.0 / geneD_len / termCount * totalCount
-            if fracT > 1:
-                print "%s\t%s\t%s\t%d\t%d\t%f\t%f" \
+            if fracT > 1 and p <= pvalue_thresh:
+                print >>fh_out, "%s\t%s\t%s\t%d\t%d\t%f\t%f" \
                     % (lineL[0], lineL[1], ','.join(anno_gene),
-                        annoCount, geneD_len, p.two_tail, fracT)
+                        annoCount, geneD_len, p, fracT)
     #-------------END reading file----------
+    if output:
+        fh_out.close()
+        os.system("multipleTest.sh -f %s" % output)
     if verbose:
         print >>sys.stderr,\
             "--Successful %s" % strftime(timeformat, localtime())
