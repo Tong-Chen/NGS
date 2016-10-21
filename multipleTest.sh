@@ -86,7 +86,7 @@ sep="\t", quote="", comment.char="", check.names=${checkNames})
 fdr <- p.adjust(data\$p, "${multi}")
 data\$fdr <- fdr
 
-file="${file}.${multi}"
+file="${file}.${multi}.xls"
 write.table(data, file=file, sep="\t", col.names=T, row.names=F, quote=F)
 EOF
 
