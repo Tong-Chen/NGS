@@ -111,7 +111,7 @@ if [ -z $file ]; then
 	exit 1
 fi
 
-cat <<END >${file}.clusterProfile.r
+cat <<END >${file}.clusterProfileKEGG.r
 
 if (${install}) {
 	#library(devtools)
@@ -124,11 +124,9 @@ if (${install}) {
 	}
 }
 
-readable=FALSE
 
 if ("${anno_db}" != "CTCT"){
 	library("${anno_db}")
-	readable=TRUE
 } 
 
 library(DOSE)
@@ -141,6 +139,7 @@ sampC <- unique(data\$samp)
 
 for(samp in sampC) {
 	id <- unique(data[data\$samp==samp, 1])
+	id <- bitr_kegg(id, fromType='kegg', toType='uniprot', organism="${species}")[,2]
 	if (length(id) < ${least_id}) {
 		print(paste0("Less than 10 ids for ", samp, \
 			". No KEGG enrichment performed."))
@@ -149,11 +148,11 @@ for(samp in sampC) {
 	} else {
 		print(paste0("KEGG enrichment for ", samp))
 
-		kk <- enrichKEGG(id, organism="${species}", pvalueCutoff=${p_value},
-			pAdjustMethod="BH", qvalueCutoff=${q_value},
-			readable=readable)
-		result <- summary(kk)
-		output <- paste("${file}", samp, "KEGG", sep=".")
+		kk <- enrichKEGG(id, organism="${species}", keyType='uniprot', pvalueCutoff=${p_value},
+			pAdjustMethod="BH", qvalueCutoff=${q_value})
+		result <- setReadable(kk, "${anno_db}",  keytype="UNIPROT")
+		#result <- summary(kk)
+		output <- paste("${file}", samp, "KEGG.xls", sep=".")
 		write.table(result, file=output, quote=F, sep="\t", row.names=F,
 		col.names=T)
 	}
@@ -163,7 +162,8 @@ for(samp in sampC) {
 END
 
 if [ "${execute}" == "TRUE" ]; then
-	Rscript ${file}.clusterProfile.r
+	Rscript ${file}.clusterProfileKEGG.r
+	afterRunclusterProfileKEGG.py -i ${file}
 fi
 
 
