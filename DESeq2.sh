@@ -287,7 +287,7 @@ hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
 pearson_cor <- as.matrix(cor(rlogMat, method="pearson"))
 hc <- hcluster(t(rlogMat), method="pearson")
 
-svg(filename="${file}${mid}.normalized.rlog.pearson.svg", pointsize=10)
+pdf(filename="${file}${mid}.normalized.rlog.pearson.pdf", pointsize=10)
 heatmap.2(pearson_cor, Rowv=as.dendrogram(hc), symm=T, trace="none",
 col=hmcol, margins=c(11,11), main="The pearson correlation of each
 sample")
@@ -572,7 +572,7 @@ print("PCA analysis")
 formulaV <- c(${formulaV})
 pca_data <- plotPCA(rld, intgroup=formulaV, returnData=T)
 percentVar <- round(100 * attr(pca_data, "percentVar"))
-svg(filename="${file}${mid}.normalized.rlog.pca.svg", pointsize=10)
+pdf(filename="${file}${mid}.normalized.rlog.pca.pdf", pointsize=10)
 if (length(formulaV)==1) {
   p <- ggplot(pca_data, aes(PC1, PC2, color=${first_v}))
 } else if (length(formulaV==2)) {
