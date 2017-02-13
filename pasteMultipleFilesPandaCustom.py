@@ -62,7 +62,7 @@ def cmdparameter(argv):
     parser.add_option("-H", "--header", dest="header",
         default=0, type='int', help="An integer to specify the header line. Default <O> represents using first line as header line. Give <-1> to specify no header line." )
     parser.add_option("-r", "--index-col", dest="index_col",
-        default=0, help="Column to use as the row labels of the DataFrame. If a sequence like <0,1,2> is given, a MultiIndex will be used. Supply <None> to turn off index_col.")
+        default='0', help="Column to use as the row labels of the DataFrame. Default <0> meaning the first column as row index. If a sequence like <0,1,2> is given, a MultiIndex will be used. Supply <None> to turn off index_col.")
     parser.add_option("-c", "--usecols", dest="usecols",
         default="None", help="Return a subset of the columns. All elements in this array must either \
 be positional (i.e. integer indices into the document columns) or strings \
@@ -81,6 +81,14 @@ column names will be renamed with <file_label_given_name>.\
 Supply <None> to disable rename.")
     parser.add_option("-m", "--method", dest="method",
         default="outer", help="Join method,  default <outer>, accept <inner>, <left>,  <right>.")
+    parser.add_option("-N", "--na", dest="na",
+        help="A value given to substitute NA value. Default no substitute.")
+    parser.add_option("-R", "--remove-all-zero", dest="rm_all0",
+        default=False, action="store_true", 
+        help="Remove rows containing only zero. Default False.")
+    parser.add_option("-I", "--interger-output", dest="integer",
+        default=False, action="store_true", 
+        help="When joining matrixes, missed value will be replaced by NaN firtst and other values will be transferred to float. If you still want interger output as the input. Turn on this parameter. Default False.")
     parser.add_option("-o", "--outputfile", dest="output",
         help="Name for output file. If <.gz> suffix is given, compressed file will be output.")
     parser.add_option("-v", "--verbose", dest="verbose",
@@ -109,10 +117,14 @@ def main():
     index_col = options.index_col.strip()
     if index_col != "None":
         index_col = [int(i) for i in re.split(r'[, ]*', index_col)]
+        if len(index_col) == 1:
+            index_col = index_col[0]
     else:
         index_col = None
     #-----------------------------------------------------
     usecols = options.usecols
+    na = options.na
+    rm_all0 = options.rm_all0
     #print >>sys.stderr, usecols
     if usecols != "None":
         usecols = usecols.split(',')
@@ -128,6 +140,7 @@ def main():
         rename_cols = re.split(r'[, ]*', rename_cols.strip())
     method = options.method
     output = options.output
+    integer = options.integer
     verbose = options.verbose
     global debug
     debug = options.debug
@@ -136,10 +149,11 @@ def main():
     #print fileL
     count = 0
     for file, label in zip(fileL, labelL):
-        print >>sys.stderr, file
-        #print >>sys.stderr, header
-        #print >>sys.stderr, index_col
-        #print >>sys.stderr, usecols
+        if debug:
+            print >>sys.stderr, file
+            print >>sys.stderr, header
+            print >>sys.stderr, index_col
+            print >>sys.stderr, usecols
 
         matrix = pd.read_table(file, header=header, index_col=index_col, usecols=usecols)
         if isinstance(rename_cols, list):
@@ -147,23 +161,52 @@ def main():
             column_name = [label+'_'+i for i in column_name]
             matrix.columns = column_name
         elif rename_cols != "None":
-            if len(usecols)-len(index_col) == 1:
+            column_name = matrix.columns
+            if len(column_name) == 1:
                 column_name = [label]
             else:
                 column_name = matrix.columns
                 column_name = [label+'_'+i for i in column_name]
             matrix.columns = column_name
             #print >>sys.stderr, column_name
+            if debug:
+                print >>sys.stderr, matrix.head()
         matrixL.append(matrix)
         #matrix.to_csv("test."+str(count), sep=b'\t')
         count += 1
 
     matrix = matrixL[0]
     matrix = matrix.join(matrixL[1:], how=method)
+    #matrix = pd.concat(matrixL, axis=1)
+    if debug:
+        print >>sys.stderr, matrix.head()
+    if index_col != None:
+        matrix.index.name = "ID"
+    if na:
+        try:
+            na = int(na)
+        except ValueError:
+            na = float(na)
+        except ValueError:
+            na = na
+        #print >>sys.stderr, na
+        matrix = matrix.fillna(na)
+        if debug:
+            print >>sys.stderr, matrix.head()
+    if integer:
+        matrix = matrix.astype(int)
+    if rm_all0:
+        ## Remove all ZEROs
+        matrix = matrix.loc[(matrix>0).any(axis=1)]
+        if debug:
+            print >>sys.stderr, matrix.head()
+    describe = matrix.describe()
     if output.endswith('.gz'):
         matrix.to_csv(output, sep=b"\t", compression='gzip')
+        describe.to_csv(output.replace('.gz', '.sta'), sep=b"\t")
     else:
         matrix.to_csv(output, sep=b"\t")
+        describe.to_csv(output+'.sta', sep=b"\t")
     ###--------multi-process------------------
     #pool = ThreadPool(5) # 5 represents thread_num
     #result = pool.map(func, iterable_object)
