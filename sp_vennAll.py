@@ -67,7 +67,7 @@ def main():
     #-------------END reading file----------
     for name in nameS:
         cmd = ['s-plot vennDiagram -f', file, '-a', name+"_up", 
-                '-b', name+'_dw', '-p', name, '-E svg -w 7 -u 7'] 
+                '-b', name+'_dw', '-p', name, '-E pdf -w 7 -u 7'] 
         os.system(' '.join(cmd))
     #-------rm log
     os.system('/bin/rm -f VennDiagram*.log')
