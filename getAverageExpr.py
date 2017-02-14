@@ -18,7 +18,7 @@ Input file:
     1. Expr matrix output from DESeq2.sh
     
     2. Annotation file (with the first column matching the first
-    column of file 1 and 2 as listed above, optional)
+    column of file 1 as listed above, optional)
 
     3. sampleFile (header line needed)
         Samp    conditions
@@ -58,9 +58,9 @@ def cmdparameter(argv):
         cmd = 'python ' + argv[0] + ' -h'
         os.system(cmd)
         sys.exit(1)
-    usages = '''%prog -e expr_matrix -s sampleFile -a anno
+    usages = '''%prog -e expr_matrix -s sampleFile -a anno >output
 
-%prog -e expr_matrix -s sampleFile
+%prog -e expr_matrix -s sampleFile >output
 '''
     parser = OP(usage=usages)
     parser.add_option("-e", "--expr-matrix", dest="expr",
@@ -69,7 +69,7 @@ def cmdparameter(argv):
         metavar="sampleFile", help="The sampleFile given to DESeq2.sh.")
     parser.add_option("-a", "--anno", dest="anno",
         help="Annotation file \
-(Trinotate_annotation_report.simplify.xls)")
+(Trinotate_annotation_report.simplify.xls) [optional]")
     parser.add_option("-c", "--anno-key-column", dest="key_c",
         default=1, help="Specify the column containing IDs. \
 Default 1 meaning the first column (gene name). \
@@ -314,7 +314,7 @@ def main():
             print "%s\t%s\t%s" % (key, '\t'.join(exprL),
                     annoD.get(key, ''))
         else:
-            print "%s\t%s\t%s" % (key, '\t'.join(exprL), annoD.get(key, ""))
+            print "%s\t%s" % (key, '\t'.join(exprL))
     #-------------END reading file----------
     #----close file handle for files-----
     #if file != '-':
