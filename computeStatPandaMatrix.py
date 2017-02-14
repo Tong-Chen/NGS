@@ -176,6 +176,7 @@ def main():
     debug = options.debug
     #-----------------------------------
     matrix = pd.read_table(file, header=header, index_col=index_col, usecols=usecols)
+    total_line = matrix.shape[0]
     if transpose:
         matrix = matrix.T
     matrix.index.name = "ID"
@@ -218,11 +219,25 @@ def main():
         full = output + '.xls.gz'
         matrix.to_csv(full, sep=b"\t", compression='gzip')
     if top:
+        #if top >= total_line:
+        #    if uncompressed:
+        #        file = output+'.xls'
+        #        top  = output+'.'+str(top)+'.xls'
+        #    else:
+        #        file = output+'.xls.gz'
+        #        top  = output+'.'+str(top)+'.xls.gz'
+        #    path_name, file_name = os.path.split(file)
+        #    path_name, top_name = os.path.split(top)
+        #    os.system("(cd {}; ln -sf {} {})".format(path_name, file_name, top_name))
+        #    return
         if statistics_only:
             matrix = matrix[0:top]
         else:
             matrix = matrix.drop(methods, axis=1)[0:top]
-        matrix.to_csv(output+'.'+str(top)+'.xls', sep=b"\t")
+        if uncompressed:
+            matrix.to_csv(output+'.'+str(top)+'.xls', sep=b"\t")
+        else:
+            matrix.to_csv(output+'.'+str(top)+'.xls.gz', compression='gzip', sep=b"\t")
     ###--------multi-process------------------
     #pool = ThreadPool(5) # 5 represents thread_num
     #result = pool.map(func, iterable_object)
