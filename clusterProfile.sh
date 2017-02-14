@@ -42,6 +42,7 @@ ${txtbld}OPTIONS${txtrst}:
 		"rhesus","xenopus","yeast" and "zebrafish".
 	-p	P-value[${bldred}Default 0.05${txtrst}]
 	-q	Q-value[${bldred}Default 0.2${txtrst}]
+	-L	Losse q-value computation. ${bldred}[Default FALSE]${txtrst}
 	-l	The minimum IDs required for performing KEGG analysis.
 		[${bldred}Default 10.
 		Enlarging this number may be needed when error information 
@@ -61,6 +62,7 @@ EOF
 file=
 header='TRUE'
 install='FALSE'
+loose='FALSE'
 execute='TRUE'
 p_value=0.05
 q_value=0.2
@@ -68,7 +70,7 @@ species=
 least_id=10
 anno_db=CTCT
 
-while getopts "hf:s:p:q:l:r:i:e:" OPTION
+while getopts "hf:s:p:L:q:l:r:i:e:" OPTION
 do
 	case $OPTION in
 		h)
@@ -89,6 +91,9 @@ do
 			;;
 		q)
 			q_value=$OPTARG
+			;;
+		L)
+			loose=$OPTARG
 			;;
 		r)
 			anno_db=$OPTARG
@@ -143,15 +148,37 @@ for(samp in sampC) {
 	if (length(id) < ${least_id}) {
 		print(paste0("Less than 10 ids for ", samp, \
 			". No KEGG enrichment performed."))
-		output <- paste("${file}", samp, "KEGG", sep=".")
-		system(paste0("touch ", output))
+		output <- paste("${file}", samp, "KEGG.xls", sep=".")
+		enrich=paste0("ID;Description;GeneRatio;BgRatio;pvalue;p.adjust;qvalue;geneID;Count\\nNo_DE_genes_or_less_than_5_de_genes;No_DE_genes;0/0;0/0;1;1;1;No_DE_genes;", length(id))
+		result <- read.table(text=enrich, sep=";")
+		write.table(result, file=output, quote=F, sep="\t", row.names=F,
+		col.names=F)
+		#output <- paste("${file}", samp, "KEGG", sep=".")
+		#system(paste0("touch ", output))
 	} else {
 		print(paste0("KEGG enrichment for ", samp))
-
-		kk <- enrichKEGG(id, organism="${species}", keyType='uniprot', pvalueCutoff=${p_value},
-			pAdjustMethod="BH", qvalueCutoff=${q_value})
+		
+		if (${loose}) {
+			kk <- enrichKEGG(id, organism="${species}", keyType='uniprot', pvalueCutoff=0.1,
+				pAdjustMethod="BH", qvalueCutoff=10)
+		} else {
+			kk <- enrichKEGG(id, organism="${species}", keyType='uniprot', pvalueCutoff=${p_value},
+				pAdjustMethod="BH", qvalueCutoff=${q_value})
+		}
 		result <- setReadable(kk, "${anno_db}",  keytype="UNIPROT")
+
+		if (${loose}) {
+			result <- result[result\$pvalue<=0.1, ]
+			result\$p.adjust <- p.adjust(result\$pvalue,  method="BH")
+			result <- result[result\$pvalue<${p_value} & result\$p.adjust<${q_value}, ]
+		}
 		#result <- summary(kk)
+
+		enrichedTerm <- dim(result)[1]
+		if (enrichedTerm < 1){
+			enrich=paste0("ID;Description;GeneRatio;BgRatio;pvalue;p.adjust;qvalue;geneID;Count\\nNo_enrichment;No_enrichment;0/0;0/0;1;1;1;No_enrichment;", length(id))
+			result <- read.table(text=enrich, sep=";", header=T)
+		}
 		output <- paste("${file}", samp, "KEGG.xls", sep=".")
 		write.table(result, file=output, quote=F, sep="\t", row.names=F,
 		col.names=T)
