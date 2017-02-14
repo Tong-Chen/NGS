@@ -57,12 +57,13 @@ def cmdparameter(argv):
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
         metavar="FILEIN", help="A numerical matrix file")
-    #parser.add_option("-l", "--label", dest="label",
-    #    metavar="LABEL", help="A list of names with format and order as FILEIN. If <--rename_cols> is None,  this parameter is not needed. UNUSED")
+    parser.add_option("-T", "--transpose-data", dest="transpose",
+        default=False, action="store_true", 
+        help="Transpose data before doing all stats, meaning doing all stats for columns.")
     parser.add_option("-H", "--header", dest="header",
         default=0, type='int', help="An integer to specify the header line. Default <O> represents using first line as header line. Give <-1> to specify no header line." )
     parser.add_option("-r", "--index-col", dest="index_col",
-        default=0, help="Column to use as the row labels of the DataFrame. If a sequence like <0,1,2> is given, a MultiIndex will be used. Supply <None> to turn off index_col.")
+        default='0', help="Column to use as the row labels of the DataFrame (Default 0 represents the first column). If a sequence like <0,1,2> is given, a MultiIndex will be used. Supply <None> to turn off index_col.")
     parser.add_option("-c", "--usecols", dest="usecols",
         default="None", help="Return a subset of the columns. All elements in this array must either \
 be positional (i.e. integer indices into the document columns) or strings \
@@ -88,9 +89,13 @@ Default <None> to read in all columns.")
         help="Sort ascending vs. descending (default).")
     parser.add_option("-t", "--top", dest="top",
         default=10000, type="int", 
-        help="Screen given number of top items.")
+        help="Screen given number of top items. Default 10000.")
+    parser.add_option("-O", "--statistics-only", dest="statistics_only", 
+        default=False, action="store_true", help="[Uppercase O] Default output original matrix combined with computed statistics. Specify to output only computed statistics result.")
     parser.add_option("-o", "--outputfile", dest="output",
-        help="Output file prefix. ")
+        help="[Lowercase o] Output file prefix. Default input file with suffix <.xls, .tsv, .csv, .txt removed if exists>. A suffix <xls.gz> will be added.")
+    parser.add_option("-u", "--uncompressed", dest="uncompressed",
+        default=False, action="store_true", help="Default output gzipped file. Specify to output uncompressed result.")
     parser.add_option("-v", "--verbose", dest="verbose",
         action="store_true", help="Show process information")
     parser.add_option("-D", "--debug", dest="debug",
@@ -105,6 +110,8 @@ def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
     file = options.filein
+    transpose = options.transpose
+    statistics_only = options.statistics_only
     #fileL = re.split(r'[, ]*', file.strip())
     #if options.rename_cols != "None":
     #    label = options.label
@@ -149,7 +156,19 @@ def main():
         sort_values = methods
     #--------------------------------------------------
     ascending = options.ascending
-    output = options.output
+    uncompressed = options.uncompressed
+    if not options.output:
+        suffix = ['xls', 'tsv', 'csv', 'txt']
+        if file.find('.') != -1:
+            file_name, suf = file.rsplit('.', 1)
+            if suf not in suffix:
+                file_name = file
+        else:
+            file_name = file
+        output = file_name
+    else:
+        output = options.output
+    output += '.' + '_'.join(methods)
     assert output, "-o/--outputfile should be supplied."
     verbose = options.verbose
     top = options.top
@@ -157,6 +176,9 @@ def main():
     debug = options.debug
     #-----------------------------------
     matrix = pd.read_table(file, header=header, index_col=index_col, usecols=usecols)
+    if transpose:
+        matrix = matrix.T
+    matrix.index.name = "ID"
     statL = []
     for sub_method in methods:
         if sub_method == "mad":
@@ -180,15 +202,26 @@ def main():
         elif sub_method == "kurt":
             stat = matrix.kurt(axis=1).to_frame(sub_method)
         else:
+            assert 1==0, "%s unknown method" % sub_method
             continue
         statL.append(stat)
     #--------------------------------------------------------
-    matrix = matrix.join(statL)
+    if statistics_only:
+        matrix = statL[0].join(statL[1:])
+    else:
+        matrix = matrix.join(statL)
     matrix.sort_values(by=methods, axis=0, ascending=ascending, inplace=True)
-    full = output + '.xls.gz'
-    matrix.to_csv(full, sep=b"\t", compression='gzip')
+    if uncompressed:
+        full = output + '.xls'
+        matrix.to_csv(full, sep=b"\t")
+    else:
+        full = output + '.xls.gz'
+        matrix.to_csv(full, sep=b"\t", compression='gzip')
     if top:
-        matrix = matrix.drop(methods, axis=1)[0:top]
+        if statistics_only:
+            matrix = matrix[0:top]
+        else:
+            matrix = matrix.drop(methods, axis=1)[0:top]
         matrix.to_csv(output+'.'+str(top)+'.xls', sep=b"\t")
     ###--------multi-process------------------
     #pool = ThreadPool(5) # 5 represents thread_num
