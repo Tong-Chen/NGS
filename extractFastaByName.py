@@ -45,7 +45,10 @@ used as ID names. Please use <tab> to specify '\\t' as separtor.")
 word before separator. Accept other number (x) to extract the \
 first x words.")
     parser.add_option("-n", "--name-list", dest="name",
-        help="One column file contains ID lists.")
+        help="One or several columns file containing ID lists in one column.")
+    parser.add_option("-c", "--name-col-index", dest="name_col_ix",
+        default=1, type='int', 
+        help="Specify the columns containing IDs. Default 1 representing the first column.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -66,7 +69,8 @@ def main():
         sep = "\t"
     count = int(options.count)
     nameF = options.name
-    nameD = dict([[line.strip(), 1] for line in open(nameF)])
+    nameC = options.name_col_ix-1
+    nameD = dict([[line.strip().split()[nameC], 1] for line in open(nameF)])
     #print nameD.keys()[:5]
     verbose = options.verbose
     debug = options.debug
@@ -90,8 +94,10 @@ def main():
             #print key
             #break
             oldline = line
-            if key in nameD:
-                output = 1
+            #if key in nameD:
+            #   nameD.pop(key)
+            #    output = 1
+            output = nameD.pop(key, 0)
         else:
             if output == 1:
                 tmpL.append(line.strip())
@@ -100,6 +106,9 @@ def main():
     if file != '-':
         fh.close()
     #-----------end close fh-----------
+    if nameD:
+        print >>sys.stderr, "The following IDs have no sequences found"
+        print >>sys.stderr, '\n\t'.join(nameD.keys())
     ###--------multi-process------------------
     #pool = ThreadPool(5) # 5 represents thread_num
     #result = pool.map(func, iterable_object)
