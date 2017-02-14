@@ -22,6 +22,7 @@ timeformat = "%Y-%m-%d %H:%M:%S"
 from optparse import OptionParser as OP
 import pandas as pd
 import re
+import numpy as np
 #from multiprocessing.dummy import Pool as ThreadPool
 
 #from bs4 import BeautifulSoup
@@ -75,6 +76,12 @@ Default <None> to read in all columns.")
         help="A file containing normalize factor for each column in data matrix. \
 The row name of norm_factor should be the same as column name of data matrix (order does not matter). Specially a string <sum> will use the sum value of each column as \
 normalize factor. A string <StandardScaler> or <MinMaxScaler> will do column-wise normalization as indicated.")
+    parser.add_option("-s", "--scale-factor", dest="scale", type='float', 
+        default=1, 
+        help="An integer or float to be multiplied by all values to avoid very small values or very larger values. Normally 1000000 should be given. Not appliable to <StandardScaler> and <StandardScaler>.")
+    parser.add_option("-l", "--log2-transform", dest="log2",
+        default=False, action="store_true", 
+        help="Log2 transform normalized data (default no-transform). Not appliable to <StandardScaler> and <StandardScaler>.")
     parser.add_option("-o", "--outputfile", dest="output",
         help="[Lowercase o] Output file prefix. Default input file with suffix <.xls, .tsv, .csv, .txt removed if exists>. A suffix <xls.gz> will be added.")
     parser.add_option("-u", "--uncompressed", dest="uncompressed",
@@ -95,6 +102,8 @@ def main():
     file = options.filein
     transpose = options.transpose
     header = 0
+    scale = options.scale
+    log2  = options.log2
     index_col = options.index_col.strip()
     if index_col != "None":
         index_col = [int(i) for i in re.split(r'[, ]*', index_col)]
@@ -151,14 +160,22 @@ def main():
         else:
             normD = pd.read_table(norm_factor, header=None, index_col=0)
             norm_variable = normD[1]
-        matrix = matrix / norm_variable
+        matrix = matrix * scale / norm_variable
+        if log2:
+            matrix_log2 = np.log2(matrix+1)
     #--------------------------------------------------------
     if uncompressed:
         full = output + '.xls'
         matrix.to_csv(full, sep=b"\t")
+        if log2:
+            full = output + '.log2.xls'
+            matrix_log2.to_csv(full, sep=b"\t")
     else:
         full = output + '.xls.gz'
         matrix.to_csv(full, sep=b"\t", compression='gzip')
+        if log2:
+            full = output + '.log2.xls.gz'
+            matrix_log2.to_csv(full, sep=b"\t", compression='gzip')
     ###--------multi-process------------------
     #pool = ThreadPool(5) # 5 represents thread_num
     #result = pool.map(func, iterable_object)
