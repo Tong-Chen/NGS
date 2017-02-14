@@ -62,6 +62,9 @@ def cmdparameter(argv):
 containing CYP gene information.")
     parser.add_option("-c", "--column", dest="col",
         help="The column containing CYP genes. 1-based.")
+    parser.add_option("-s", "--column-str", dest="column_str",
+        help="A string to specify the column containing CYP genes. \
+Normally <Gene_name> for my own usage.")
     parser.add_option("-C", "--clan", dest="clan",
         default="/MPATHB/resource/P450/Plant_CYPclan_CYPfamily.txt", 
         help="CYP450 clan and family file.")
@@ -79,7 +82,14 @@ def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
     file = options.filein
-    col  = int(options.col) - 1
+    if options.col:
+        col  = int(options.col) - 1
+    elif options.column_str:
+        col_str = options.column_str
+        col = -1
+    else:
+        assert 1==0, "-c or -s should be specified"
+
     clan = options.clan
     pat  = re.compile(r"CYP[^A-Z]*", flags=re.IGNORECASE)
     clanD = {}
@@ -109,8 +119,19 @@ def main():
     #--------------------------------
     header = 1
     for line in fh:
-        lineL = line.strip().split('\t', col+1)
+        if col != -1:
+            lineL = line.strip().split('\t', col+1)
         if header:
+            if col == -1:
+                lineL = line.split('\t')
+                count = 0
+                for ele in lineL:
+                    if ele == col_str:
+                        col = count
+                        count += 1
+                        break
+                assert count, "Unrecgonizable {} in {}".format(col_str, line) 
+            #------------------------------------
             lineL.insert(col, "CYP_family")               
             lineL.insert(col, "CYP_clan")               
             print '\t'.join(lineL)
