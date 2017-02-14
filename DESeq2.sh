@@ -222,7 +222,7 @@ cat <<END >${file}${mid}.r
 if ($ist){
 	source("https://bioconductor.org/biocLite.R")
 	source(pipe(paste("wget -O -", URL)))
-	biocLite("DESeq2")
+	biocLite(c("DESeq2","BiocParallel"))
 }
 
 library(DESeq2)
@@ -230,6 +230,9 @@ library("RColorBrewer")
 library("gplots")
 library("amap")
 library("ggplot2")
+library("BiocParallel")
+
+register(MulticoreParam(10))
 
 data <- read.table("${file}", header=T, row.names=1, com='', quote='',
 	check.names=F, sep="\t")
@@ -251,6 +254,7 @@ if ("${compare_mode}" == "pairwise") {
 	ddsFullCountTable <- DESeqDataSetFromMatrix(countData = data,
 		colData = sample,  design= ~ ${formula})
 } else if ("${compare_mode}" == "timeseries") {
+	#Even for timeseries, pairwise is needed
 	print("Perform pairwise comparasion using <design=~conditions>")
 	ddsFullCountTable <- DESeqDataSetFromMatrix(countData = data,
 		colData = sample,  design= ~conditions)
@@ -263,31 +267,36 @@ dds <- DESeq(ddsFullCountTable)
 print("Output normalized counts")
 normalized_counts <- counts(dds, normalized=TRUE)
 
+normalized_counts_mad <- apply(normalized_counts, 1, mad)
+normalized_counts <- normalized_counts[order(normalized_counts_mad, decreasing=T), ]
+
 write.table(normalized_counts, file="${file}${mid}.normalized.xls",
 quote=F, sep="\t", row.names=T, col.names=T)
 system(paste("sed -i '1 s/^/ID\t/'", "${file}${mid}.normalized.xls"))
 
-rld <- rlog(dds)
-vsd <- varianceStabilizingTransformation(dds)
+rld <- rlog(dds, blind=FALSE)
 rlogMat <- assay(rld)
-vstMat <- assay(vsd)
+rlogMat <- rlogMat[order(normalized_counts_mad, decreasing=T), ]
+#vsd <- varianceStabilizingTransformation(dds, blind=FALSE)
+#vstMat <- assay(vsd)
+#vstMat <- vstMat[order(normalized_counts_mad, decreasing=T), ]
 
 print("Output rlog transformed normalized ocunts")
 write.table(rlogMat, file="${file}${mid}.normalized.rlog.xls",
 quote=F, sep="\t", row.names=T, col.names=T)
 system(paste("sed -i '1 s/^/ID\t/'", "${file}${mid}.normalized.rlog.xls"))
 
-print("Output vst transformed normalized ocunts")
-write.table(vstMat, file="${file}${mid}.normalized.vst.xls",
-quote=F, sep="\t", row.names=T, col.names=T)
-system(paste("sed -i '1 s/^/ID\t/'", "${file}${mid}.normalized.vst.xls"))
+#print("Output vst transformed normalized ocunts")
+#write.table(vstMat, file="${file}${mid}.normalized.vst.xls",
+#quote=F, sep="\t", row.names=T, col.names=T)
+#system(paste("sed -i '1 s/^/ID\t/'", "${file}${mid}.normalized.vst.xls"))
 
 print("Performing sample clustering")
 hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
 pearson_cor <- as.matrix(cor(rlogMat, method="pearson"))
 hc <- hcluster(t(rlogMat), method="pearson")
 
-pdf(filename="${file}${mid}.normalized.rlog.pearson.pdf", pointsize=10)
+pdf("${file}${mid}.normalized.rlog.pearson.pdf", pointsize=10)
 heatmap.2(pearson_cor, Rowv=as.dendrogram(hc), symm=T, trace="none",
 col=hmcol, margins=c(11,11), main="The pearson correlation of each
 sample")
@@ -572,7 +581,7 @@ print("PCA analysis")
 formulaV <- c(${formulaV})
 pca_data <- plotPCA(rld, intgroup=formulaV, returnData=T)
 percentVar <- round(100 * attr(pca_data, "percentVar"))
-pdf(filename="${file}${mid}.normalized.rlog.pca.pdf", pointsize=10)
+pdf("${file}${mid}.normalized.rlog.pca.pdf", pointsize=10)
 if (length(formulaV)==1) {
   p <- ggplot(pca_data, aes(PC1, PC2, color=${first_v}))
 } else if (length(formulaV==2)) {
@@ -591,6 +600,7 @@ END
 if test "${execute}" == "TRUE";
 then
 	/bin/rm -f ${all_de}
-	Rscript --save ${file}${mid}.r
+	Rscript ${file}${mid}.r
+	#Rscript --save ${file}${mid}.r
 	touch ${all_de}
 fi
