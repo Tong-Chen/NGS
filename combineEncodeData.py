@@ -262,7 +262,8 @@ def main():
     
         #colN = exprM.columns.values()
         #newColN = meta.ix[colN]['Biosample term name']
-    meta_part = meta[meta.index.isin(exprM_final.T.index)]
+    #meta_part = meta[meta.index.isin(exprM_final.T.index)]
+    meta_part = meta[meta.index.isin(exprM_final.columns.values)]
     if save_type == 'hdf5':
         key = 'meta'
         hdf5_keys = [key]

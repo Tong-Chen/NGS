@@ -25,11 +25,11 @@ config.json
 
     "work_dir": "/working-directory", 
     "program": "virtualScreening.py", 
-    "program_parameter": {
-        "-p": ["prot1.pdb", "prot2.pdb", "prot3.pdb"], 
-        "-l": ["chem1.pdb", "chem2.pdb"], 
-        "-o": "result"
-    }, 
+    "program_parameter": [
+        ["-p", ["prot1.pdb", "prot2.pdb", "prot3.pdb"]], 
+        ["-l", ["chem1.pdb", "chem2.pdb"]], 
+        ["-o", "result"]
+    ], 
 
     "airflow_parameter":{
         "owner": "'ct'", 
@@ -59,7 +59,7 @@ config.json
     "comment": {
         "comment": "Explanation words (optional)", 
         "program": "The program wants to run", 
-        "program_parameter": "Parameters given to the program. ", 
+        "program_parameter": "Parameters given to the program. For parameters accepting one or more files, both a list as exampled above for <-l> or a string like <\"'chem1.pdb','chemb.pdb'\"> are acceptable.", 
         "work_dir": "The absolute path for working directory"
     }
 }
@@ -82,7 +82,7 @@ default_args = {
     'email_on_failure': True,
     'retry_delay': timedelta(hours=30),
     'owner': 'ct',
-    'depends_on_past': True,
+    'depends_on_past': False,
     'start_date': one_min_ago,
     'retries': 500
 }
@@ -367,6 +367,85 @@ def generateCmd(program, program_parameterD, work_dir, maxrun, email):
 
 #---------END of generateCmd----------------------
 
+def generateCmd2(program, program_parameterL, work_dir, maxrun, email):
+    '''
+    program_parameterL = [
+        ['-p', ['1.pdb', '2.pdb', '3.pdb']],
+        ['-l', ['c1.pdb', 'c2.pdb']], 
+        ['-o', 'result']
+    ]
+    '''
+    count = 1
+    chdir = "(cd {}; ".format(work_dir)
+    assignmentL = [' '] * maxrun
+
+    optL = [[program]]
+    nameL = []
+    for opt, optV in program_parameterL:
+        cmdL = []
+        subNameL = []
+        if type(optV) == list:
+            for eachV in optV:
+                cmd = ' '.join([opt, str(eachV)])
+                cmdL.append(cmd)
+                subNameL.append(str(eachV))
+        else:
+            cmdL = [' '.join([opt, str(optV)])]
+        optL.append(cmdL)
+        if subNameL:
+            nameL.append(subNameL)
+    #=------------------------------------------
+    if debug:
+        print >>sys.stderr, optL
+        print >>sys.stderr, nameL
+    recordL = []
+    cmdLL = []
+    iterateParameters2(optL, recordL, cmdLL)
+    nameLL = []
+    recordL = []
+    iterateParameters2(nameL, recordL, nameLL)
+
+    if debug:
+        print >>sys.stderr, cmdLL
+        print >>sys.stderr, nameLL
+
+    num_start = re.compile('^[0-9]')
+    illegal_char = re.compile('[^a-zA-Z0-9]')
+    count = 1
+    for cmdL in cmdLL:
+        cmd = chdir+' '.join(cmdL)+')'
+        task_name = "_".join(nameLL[count-1])
+        task_name = illegal_char.sub('_', task_name)
+        if num_start.match(task_name):
+            task_name = '_'+task_name
+        comment = '' if count > maxrun else '#'
+        index = count%maxrun-1
+        upstream_task = assignmentL[index]
+        assignmentL[index] = task_name
+        tmpD = {"cmd":cmd, "task_name":task_name, 
+                "upstream_task":upstream_task, 
+                "email": email, 
+                "comment": comment}
+        count += 1
+        print '''
+{d[task_name]} = BashOperator(
+    task_id='{d[task_name]}', 
+    bash_command="{d[cmd]} ", 
+    dag=dag)
+
+{d[task_name]}_success_mail = EmailOperator(
+    task_id="{d[task_name]}_success_mail", 
+    to={d[email]},  
+    subject="{d[task_name]} success",  
+    html_content="{d[task_name]} success",  
+    dag=dag)
+                
+{d[task_name]}_success_mail.set_upstream({d[task_name]})
+{d[comment]}{d[task_name]}.set_upstream({d[upstream_task]})
+'''.format(d=tmpD)
+
+#---------END of generateCmd----------------------
+
 def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
@@ -419,7 +498,7 @@ dag = DAG({}, default_args=default_args, schedule_interval={})
     program = configD['program']
     program_parameter = configD['program_parameter']
     work_dir = configD['work_dir']
-    generateCmd(program, program_parameter, work_dir, maxrun, email=airflowArgD["email"])
+    generateCmd2(program, program_parameter, work_dir, maxrun, email=airflowArgD["email"])
 
 
 

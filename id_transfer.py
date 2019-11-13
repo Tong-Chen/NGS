@@ -82,11 +82,21 @@ def cmdparameter(argv):
     parser = OP(usage=usages)
     parser.add_option("-i", "--id-file", dest="filein",
         metavar="ID", help="The ID file with format specified above.")
+    parser.add_option("-H", "--id-file-header-line", dest="id_file_header",
+        type="int", default=0, help="Number of header lines in id file. Default 0.")
     parser.add_option("-m", "--id-map", dest="idmap",
         metavar="ID-MAP", help="The ID-map file with format specified above.")
+    parser.add_option("-M", "--match-col", dest="match_col",
+        default=1, help="Specify the column of IDs matching IDs in <filein>. \
+Default <1> \
+indicating the first column.")
     parser.add_option("-c", "--id-col", dest="id_col",
         default=2, help="Specify the column of target IDs. Default <2> \
 indicating the second column.")
+    parser.add_option("-k", "--keep-unmatch-as-original", dest="keep_unmatch",
+        default=False, action="store_true", help="Specify to keep unmatched names as original.")
+    parser.add_option("-I", "--ignore-case", dest="ignore_case",
+        default=False, action="store_true", help="Specify to ignore case.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -102,8 +112,12 @@ def main():
     #-----------------------------------
     file = options.filein
     idmap = options.idmap
+    id_file_header = options.id_file_header
     id_col = int(options.id_col) - 1
+    match_col = int(options.match_col) - 1
     verbose = options.verbose
+    ignore_case = options.ignore_case
+    keep_unmatch = options.keep_unmatch
     debug = options.debug
     #-----------------------------------
     unmatchL = set()
@@ -114,7 +128,9 @@ def main():
     idDict = {}
     for line in open(idmap):
         lineL = line.strip('\n').split('\t')
-        key = lineL[0]
+        key = lineL[match_col]
+        if ignore_case:
+            key = key.upper()
         map = lineL[id_col]
         if map:
             if key in idDict:
@@ -128,11 +144,20 @@ def main():
         fh = open(file)
     #--------------------------------
     for line in fh:
+        if id_file_header:
+            print line,
+            id_file_header -= 1
+            continue
         lineL = line.strip().split("\t", 1)
         id = lineL[0]
-        idNew = idDict.get(id, "Unmatch")
+        if ignore_case:
+            id = id.upper()
+        idNew = idDict.get(id, set())
+        if not idNew and keep_unmatch:
+            idNew = [id]
         #print id, idNew
-        if idNew == "Unmatch" or idNew == "":
+        #if idNew == "Unmatch" or idNew == "":
+        if not idNew:
             unmatchL.add(line)
         else:
             for id in idNew:

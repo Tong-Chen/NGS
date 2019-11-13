@@ -77,7 +77,7 @@ def readEnriched(*enriched):
         if os.path.exists(file):
             for line in open(file):
                 lineL = line.strip().split('\t')
-                newLineL = [lineL[8], lineL[1], lineL[3], lineL[7]]
+                newLineL = [lineL[8], lineL[1], lineL[3], lineL[7], lineL[9]]
                 if header:
                     newLineL.append("Sample")
                     header -= 1
@@ -114,7 +114,7 @@ def getTopTerm(type, prefix, top, *file):
     maxLen = 70
     file_out_n = prefix+".DE_genes.GOseq."+type+'.xls'
     file_out = open(file_out_n, 'w')
-    print >>file_out, "Term\tneg_log10pvalue\tCount\tFDR\tSample"
+    print >>file_out, "Term\tneg_log10pvalue\tCount\tFDR\tGene\tSample"
     for single in file:
         count = 0
         for line in open(single):
@@ -237,7 +237,7 @@ def main():
     #--------------------------------
     for line in fh:
         condA, condB = line.strip().split()
-        DE_results = '.'.join([dir+'/'+prefix_g+'.expr.counts.matrix', 
+        DE_results = '.'.join([dir+'/'+prefix_g+'.counts.matrix', 
             condA+'_vs_'+condB, 'edgeR.DE_results'])
         if debug:
             print >>sys.stderr, DE_results

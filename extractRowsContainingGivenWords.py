@@ -89,7 +89,7 @@ def main():
     sep = options.sep
     mode = options.mode
     if sep:
-        patL = pat.split(sep)
+        patL = pat.strip(sep).split(sep)
     else:
         patL = [pat]
     header = int(options.header)

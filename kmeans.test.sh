@@ -26,15 +26,18 @@ ${txtbld}OPTIONS${txtrst}:
  		rowname, tab seperated)${bldred}[NECESSARY]${txtrst}
 		rowname must be unique. If not, use kmeans.uniq.py.
 	-c	The number of cluster wanted.${bldred}[NECESSARY]${txtrst}
+	-M	The cluster method to be used, choices are kmeans, pam (k-medoids cluster), clara (same algorithms as pam, but more fast for large data).
 	-P	The way to preprocess data before clustering.
 		[${txtred} 
-		0 (default): means no preprocess
+		0          : means no preprocess
 		1          : means scale data
 		2          : means using the difference value between current
 		           : column and the one before
 		3          : means values in each row are divided by the
 		           : sqrt(sum(squares of values in this row))
-		Both 2 and 3 are designed for clustering genes with same
+	    4(default) : means first scale data and then using the difference 
+				   : value between current column and the one before
+		Both 2, 3, 4 are designed for clustering genes with same
 		changing trend together.
 		${txtrst}]
 	-p	Select the optimum cluster number by elbow algorithm. 
@@ -50,6 +53,8 @@ ${txtbld}OPTIONS${txtrst}:
 	-t	Give the maximum try number to run kmeans multiple times and
 		choose the one with the least withinss.
 		[${txtred}Default 10.${txtrst}]
+	-S	Use scaled data for plot.
+		[${txtred}Default FALSE.${txtrst}]
 	-e	Evaluation cluster.[Default FALSE, accept TRUE]
 	-x	The xlab of cluster.[default Value]
 	-y	The ylab of cluster.[default Variable]
@@ -62,7 +67,7 @@ EOF
 
 file=
 center=
-preprecess=0
+preprocess=4
 plotwithinss='FALSE'
 try=10
 evaluation='FALSE'
@@ -71,8 +76,10 @@ ylab='Variable'
 mainT=''
 ly=''
 ist='FALSE'
+method='kmeans'
+scale_plot='FALSE'
 
-while getopts "hf:c:P:p:t:e:x:y:m:l:i:" OPTION
+while getopts "hf:c:P:p:t:e:x:y:m:M:S:l:i:" OPTION
 do
 	case $OPTION in
 		h)
@@ -106,6 +113,12 @@ do
 		m)
 			mainT=$OPTARG
 			;;
+		M)
+			method=$OPTARG
+			;;
+		S)
+			scale_plot=$OPTARG
+			;;
 		i)
 			ist=$OPTARG
 			;;
@@ -136,6 +149,13 @@ if [ "$preprocess" == '3' ]; then
 	mid=${mid}'.trend'
 fi
 
+if [ "$preprocess" == '4' ]; then
+	mid=${mid}'.trend'
+fi
+
+if [ "${scale_plot}" == "FALSE" ]; then
+	preprocess=1
+fi
 
 if [ "$plotwithinss" == 'TRUE' ]; then
 	cat <<EOF >${file}${mid}.$center.kmeans.chooseClusterNumber.r
@@ -201,21 +221,32 @@ if($preprocess == 0){
 }else if(${preprocess} == 3){
 	norm_factors_for_each_row <- sqrt(apply(data^2, 1, sum))
 	kdata <- data / norm_factors_for_each_row
+}else if(${preprocess} == 4){
+	kdata <- t(apply(data,1,scale))
+	kdata <- t(apply(kdata,1,diff))
 }
 
 print("Try kmeans for the first time.")
-fit <- kmeans(kdata, centers=$center, iter.max=100, nstart=25)
-withinss <- sum(fit\$withinss)
-print(paste("Get withinss for the first run", withinss))
-for (i in 1:$try) {
-	tmpfit <- kmeans(kdata, centers=$center, iter.max=100, nstart=25)
-	tmpwithinss <- sum(tmpfit\$withinss)
-	print(paste(("The additional "), i, 'run, withinss', tmpwithinss))
-	if (tmpwithinss < withinss){
-		withins <- tmpwithinss
-		fit <- tmpfit
+if ("${method}" == "kmeans"){
+	fit <- ${method}(kdata, centers=$center, iter.max=100, nstart=25)
+	withinss <- sum(fit\$withinss)
+	print(paste("Get withinss for the first run", withinss))
+	for (i in 1:$try) {
+		tmpfit <- kmeans(kdata, centers=$center, iter.max=100, nstart=25)
+		tmpwithinss <- sum(tmpfit\$withinss)
+		print(paste(("The additional "), i, 'run, withinss', tmpwithinss))
+		if (tmpwithinss < withinss){
+			withins <- tmpwithinss
+			fit <- tmpfit
+		}
 	}
 }
+
+if ("${scale_plot}"){
+	rownames(kdata) <- rowname(data)
+	data <- kdata
+}
+
 print("Output the mean value of cluster")
 cluster.mean <- aggregate(data, by=list(fit\$cluster), FUN=mean)
 cluster.mean.colnames <- colnames(cluster.mean)
@@ -318,13 +349,11 @@ echo "Generate heatmap"
 
 parseHeatmapSoutput.2.py -i \
 	${file}${mid}.${center}.kmeans.result.final \
-	>${file}${mid}.${center}.kmeans.result.final.sort
+	>${file}${mid}.${center}.kmeans.result.final.sort.xls
 
-s-plot heatmapS -f ${file}${mid}.${center}.kmeans.result.final.sort \
-	-A 90 -T 1 -V 0.5 -v 18 -u 15 -F 9 -j TRUE -E png -M yellow -x green -y red -Z TRUE
+s-plot heatmapS -f ${file}${mid}.${center}.kmeans.result.final.sort.xls \
+	-A 90 -T 1.5 -V 0.5 -l top -v 18 -u 15 -F 9 -j TRUE -M yellow -x green -y red -Z TRUE
 
-s-plot heatmapS -f ${file}${mid}.${center}.kmeans.result.final.sort \
-	-A 90 -T 1 -V 0.5 -v 18 -u 15 -F 9 -j TRUE -M yellow -x green -y red -Z TRUE
 
 #echo <<EOF >${file}${mid}.$center.kmeans.makefile
 #${file}${mid}.$center.kmeans.centroid.png:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#from __future__ import division, with_statement
+from __future__ import division, with_statement
 '''
 Copyright 2013, 陈同 (chentong_biology@163.com).  
 ===========================================================
@@ -37,17 +37,21 @@ def cmdparameter(argv):
     usages = "%prog -i file"
     parser = OP(usage=usages)
     parser.add_option("-i", "--fastq1", dest="fastq1",
-        metavar="FILEIN", help="FASTQ file name without \
-fq.gz like T1_1.")
+        metavar="FILEIN", help="FASTQ file name for left reads or single \
+reads without fq.gz like T1_1.")
     parser.add_option("-j", "--fastq2", dest="fastq2",
-        metavar="FILEIN", help="FASTQ file name without \
-fq.gz like T1_2.")
+        metavar="FILEIN", help="FASTQ file name right reads for PE data without \
+fq.gz like T1_2. For SE data, ignore this parameter.")
     parser.add_option("-s", "--suffix", dest="suffix",
-        metavar="SUFFIX", help="Normally .fq.gz or .fq.")
+        default=".fq.gz", metavar="SUFFIX", help="Normally <.fq.gz> or <.fq>.")
     parser.add_option("-l", "--length", dest="length",
         default=0, help="Reads smaller than this length will be removed. \
 Longer than this length will be trimmed. Multiple this length \
-will be split. Default 0 means no trim needed. ")
+will be split. Default 0 means no trim needed, only output \
+reads distribution. This has higher priority than -a.")
+    parser.add_option("-a", "--auto-dertermine-len", dest="auto_len",
+        default=0, type='int', help="Given <1> to let the program select \
+best length. Default <0> means using given length parameter.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -57,25 +61,68 @@ will be split. Default 0 means no trim needed. ")
     return (options, args)
 #--------------------------------------------------------------------
 
-def getLen(fq_h, fastq):
+def determineMostLen(aDict):
+    '''
+    aDict = {(30, 30):4, (30, 29):1}
+    '''
+    len_pairL = aDict.keys()
+    for len_left, len_right in len_pairL:
+        if len_left > len_right > 0:
+            count = aDict.pop((len_left, len_right))
+            len_left = len_right
+            len_pair = (len_left,len_right)
+            aDict[len_pair] = aDict.get(len_pair, 0)+count
+        elif 0< len_left < len_right:
+            count = aDict.pop((len_left, len_right))
+            len_right = len_left
+            len_pair = (len_left,len_right)
+            aDict[len_pair] = aDict.get(len_pair, 0)+count
+    #----------------------------------------
+    pairL = aDict.keys()
+    pairL.sort(reverse=True)
+    len_d = len(pairL)
+    count = 0
+    maxLen = pairL[0][0]
+    allBase = 2 * sum([key[0]*value for key,value in aDict.items()])
+    baseD = {}
+    for i in range(len_d):
+        currentP = pairL[i]
+        count += aDict[currentP]
+        currentL = currentP[0]
+        savePercent = currentL*2*count / allBase
+        baseD[currentL] = [currentL, savePercent, savePercent*currentL]
+    #--------------------------------
+    valueL = baseD.values()
+    valueL.sort(key=lambda x:x[1], reverse=True)
+    for value in valueL:
+        print >>sys.stderr,value
+    return valueL[0][0]
+#-----------------------------------
+
+def getLen(fq1, fq2, fastq1, fastq2):
     aDict = {}
     lenD = {}
     i = 0
-    for line in fq_h:
+    for line in fq1:
         i += 1
+        line2 = fq2.readline() if fq2 else ''
         if i % 4 == 2:
-            len_i = len(line.strip())
-            if len_i not in aDict:
-                aDict[len_i] = len_i
-            else:
-                aDict[len_i] += len_i
+            len_1 = len(line.strip())
+            len_2 = len(line2.strip())
+            len_pair = (len_1, len_2)
+            aDict[len_pair] = aDict.get(len_pair, 0)+1
     #----------END fq_h--------------------------
-    print "Length distribution for %s" % fastq
+    print >>sys.stderr, "Length distribution for %s %s" % (fastq1, fastq2)
     len_iK = aDict.keys()
-    len_iK.sort()
-    for len_i in len_iK:
-        print "%d\t%d" % (len_i, aDict[len_i])
+    len_iK.sort(key=lambda x: sum(x), reverse=True)
+    for len_pair in len_iK:
+        print >>sys.stderr, "(%d, %d)\t%d" % (len_pair[0], len_pair[1], aDict[len_pair])
     #---------------------------------------------
+    return determineMostLen(aDict)
+#---------------------------------------
+    
+#---------------------------
+
 #---------------------------------------
 def trim(fq1, fq2, length, fq1_out, fq2_out):
     count = 0
@@ -124,9 +171,13 @@ def main():
     #-----------------------------------
     suffix = options.suffix
     fastq1 = options.fastq1 + suffix
-    fastq2 = options.fastq2 + suffix
+    if options.fastq2:
+        fastq2 = options.fastq2 + suffix
+    else:
+        fastq2 = ''
     fq1 = fq2 = ''
     length = int(options.length)
+    auto_len = options.auto_len
     gz = 0
     if fastq1.endswith('.gz'):
         gz = 1
@@ -135,6 +186,19 @@ def main():
     global debug
     debug = options.debug
     #-----------------------------------
+    if gz:
+        fq1 = gzip.open(fastq1, 'rb')
+        fq2 = gzip.open(fastq2, 'rb') if fastq2 else ''
+    else:
+        fq1 = open(fastq1, 'r')
+        fq2 = open(fastq2, 'r') if fastq2 else ''
+    #-----------------------------------
+    if (not length) and auto_len:
+        length = getLen(fq1, fq2, fastq1, fastq2)
+    fq1.close()
+    if fastq2:
+        fq2.close()
+    #----------------------------------------------------
     if gz:
         fq1 = gzip.open(fastq1, 'rb')
         if length:
@@ -158,27 +222,17 @@ def main():
                 fq2_out = open(fq2_out_file, 'w')
         #------------------------------------------
     #-----------------------------------
-    if not length:
-        getLen(fq1, fastq1)
-        if fastq2:
-            getLen(fq2, fastq2)
+    if fastq2:
+        trim(fq1, fq2, length, fq1_out, fq2_out)
     else:
-        if fastq2:
-            trim(fq1, fq2, length, fq1_out, fq2_out)
-        else:
-            fq2 = fq2_out = ""
-            trim(fq1, fq2, length, fq1_out, fq2_out)
+        fq2 = fq2_out = ""
+        trim(fq1, fq2, length, fq1_out, fq2_out)
     #----------------
     fq1.close()
     fq1_out.close()
     if fastq2:
         fq2.close()
         fq2_out.close()
-    ###--------multi-process------------------
-    #pool = ThreadPool(5) # 5 represents thread_num
-    #result = pool.map(func, iterable_object)
-    #pool.close()
-    #pool.join()
     ###--------multi-process------------------
     if verbose:
         print >>sys.stderr,\

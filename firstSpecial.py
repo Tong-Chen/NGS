@@ -22,9 +22,10 @@ def main():
         sys.exit(0)
     aDict = {}
     for line in open(sys.argv[2]):
+        line = line.strip()
         aDict[line] = ''
     sys.stdout.writelines([line for line in open(sys.argv[1]) \
-            if line not in aDict])
+            if line.strip() not in aDict])
 
 if __name__ == '__main__':
     main()

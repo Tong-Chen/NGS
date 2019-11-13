@@ -73,7 +73,7 @@ Default 1 indicating output the first column.")
     assert options.filein != None, "A filename needed for -i"
     return (options, args)
 #--------------------------------------------------------------------
-def output(aDict, file):
+def outputR(aDict, file):
     fileD = {}
     for key, valueL in aDict.items():
         out_file = file + '.' + key
@@ -106,11 +106,11 @@ def main():
         output = lineL[output_col]
         split = lineL[split_col]
         if split not in aDict:
-            aDict[split] = []
+            aDict[split] = [output]
         else:
             aDict[split].append(output)
     #-------------END reading file----------
-    fileD = output(aDict, file)
+    fileD = outputR(aDict, file)
     #----close file handle for files-----
     if file != '-':
         fh.close()

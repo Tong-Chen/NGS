@@ -60,6 +60,10 @@ The parameters for logical variable are either TRUE or FALSE.
 ${txtbld}OPTIONS${txtrst}:
 	-f	Data file (with header line, the first column is the
  		rowname, all columns are tab seperated)${bldred}[NECESSARY]${txtrst}
+	-F	Filter out data with all zero items and data show no difference among all samples.
+		[${bldred}Default FALSE, accept TRUE.${txtrst}]
+	-t	Use top n most varied items.
+		[${bldred}Default 0 means using all items, accept a positive number.${txtrst}]
 	-s	Scale data by rows.${bldred}[FALSE, do not change this]${txtrst}
 	-m	The method.[${bldred}Default pearson, accept "kendall",
 		"spearman".${txtrst}]
@@ -80,8 +84,10 @@ method='pearson'
 plot='FALSE'
 col_cor='FALSE'
 scale_row='FALSE'
+filter='FALSE'
+top_n=0
 
-while getopts "hf:s:p:T:m:e:i:" OPTION
+while getopts "hf:s:F:t:p:T:m:e:i:" OPTION
 do
 	case $OPTION in
 		h)
@@ -90,6 +96,12 @@ do
 			;;
 		f)
 			file=$OPTARG
+			;;
+		F)
+			filter=$OPTARG
+			;;
+		t)
+			top_n=$OPTARG
 			;;
 		s)
 			scale_row=$OPTARG
@@ -135,6 +147,16 @@ library(psych)
 
 data <- read.table(file="$file", sep="\t", header=T, row.names=1)
 
+if (${filter}) {
+	data <- data[rowSums(abs(data))!=0, ]
+	data\$mad <- apply(data, 1, mad)
+	data <- data[data\$mad>0, ]
+	if (${top_n} >0) {
+		data <- data[order(data\$mad, decreasing=T), 1:(dim(data)[2]-1)]
+		data <- data[1:${top_n},]
+	}
+}
+
 #attach(data)
 if (${scale_row}){
 	data <- t(apply(data, 1, scale))
@@ -175,7 +197,7 @@ if ($plot){
 	}
 	library(corrplot)
 	pdf("${file}$midname.matrix.pdf")
-	corrplot.mixed(ct\$r, order ="FPC", hclust.method="complete", method="color")
+	corrplot.mixed(ct\$r, order ="FPC", hclust.method="complete")
 	dev.off()
 }
 #if ($plot){

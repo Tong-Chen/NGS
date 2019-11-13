@@ -85,6 +85,8 @@ query sequence is RNA, nomismatch allowed. \
 For short sequence (20-30 nt), parameter \
 <-t=dna -q=rna -minIdentity=0 -tileSize=6 -stepSize=5 \
 -minScore=0 -fine.")
+    parser.add_option("-P", "--parameter-pslCDnaFilter", dest="filter_p",
+        default="-minId=1 -minCover=1", help="Default <-minId=1 -minCover=1>. Accept other parameters to overide these two or add new")
     parser.add_option("-o", "--output-prefix", dest="op",
         help="The prefix for output file; \
 Default the string given to -i.")
@@ -105,6 +107,7 @@ def main():
     genome = options.genome
     blat_p = options.blat_p
     output = options.op
+    filter_p = options.filter_p
     if not output:
         output = file
     output = output + '.blat.psl'
@@ -116,8 +119,7 @@ def main():
     os.system(cmd)
     #--Filter mapped results--------
     filter = output + '.filter'
-    cmd = ' '.join(['pslCDnaFilter -minId=1 -minCover=1',  
-        output, filter])
+    cmd = ' '.join(['pslCDnaFilter', filter_p, output, filter])
     os.system(cmd)
     aDict = transferPSLtoBed(open(filter), 0)
     fh = open(filter+'.bed', 'w')

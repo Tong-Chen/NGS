@@ -14,8 +14,8 @@ Functional description:
 
 The format of Gene Ontology file used in this program (could be generated using <generate_go_anno_for_goEnrichment.py>):
 
-#--------Below is the file content--------------------------
-#GO term    GO description  Gene_list   No of Genes under this GO term  Total annotated genes
+#--------Below is the file content (header line is needed)--------------------------
+GO term    GO description  Gene_list   No of Genes under this GO term  Total annotated genes
 GO:0045116  Function description	Bra002219,Bra006497	2	22567
 GO:0004091	Function description    Bra000230,Bra000969,Bra004627,Bra012745,Bra018016,Bra021530,Bra028144	7	22567
 GO:0004420	Function description    Bra002053,Bra008261,Bra014102,Bra015739	4	22567
@@ -32,6 +32,7 @@ from time import localtime, strftime
 timeformat = "%Y-%m-%d %H:%M:%S"
 from optparse import OptionParser as OP
 #from multiprocessing.dummy import Pool as ThreadPool
+from statsmodels.stats.multitest import multipletests
 
 def fprint(content):
     print json_dumps(content,indent=1)
@@ -48,7 +49,7 @@ def cmdparameter(argv):
     parser.add_option("-i", "--input-file", dest="go",
         metavar="go", help="The gene ontology file")
     parser.add_option("-g", "--gene", dest="gene",
-        metavar="gene", help="The gene list file")
+        metavar="gene", help="One column gene list file or multiple columns only the first column will be used.")
     parser.add_option("-p", "--pvalue", dest="pvalue",
         default=0.05, metavar="pvalue", help="pvalue for enriched terms. Default 0.05.")
     parser.add_option("-o", "--output", dest="output",
@@ -79,40 +80,64 @@ def main():
     #-----------------------------------
     annoGeneD = set([j for i in open(go_file) \
         for j in i.split('\t')[2].split(',')])
-    geneD = set([i.strip() for i in open(gene_file)])
+    geneD = set([i.split("\t")[0].strip() for i in open(gene_file)])
     geneD = geneD.intersection(annoGeneD)
     geneD_len = len(geneD)
-    #------------------------------------
     #--------------------------------
     annoL = []
     header = 1
+    tmpL = []
+    pL = []
     for line in open(go_file):
         lineL = line.strip().split('\t')
         if header:
-            print >>fh_out, "%s\t%s\tTargetGene\tTargetCount\tTargetTotal\tp\tfracT" \
+            print >>fh_out, "%s\t%s\tTargetGene\tTargetCount\tTargetTotal\tPvalue\tOdds ratio\tFDR" \
                 % (lineL[0], lineL[1])
             header -= 1
             continue
-        #lineL = line.split('\t')
         go_gene = lineL[2].split(',')
         anno_gene = [gene for gene in go_gene if gene in geneD]
-        if anno_gene:
+        anno_gene = set(anno_gene)
+        annoCount = len(anno_gene)
+        if annoCount > geneD_len:
+            print >>sys.stderr, go_gene
+            print >>sys.stderr, anno_gene
+            sys.exit(1)
+        if annoCount > 3:
             termCount = int(lineL[3])
             totalCount = int(lineL[4])
             annoCount = len(anno_gene)
+            #print >>sys.stderr, termCount, totalCount, annoCount
             p = pvalue(annoCount, termCount-annoCount,
                     geneD_len-annoCount,
                     totalCount-geneD_len+annoCount-termCount)
-            p = p.two_tail
+            p = p.right_tail
             fracT = annoCount * 1.0 / geneD_len / termCount * totalCount
-            if fracT > 1 and p <= pvalue_thresh:
-                print >>fh_out, "%s\t%s\t%s\t%d\t%d\t%f\t%f" \
-                    % (lineL[0], lineL[1], ','.join(anno_gene),
-                        annoCount, geneD_len, p, fracT)
+            if fracT > 1 and p <= pvalue_thresh*2:
+                fracT = "%.2f" % fracT
+                tmpL.append([lineL[0], lineL[1], ', '.join(anno_gene), str(annoCount), 
+                    str(geneD_len), p, fracT,str(p)])
+                pL.append(p) 
     #-------------END reading file----------
+    #tmpL.sort(key=lambda x: float(x[5]))
+    if pL:
+        p_adjL = multipletests(pL, method="fdr_bh")[1]
+        for eachtmpL, p_adj in zip(tmpL, p_adjL):
+            eachtmpL[-3] = format(eachtmpL[-3],'0.2E')
+            eachtmpL[-1] = format(p_adj,'0.2E')
+        #------------------------------------------------
+        tmpL.sort(key=lambda x: float(x[5]))
+        for i in tmpL:
+            padj = float(i[-1])
+            if padj <= pvalue_thresh:
+                print >>fh_out, '\t'.join(i)
+            else:
+                break
+        #print >>fh_out, '\n'.join(['\t'.join(i) for i in tmpL])
+        #----------------------
     if output:
         fh_out.close()
-        os.system("multipleTest.sh -f %s" % output)
+        #os.system("multipleTest.sh -f %s" % output)
     if verbose:
         print >>sys.stderr,\
             "--Successful %s" % strftime(timeformat, localtime())

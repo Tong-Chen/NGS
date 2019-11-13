@@ -1,7 +1,7 @@
 #!/bin/bash
 #set -x
 set -e
-set -u
+#set -u
 #########################################
 #Data and format in <sample.cor>
 #Control must befor treated sample.

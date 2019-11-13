@@ -34,6 +34,13 @@ def cmdparameter(argv):
         sys.exit(1)
     usages = "%prog -i file"
     parser = OP(usage=usages)
+    parser.add_option("-f", "--fasta", dest="fasta",
+        help="The fasta file used for blast analysis.")
+    parser.add_option("-n", "--num_seq", dest="num_seq",
+        type="int", help="Number of fasta sequences used for downstream analysis. \
+Ignore this parameter if all sequences are used.")
+    parser.add_option("-l", "--label", dest="label",
+        help="The label for this analysis.")
     parser.add_option("-i", "--input-file", dest="filein",
         metavar="FILEIN", help="The output of blastn. Normally \
 the format is \
@@ -53,6 +60,9 @@ def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
     file = options.filein
+    label = options.label
+    num_seq = options.num_seq
+    fasta = options.fasta
     verbose = options.verbose
     debug = options.debug
     #-----------------------------------
@@ -61,31 +71,58 @@ def main():
     else:
         fh = open(file)
     #--------------------------------
+    total_seq = 0
+    for line in open(fasta):
+        if line[0] == '>':
+            total_seq += 1
+    #-----------------------------------
+    if num_seq and total_seq > num_seq:
+        total_seq = num_seq
+    mapped = 0
+    staD = {}
+    map_percent_threshold = 0.4
+    map_ident_threshold = 0.8
+    #---------------
     key = ''
     outputL = []
     for line in fh:
         lineL = line.strip().split('\t')
         newkey = lineL[0]
         if key and key != newkey:
-            outputL = [str(i) for i in outputL]
-            print '\t'.join(outputL)
+            if outputL[5] >= map_ident_threshold and match_percent >= map_percent_threshold:
+                staD[outputL[-1]] = staD.get(outputL[-1], 0)+1
+            #outputL = [str(i) for i in outputL]
+            #print '\t'.join(outputL)
             outputL = []
         key = newkey
         sid = lineL[1]
         qlen = int(lineL[2])
-        qstart = lineL[3]
-        qend   = int(lineL[4]) - qlen - 1
+        qstart = int(lineL[3])
+        #qend   = int(lineL[4]) - qlen - 1
+        qend = int(lineL[4])
+        match_percent = (qend-qstart+1)*1.0/qlen
         pident  = float(lineL[7])
         nident  = int(lineL[8])
         sscinames = lineL[-1] 
-        total_pident = nident * 1.0 / qlen * 100
-        if (len(outputL)==0) or (outputL[4]<pident):
-            outputL = [key, sid, qlen, qstart, qend, pident, total_pident, sscinames]
+        #total_pident = nident * 1.0 / qlen * 100
+        if (len(outputL)==0) or (outputL[5]<pident):
+            outputL = [key, sid, qlen, qstart, qend, pident, match_percent, sscinames]
     #-------------END reading file----------
     #----close file handle for files-----
     if file != '-':
         fh.close()
     #-----------end close fh-----------
+    mapped = sum(staD.values())
+    unmapped = total_seq - mapped
+    print "\t".join(["Unmapped", str(unmapped), label])
+    keyL = staD.keys()
+    keyL.sort(key=lambda x: staD[x], reverse=True)
+    for key in keyL[:10]:
+        print "\t".join([str(i) for i in [key,staD[key],label]])
+        staD.pop(key)
+    other = sum(staD.values())
+    print "\t".join(["Other_species", str(other), label])
+
     ###--------multi-process------------------
     #pool = ThreadPool(5) # 5 represents thread_num
     #result = pool.map(func, iterable_object)

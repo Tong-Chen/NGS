@@ -44,6 +44,10 @@ def cmdparameter(argv):
         metavar="FILEIN", help="sampleFile given to mats.py")
     parser.add_option("-c", "--compare-pair", dest="filein",
         metavar="FILEIN", help="compare_pair given to mats.py")
+    parser.add_option("-m", "--mats-result-dir", dest="mats_result_dir",
+        help="The result dir given to mats.py ")
+    parser.add_option("-g", "--genome-fa", dest="genome_fa",
+        help="Genome fa file.")
     parser.add_option("-p", "--prefix", dest="prefix",
         default='mats', help="The prefix for output files.")
     parser.add_option("-q", "--fdr", dest="fdr",
@@ -65,7 +69,7 @@ Accept <2> to print sashimi plot command only.")
     return (options, args)
 #--------------------------------------------------------------------
 
-def readSummary(compare_pair, prefix):
+def readSummary(compare_pair, prefix, mats_result_dir):
     aDict = {}
     nameD = {'SE':'Exon skipping', 'MXE':'Mutually exclusive exon', 
             'RI':'Intron retention', 
@@ -85,7 +89,7 @@ def readSummary(compare_pair, prefix):
         fileL.append(file)
         aDict['jcCount'][file] = {}
         aDict['sigJcCount'][file] = {}
-        fh = open(file+'/summary.txt')
+        fh = open(mats_result_dir+'/'+file+'/summary.txt')
         line = fh.readline()
         while line.find("MATS Report") == -1:
             line = fh.readline()
@@ -122,6 +126,8 @@ def readSummary(compare_pair, prefix):
     jcCount_fh.close()
     cmd = ['s-plot barPlot -f', jcCount_f, '-m TRUE -a Sample -l',
             typeOrder, "-L", fileOrder, '-R 90 -E pdf']
+    if debug:
+        print >>sys.stderr, ' '.join(cmd)
     os.system(' '.join(cmd))
 
     for file in fileL:
@@ -131,6 +137,8 @@ def readSummary(compare_pair, prefix):
     sigJcCount_fh.close()
     cmd = ['s-plot barPlot -f', sigJcCount_f, '-m TRUE -a Sample -l',
             typeOrder, "-L", fileOrder, '-R 90 -E pdf']
+    if debug:
+        print >>sys.stderr, ' '.join(cmd)
     os.system(' '.join(cmd))
 
     sigJcCount_f_ud = 'MATS/' + prefix + '.AS.sigJcCount.up_dw'
@@ -143,8 +151,10 @@ def readSummary(compare_pair, prefix):
             samp1, samp2 = file.split('_vs_')
             samp1 = file+'.'+samp1+'.up'
             samp2 = file+'.'+samp2+'.up'
-            fileL2.append(samp1)
-            fileL2.append(samp2)
+            if samp1 not in fileL2:
+                fileL2.append(samp1)
+            if samp2 not in fileL2:
+                fileL2.append(samp2)
             print >>sigJcCount_fh_ud, "\t".join([nameD[type],
                 valueD['up'], samp1]) 
             print >>sigJcCount_fh_ud, "\t".join([nameD[type],
@@ -153,9 +163,114 @@ def readSummary(compare_pair, prefix):
     fileOrder = '"' + ','.join(['\''+file+'\'' for file in fileL2]) + '"'
     cmd = ['s-plot barPlot -f', sigJcCount_f_ud, '-m TRUE -a Sample -l',
             typeOrder, "-L", fileOrder, '-R 90 -E pdf']
+    if debug:
+        print >>sys.stderr, ' '.join(cmd)
     os.system(' '.join(cmd))
 #-----------------------------------
-def selectSig(compare_pair, prefix, fdr, sampD, sashimi, annoD={}, headerline=''):
+def getReverseComplement(seq, type='DNA'):
+    if type == 'DNA':
+        dict = {'A':'T', 'G':'C', 'T':'A','C':'G','a':'t','g':'c','t':'a','c':'g', 'N':'N', 'n':'n'}
+    elif type == 'RNA':
+        dict = {'A':'U', 'G':'C', 'U':'A','C':'G','a':'u','g':'c','u':'a','c':'g'}
+    #-------------------------------------------
+    seqL = list(seq)
+    seqL.reverse()
+    return ''.join([dict[i] for i in seqL])
+#----------------------------------------------------
+
+def getseq(lineL, type, genomeD):
+    if not genomeD:
+        return '-', '-'
+    chr = lineL[3]
+    chrseq = genomeD[chr]
+    strand = lineL[4]
+    if type in ["A3SS", "A5SS"]:
+        flankingES = int(lineL[9])
+        flankingEE = int(lineL[10])
+        common = chrseq[flankingES:flankingEE]
+        if strand == '-':
+            common = getReverseComplement(common)
+        common = common.lower()
+        longExonStart_0base = int(lineL[5])
+        longExonEnd = int(lineL[6])
+        AsSeq = chrseq[longExonStart_0base:longExonEnd]
+        if strand == '-':
+            AsSeq = getReverseComplement(AsSeq)
+        shortES = int(lineL[7])
+        shortEE = int(lineL[8])
+        NormalSeq = chrseq[shortES:shortEE]
+        if strand == '-':
+            NormalSeq = getReverseComplement(NormalSeq)
+        if type == "A3SS":
+            AsSeq, NormalSeq = common+AsSeq, common+NormalSeq
+        elif type == "A5SS":
+            AsSeq, NormalSeq = AsSeq+common, NormalSeq+common
+    elif type in ["SE", "RI"]:
+        upstreamES = int(lineL[7])
+        upstreamEE = int(lineL[8])
+        up_t = chrseq[upstreamES:upstreamEE]
+        if strand == '-':
+            dw = getReverseComplement(up_t)
+            dw = dw.lower()
+        else:
+            up = up_t.lower()
+        downstreamES = int(lineL[9])
+        downstreamEE = int(lineL[10])
+        dw_t = chrseq[downstreamES:downstreamEE]
+        if strand == '-':
+            up = getReverseComplement(dw_t)
+            up = up.lower()
+        else:
+            dw = dw_t.lower()
+        exonStart_0base = int(lineL[5])
+        exonEnd = int(lineL[6])
+        if type == "SE":
+            se = chrseq[exonStart_0base:exonEnd]
+            if strand == '-':
+                se = getReverseComplement(se)
+            AsSeq, NormalSeq = up+se+dw, up+dw
+        elif type == "RI":
+            ri = chrseq[exonStart_0base:exonEnd]
+            if strand == '-':
+                ri = getReverseComplement(ri)
+            ri = ri.replace(up.upper(), up)
+            ri = ri.replace(dw.upper(), dw)
+            AsSeq, NormalSeq = ri, up+dw
+    elif type == "MXE":
+        stExonStart_0base = int(lineL[5])
+        stExonEnd         = int(lineL[6])
+        st = chrseq[stExonStart_0base:stExonEnd]
+        if strand == '-':
+            st = getReverseComplement(st)
+        ndExonStart_0base = int(lineL[7])
+        ndExonEnd         = int(lineL[8])
+        nd = chrseq[ndExonStart_0base:ndExonEnd]
+        if strand == '-':
+            nd = getReverseComplement(nd)
+        upstreamES        = int(lineL[9])
+        upstreamEE        = int(lineL[10])
+        up_t = chrseq[upstreamES:upstreamEE]
+        if strand == '-':
+            dw = getReverseComplement(up_t)
+            dw = dw.lower()
+        else:
+            up = up_t.lower()
+        downstreamES      = int(lineL[11])
+        downstreamEE      = int(lineL[12])
+        dw_t = chrseq[downstreamES:downstreamEE]
+        if strand == '-':
+            up = getReverseComplement(dw_t)
+            up = up.lower()
+        else:
+            dw = dw_t.lower()
+        AsSeq,  NormalSeq = up+st+dw, up+nd+dw
+        #-------------------------------------------
+    #-------------------------------------------
+    return AsSeq, NormalSeq
+#-----------------------------------
+
+
+def selectSig(compare_pair, prefix, fdr, sampD, sashimi, mats_result_dir, annoD={}, headerline='', genomeD={}):
     #print annoD['VIT_13s0084g00310']
     #print annoD['VIT_12s0034g02350']
     typeL = ['SE', 'MXE', 'A5SS', 'A3SS', 'RI']
@@ -166,9 +281,9 @@ def selectSig(compare_pair, prefix, fdr, sampD, sashimi, annoD={}, headerline=''
     for line in open(compare_pair):
         samp1, samp2 = line.strip().split('\t')
         folder = '_vs_'.join([samp1, samp2])
-        rep1_bam = ','.join([rep+'/accepted_hits.bam' for rep in
+        rep1_bam = ','.join([rep+'/'+rep+'.Aligned.sortedByCoord.out.bam' for rep in
             sampD[samp1]])
-        rep2_bam = ','.join([rep+'/accepted_hits.bam' for rep in
+        rep2_bam = ','.join([rep+'/'+rep+'.Aligned.sortedByCoord.out.bam' for rep in
             sampD[samp2]])
         for type in typeL:
             file = type + suffix
@@ -197,12 +312,12 @@ def selectSig(compare_pair, prefix, fdr, sampD, sashimi, annoD={}, headerline=''
 
             samp2_sig_ = open(samp2_sig, 'w')
 
-            file = folder + '/MATS_output/' + file
+            file = mats_result_dir + '/' + folder + '/MATS_output/' + file
             header = 1
             for line in open(file):
                 line = line.strip()
                 if header:
-                    as_header = line
+                    as_header = line + "\tAsSeq\tNormalSeq"
                     as_header = as_header.replace('SAMPLE_1', samp1)
                     as_header = as_header.replace('SAMPLE_2', samp2)
                     if annoD:
@@ -228,13 +343,14 @@ def selectSig(compare_pair, prefix, fdr, sampD, sashimi, annoD={}, headerline=''
                 if type == 'MXE':
                     fdr_cur = float(lineL[21])
                 incLevelD = float(lineL[-1])
-                print >>anno_file, "%s\t%s" % (line, anno)
+                AsSeq, NormalSeq = getseq(lineL, type, genomeD)
+                print >>anno_file, "%s\t%s\t%s\t%s" % (line, AsSeq, NormalSeq, anno)
                 if fdr_cur <= fdr:
                     if incLevelD > 0: #samp1
-                        print >>samp1_sig_anno, "%s\t%s" % (line, anno)
+                        print >>samp1_sig_anno, "%s\t%s\t%s\t%s" % (line, AsSeq, NormalSeq, anno)
                         print >>samp1_sig_, line
                     elif incLevelD < 0: #samp2
-                        print >>samp2_sig_anno, "%s\t%s" % (line, anno)
+                        print >>samp2_sig_anno, "%s\t%s\t%s\t%s" % (line, AsSeq, NormalSeq, anno)
                         print >>samp2_sig_, line
                 #--------------------------------------
             #----------------------------------------
@@ -390,12 +506,27 @@ def readAnno(anno):
     #print annoD['VIT_12s0034g02350']
     return annoD, headerline
 #---------------------------------------
+def readGenome(genome_fa):
+    genomeD = {}
+    for line in open(genome_fa):
+        if line[0] == '>':
+            key = line.split()[0][1:]
+            assert key not in genomeD, "Duplicate key "+key
+            genomeD[key] = []
+        else:
+            genomeD[key].append(line.strip().upper())
+    #-------------------------------------------
+    for key, seqL in genomeD.items():
+        genomeD[key] = ''.join(seqL)
+    return genomeD
+#------------readGenome-----------
 
 def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
     compare_pair = options.filein
     sampleFile = options.sampleFile
+    mats_result_dir = options.mats_result_dir
     sampleD = {}
     for line in open(sampleFile):
         rep, samp = line.strip().split()[:2]
@@ -403,6 +534,11 @@ def main():
             sampleD[samp] = []
         sampleD[samp].append(rep)
     #----------------------------
+    genome_fa = options.genome_fa
+    if genome_fa:
+        genomeD = readGenome(genome_fa)
+    else:
+        genomeD = {}
     prefix = options.prefix
     fdr = float(options.fdr)
     anno = options.anno
@@ -416,8 +552,8 @@ def main():
     global debug
     debug = options.debug
     #-----------------------------------
-    readSummary(compare_pair, prefix)
-    sigFileD = selectSig(compare_pair, prefix, fdr, sampleD, sashimi, annoD, headerline)
+    readSummary(compare_pair, prefix, mats_result_dir)
+    sigFileD = selectSig(compare_pair, prefix, fdr, sampleD, sashimi, mats_result_dir, annoD, headerline, genomeD)
     #print sigFileD
     getTotal(sigFileD, prefix)
     ###--------multi-process------------------

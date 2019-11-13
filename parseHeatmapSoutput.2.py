@@ -48,6 +48,8 @@ def cmdparameter(argv):
         help="The output of s-plot heatmapS or kmeans.test.sh. \
 Generally a data matrix with the first column as rownames and \
 the last column as cluster info is acceptable.")
+    parser.add_option("-s", "--sampleGroup", dest="sampleGroup",
+        help="sampleGroup file with first line as header line, first column as sample names and second columns as group information.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -57,7 +59,7 @@ the last column as cluster info is acceptable.")
     return (options, args)
 #--------------------------------------------------------------------
 
-def determineClusterSort(file, header=1):
+def determineClusterSort(file, sampleGroupD={}, header=1):
     aDict = {}
     for line in open(file):
         if header:
@@ -73,37 +75,96 @@ def determineClusterSort(file, header=1):
     #------------------------------------
     bDict = {}
     for clu, array in aDict.items():
+        if debug:
+            print >>sys.stderr, "Cluster: " +clu
         array = np.array(array)
-        #print array
+        #if debug:
+        #    print >>sys.stderr,  array
         array = np.average(array, axis=0)
-        #print array
+        if debug:
+            print >>sys.stderr, ">Average:"
+            print >>sys.stderr,  array
         maxL = []
+        # 获取并存储最大值、次大值。。。最小值所在的列
         while len(maxL) < len(array):
             max = np.argmax(array)
             maxL.append(max)
             array[max] = min(array) - 1
         #array = np.argsort(array)
         #print array
+        if debug:
+            print >>sys.stderr, ">maxL:"
+            print >>sys.stderr, maxL
+            #print >>sys.stderr, ">After Max:"
+            #print >>sys.stderr,  array
         bDict[clu] = maxL
     #----------------------------------
     cluL = bDict.keys()
-    print >>sys.stderr, bDict
+    if debug:
+        print >>sys.stderr, bDict
+    #获取cluster顺序，成对角线排列
+    # 最大值所在的列越靠后的，cluster排位越靠后
+    # 最大值所在的列越靠前的，cluster优先输出
     cluL.sort(key=lambda x: list(bDict[x]), reverse=True)
-    sortL = [bDict[x][0]+1 for x in cluL]
-    print >>sys.stderr, cluL
-    print >>sys.stderr, sortL
+    # Cluster内部按最大值所在列排序
+    # sortL = [bDict[x][0]+1 for x in cluL]
+    #sortL = [sampleGroupD[bDict[x][0]+1] for x in cluL]
+    sortL = [sampleGroupD.get(bDict[x][0]+1, [bDict[x][0]+1]) for x in cluL]
+    if debug:
+        print >>sys.stderr, cluL
+        print >>sys.stderr, sortL
     return cluL, sortL
 #-----------------------------------
+def sampleGroupDetermine(file, sampleGroup):
+    headerD = {}
+    for line in open(file):
+        j = 1
+        for i in line.strip().split('\t')[1:-1]:
+            headerD[i] = j
+            headerD[j] = i
+            j += 1
+        break
+    #-------------------------------
+    header = 1
+    sgD = {}
+    for line in open(sampleGroup):
+        if header:
+            header -= 1 
+            continue
+        #--------------------
+        sample, grp = line.split()
+        sgD[sample] = grp
+        if grp not in sgD:
+            sgD[grp] = []
+        sgD[grp].append(headerD[sample])
+    #---------------------------
+    sampleGroupD = {}
+    for i in range(1, j):
+        sampleGroupD[i] = sgD[sgD[headerD[i]]]
+    if debug:
+        print >>sys.stderr, sampleGroupD
+    return sampleGroupD
+#-----------------------------------
+
+
 
 def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
     file = options.filein
-    rowSort,clusterInnerSort = determineClusterSort(file)
+    sampleGroup = options.sampleGroup
     verbose = options.verbose
     global debug
     debug = options.debug
+    if sampleGroup:
+        sampleGroupD = sampleGroupDetermine(file, sampleGroup)
+    else:
+        sampleGroupD = {}
+    rowSort,clusterInnerSort = determineClusterSort(file, sampleGroupD)
 
+    if debug:
+        print >>sys.stderr, rowSort
+        print >>sys.stderr, clusterInnerSort
 
     #------------------------------------------------------
     if file == '-':
@@ -159,7 +220,7 @@ def main():
             #key = keySetL[i-1]
             tmpList = allLinesD[key]
             tmpList.sort(key=lambda x: sortFunc(x,
-                [clusterInnerSort[j]]))
+                clusterInnerSort[j]))
             #j = j - 1
             print "\n".join(tmpList)
 

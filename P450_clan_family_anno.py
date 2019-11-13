@@ -66,8 +66,10 @@ containing CYP gene information.")
         help="A string to specify the column containing CYP genes. \
 Normally <Gene_name> for my own usage.")
     parser.add_option("-C", "--clan", dest="clan",
-        default="/MPATHB/resource/P450/Plant_CYPclan_CYPfamily.txt", 
+        default="/disk2/resource/P450/Plant_CYPclan_CYPfamily.txt", 
         help="CYP450 clan and family file.")
+    parser.add_option("-F", "--only-cyp", dest="only_cyp",
+        default=False, action="store_true", help="Export only genes with names startwith CYP.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -81,6 +83,7 @@ Normally <Gene_name> for my own usage.")
 def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
+    only_cyp = options.only_cyp
     file = options.filein
     if options.col:
         col  = int(options.col) - 1
@@ -123,15 +126,18 @@ def main():
             lineL = line.strip().split('\t', col+1)
         if header:
             if col == -1:
-                lineL = line.split('\t')
+                lineL = line.strip().split('\t')
                 count = 0
                 for ele in lineL:
+                    #print >>sys.stderr, ele
+                    #print >>sys.stderr, col_str
                     if ele == col_str:
                         col = count
-                        count += 1
                         break
+                    count += 1
                 assert count, "Unrecgonizable {} in {}".format(col_str, line) 
             #------------------------------------
+            #print >>sys.stderr, col
             lineL.insert(col, "CYP_family")               
             lineL.insert(col, "CYP_clan")               
             print '\t'.join(lineL)
@@ -139,6 +145,8 @@ def main():
             continue
         #---------------------------------
         cyp = lineL[col].upper()
+        if only_cyp and (not cyp.startswith('CYP')):
+            continue
         lineL[col] = cyp
         family = pat.match(cyp)
         if family:

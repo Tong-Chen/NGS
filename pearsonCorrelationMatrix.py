@@ -25,6 +25,7 @@ from optparse import OptionParser as OP
 #from multiprocessing.dummy import Pool as ThreadPool
 from scipy.stats.stats import pearsonr
 import pandas as pd
+from numpy import log2
 
 debug = 0
 
@@ -45,6 +46,9 @@ def cmdparameter(argv):
 first column as row names. The results will be output to files.")
     parser.add_option("-r", "--row", dest="row_correlation",
         default=False, action="store_true", help="Default perform column correlation. \Specify to compute row correlation.")
+    parser.add_option("-l", "--log2-transform", dest="log2_trans",
+        default=False, action="store_true", 
+        help="Perform log2 transform before computing pearson correlation value. A pseudo count 1 will be added before log2 transform.")
     parser.add_option("-m", "--method", dest="method",
         default="pearson", help="pearson (default), kendall, spearman")
     #parser.add_option("-s", "--scale", dest="scale",
@@ -64,6 +68,7 @@ def main():
     #-----------------------------------
     file = options.filein
     row_correlation = options.row_correlation
+    log2_trans = options.log2_trans
     method = options.method
     output = file + '.'+method+'.xls'
     #fh_out = open(output, 'w')
@@ -72,6 +77,8 @@ def main():
     debug = options.debug
     #-----------------------------------
     matrix = pd.read_table(file, header=0, index_col=0)
+    if log2_trans:
+        matrix = log2(matrix+1)
     if row_correlation:
         matrix = matrix.T
     corr = matrix.corr(method=method)

@@ -68,6 +68,8 @@ sys.stdin]' % sys.argv[0]
             focusDict = dict([[i.split(" ")[0], \
                 i.split(" ")[1].replace('"', '')] \
                 for i in focus.split("; ")])
+            #print >>sys.stderr, focus
+            #print >>sys.stderr, focusDict
             #tmpL = tmpL.union(set(focusDict.keys()))
             #print focusDict
             class_code = focusDict['class_code']

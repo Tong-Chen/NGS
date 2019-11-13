@@ -49,12 +49,12 @@ debug = 0
 from math import log as ln
 
 def fprint(content):
-    print json_dumps(content,indent=1)
+    print(json_dumps(content,indent=1))
 
 def cmdparameter(argv):
     if len(argv) == 1:
         global desc
-        print >>sys.stderr, desc
+        print(desc, file=sys.stderr)
         cmd = 'python ' + argv[0] + ' -h'
         os.system(cmd)
         sys.exit(1)
@@ -119,7 +119,7 @@ def readMatrix(expr):
             matrixD[key][headerL[i]] = lineL[i]
         if debug:
             if start_count < 10:
-                print >>sys.stderr, "Key\tvalue", key, lineL
+                print("Key\tvalue", key, lineL, file=sys.stderr)
                 #print >>sys.stderr, matrixD
             start_count += 1
     #---------------------------------
@@ -186,8 +186,8 @@ def readAnno(anno, key_c=0):
 def computeShannon(aList, plus=1):
     #print aList
     if len(aList) < 2:
-        print >>sys.stderr, "You may need to specify \
--I parameter if the program stops."
+        print("You may need to specify \
+-I parameter if the program stops.", file=sys.stderr)
     expr = [float(i)+1 for i in aList]
     expr_sum = sum(expr)
     assert expr_sum != 0
@@ -219,7 +219,7 @@ def output(aDict, matrixD, prefix, annoD):
     matrixD = {'head':[],
              'gene':{'samp':expr, 'samp2':expr2}}
     '''
-    for key, valueD in aDict.items():
+    for key, valueD in list(aDict.items()):
         output = prefix+key+".results"
         if annoD:
             output_anno = prefix+key+".anno.xls"
@@ -229,11 +229,11 @@ def output(aDict, matrixD, prefix, annoD):
         idL = valueD['id']
         headerL = matrixD['head']
         existL = [samp for samp in headerL if samp in sampleL]
-        print >>fh, "%s\t%s\tshannonEntropy" % ('gene', '\t'.join(existL))
+        print("%s\t%s\tshannonEntropy" % ('gene', '\t'.join(existL)), file=fh)
         #print >>sys.stderr, matrixD['CG11790']
         if annoD:
-            print >>anno_fh, "%s\t%s\tshannonEntropy\t%s" % \
-                ('gene', '\t'.join(existL), annoD['head'])
+            print("%s\t%s\tshannonEntropy\t%s" % \
+                ('gene', '\t'.join(existL), annoD['head']), file=anno_fh)
         exprMatrix = []
         for id in idL:
             tmpL = [id]
@@ -249,11 +249,10 @@ def output(aDict, matrixD, prefix, annoD):
         #exprMatrix = sortExprMatrix(exprMatrix)
         exprMatrix.sort(key=lambda x: x[2])
         for tmpL in exprMatrix:
-            print >>fh, '\t'.join(tmpL[:-1])
+            print('\t'.join(tmpL[:-1]), file=fh)
         #print >>fh, '\n'.join(exprMatrix)
         if annoD:
-            print >>anno_fh, \
-                '\n'.join(['\t'.join(tmpL) for tmpL in exprMatrix])
+            print('\n'.join(['\t'.join(tmpL) for tmpL in exprMatrix]), file=anno_fh)
         fh.close()
         anno_fh.close()
 #---------------------------------------------
@@ -291,10 +290,10 @@ def main():
                     newHeaderL.append(item)
             #print newHeaderL
             if annoD:
-                print "%s\t%s" % ("\t".join(newHeaderL),
-                    annoD['head'])
+                print("%s\t%s" % ("\t".join(newHeaderL),
+                    annoD['head']))
             else:
-                print '\t'.join(newHeaderL)
+                print('\t'.join(newHeaderL))
             header -= 1
             continue
         lineL = line.strip().split('\t')
@@ -311,10 +310,10 @@ def main():
         exprL = [str(sum(exprD[samp])/len(exprD[samp])) \
             for samp in newHeaderL[1:]]
         if annoD:
-            print "%s\t%s\t%s" % (key, '\t'.join(exprL),
-                    annoD.get(key, ''))
+            print("%s\t%s\t%s" % (key, '\t'.join(exprL),
+                    annoD.get(key, '')))
         else:
-            print "%s\t%s" % (key, '\t'.join(exprL))
+            print("%s\t%s" % (key, '\t'.join(exprL)))
     #-------------END reading file----------
     #----close file handle for files-----
     #if file != '-':
@@ -327,16 +326,15 @@ def main():
     #pool.join()
     ###--------multi-process------------------
     if verbose:
-        print >>sys.stderr,\
-            "--Successful %s" % strftime(timeformat, localtime())
+        print("--Successful %s" % strftime(timeformat, localtime()), file=sys.stderr)
 
 if __name__ == '__main__':
     startTime = strftime(timeformat, localtime())
     main()
     endTime = strftime(timeformat, localtime())
     fh = open('python.log', 'a')
-    print >>fh, "%s\n\tRun time : %s - %s " % \
-        (' '.join(sys.argv), startTime, endTime)
+    print("%s\n\tRun time : %s - %s " % \
+        (' '.join(sys.argv), startTime, endTime), file=fh)
     fh.close()
     ###---------profile the program---------
     #import profile

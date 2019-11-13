@@ -78,9 +78,11 @@ extracted (excluding row index), column name will be renamed with <file_label>; 
 If more than one columns are extracted, column names will be renamed with <file_label_original_name>. \
 If a list of names are given when extracting multiple columns, \
 column names will be renamed with <file_label_given_name>.\
-Supply <None> to disable rename.")
+Supply <None> to disable rename. Default <infer>")
     parser.add_option("-m", "--method", dest="method",
         default="outer", help="Join method,  default <outer>, accept <inner>, <left>,  <right>.")
+    parser.add_option("-x", "--index-name", dest="index_name",
+        default="ID", help="Name for the first column in output file. Only works for single column index. Default <ID>. Any string would be OK.")
     parser.add_option("-N", "--na", dest="na",
         help="A value given to substitute NA value. Default no substitute.")
     parser.add_option("-R", "--remove-all-zero", dest="rm_all0",
@@ -123,6 +125,7 @@ def main():
         index_col = None
     #-----------------------------------------------------
     usecols = options.usecols
+    index_name = options.index_name
     na = options.na
     rm_all0 = options.rm_all0
     #print >>sys.stderr, usecols
@@ -180,15 +183,16 @@ def main():
     #matrix = pd.concat(matrixL, axis=1)
     if debug:
         print >>sys.stderr, matrix.head()
-    if index_col != None:
-        matrix.index.name = "ID"
+    if isinstance(index_col, int):
+        matrix.index.name = index_name
     if na:
         try:
             na = int(na)
         except ValueError:
-            na = float(na)
-        except ValueError:
-            na = na
+            try:
+                na = float(na)
+            except ValueError:
+                na = na
         #print >>sys.stderr, na
         matrix = matrix.fillna(na)
         if debug:

@@ -21,6 +21,8 @@ timeformat = "%Y-%m-%d %H:%M:%S"
 from optparse import OptionParser as OP
 #from multiprocessing.dummy import Pool as ThreadPool
 
+debug = 0
+
 def fprint(content):
     print json_dumps(content,indent=1)
 
@@ -49,10 +51,13 @@ first x words.")
     parser.add_option("-c", "--name-col-index", dest="name_col_ix",
         default=1, type='int', 
         help="Specify the columns containing IDs. Default 1 representing the first column.")
+    parser.add_option("-r", "--rename-col-index", dest="rename_col_ix",
+        default=0, type='int', 
+        help="Specify the columns containing IDs. Default 0 representing no rename.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
-        default=False, help="Debug the program")
+        default=False, action="store_true", help="Debug the program")
     (options, args) = parser.parse_args(argv[1:])
     assert options.filein != None, "A filename needed for -i"
     return (options, args)
@@ -63,6 +68,8 @@ def main():
     options, args = cmdparameter(sys.argv)
     #-----------------------------------
     file = options.filein
+    global debug
+    debug = options.debug
     sep = options.sep
     #print "*%s*" % sep
     if sep == 'tab':
@@ -70,10 +77,18 @@ def main():
     count = int(options.count)
     nameF = options.name
     nameC = options.name_col_ix-1
-    nameD = dict([[line.strip().split()[nameC], 1] for line in open(nameF)])
+    rename_col_ix = options.rename_col_ix
+    if rename_col_ix:
+        rename_col_ix = rename_col_ix - 1
+    else:
+        rename_col_ix = nameC
+    nameD = dict([[line.strip().split()[nameC], line.strip().split()[rename_col_ix]] \
+            for line in open(nameF)])
+
+    if debug:
+        print >>sys.stderr, nameD.keys()
     #print nameD.keys()[:5]
     verbose = options.verbose
-    debug = options.debug
     #-----------------------------------
     if file == '-':
         fh = sys.stdin
@@ -86,7 +101,7 @@ def main():
     for line in fh:
         if line[0] == '>':
             if output and tmpL and oldline:
-                print oldline,
+                print oldline.strip()
                 print ''.join(tmpL)
                 tmpL = []
                 output = 0
@@ -98,17 +113,26 @@ def main():
             #   nameD.pop(key)
             #    output = 1
             output = nameD.pop(key, 0)
+            if output and rename_col_ix != nameC:
+                oldline = oldline.strip() + ' ' + output
+            if debug:
+                print >>sys.stderr, key, output
         else:
-            if output == 1:
+            if output:
                 tmpL.append(line.strip())
     #-------------END reading file----------
+    if output and tmpL and oldline:
+        print oldline,
+        print ''.join(tmpL)
+        tmpL = []
+        output = 0
     #----close file handle for files-----
     if file != '-':
         fh.close()
     #-----------end close fh-----------
     if nameD:
         print >>sys.stderr, "The following IDs have no sequences found"
-        print >>sys.stderr, '\n\t'.join(nameD.keys())
+        print >>sys.stderr, '\n'.join(nameD.keys())
     ###--------multi-process------------------
     #pool = ThreadPool(5) # 5 represents thread_num
     #result = pool.map(func, iterable_object)

@@ -37,10 +37,12 @@ def cmdparameter(argv):
     parser = OP(usage=usages)
     parser.add_option("-i", "--input-file", dest="filein",
         metavar="FILEIN", help="The HTML output of fastqc.")
+    parser.add_option("-f", "--fastqc-data", dest="fastqc_data",
+        help="The fastqc_data.txt output by FastQC.")
     parser.add_option("-a", "--adaptor", dest="adaptor",
-        default="/MPATHB/soft/FastQC/Configuration/fastqc_adaptor.fa", 
+        default="default", 
         help="A two column file containing the adaptor sequences used \
-by fastq. Default: /MPATHB/soft/FastQC/Configuration/fastqc_adaptor.fa")
+by fastq. Default: FastQC_dir/Configuration/fastqc_adaptor.fa")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",
@@ -72,6 +74,9 @@ def main():
     #-----------------------------------
     file = options.filein
     adaptor = options.adaptor
+    if adaptor == 'default':
+        adaptor = os.path.realpath(os.popen("which fastqc").readlines()[0].strip()).rsplit('/', 1)[0]+"/Configuration/fastqc_adaptor.fa"
+        print >>sys.stderr, adaptor
     verbose = options.verbose
     debug = options.debug
     #-----------------------------------
@@ -81,34 +86,68 @@ def main():
     else:
         fh = open(file)
     #--------------------------------
+    fastqc_data = options.fastqc_data
+    fh2 = open(fastqc_data)
+    line = fh2.readline()
+    while 1:
+        if line.find(">>Adapter Content") == 0:
+            break
+        line = fh2.readline()
+    adaptorL = set()
+    while 1:
+        line = fh2.readline()
+        lineL = line.strip().split('\t')
+        len_lineL = len(lineL)
+        if line.find('#Position') == 0:
+            headerL = lineL
+            continue
+        for i in range(1, len_lineL):
+            #print >>sys.stderr, lineL[i]
+            if float(lineL[i]) > 0.01:
+                adaptorL.add(headerL[i])
+        if line.find(">>END_MODULE")==0:
+            break
+    fh2.close()
+    #print >>sys.stderr, adaptorL
+    for adaptor_name in adaptorL:
+        if adaptor_name in adaptorD:
+            adaptor = adaptorD[adaptor_name]
+            print ">%s\n%s" % (adaptor_name, adaptor)
+        else:
+            print sys.stderr, "Unexist "+adaptor_name
+            sys.exit(1)
     soup = BeautifulSoup(fh, 'html.parser')
-    table = soup.find_all('table')[1]
-    aDict = {}
-    id = 0
-    for tr in table.find_all('tr'):
-        id += 1
-        aDict[id] = []
-        for td in tr.find_all('td'):
-            aDict[id].append(td.get_text())
-    #-------------END reading file----------
-    keyL = aDict.keys()
-    keyL.sort()
-    for key in keyL:
-        valueL = aDict[key]
-        if len(valueL) >= 1:
-            adaptor_name = valueL[3].split('(')[0].strip()
-            if adaptor_name in adaptorD:
-                #adaptor = findComm(valueL[0], adaptorD[adaptor_name])
-                adaptor = adaptorD[adaptor_name]
-                #print adaptor
-                #print '========='
-                if adaptor and len(adaptor) >= 13:
-                    print ">%d %s\n%s" % (key, adaptor_name, adaptor)
+    tableL = soup.find_all('table')
+    if len(tableL) > 1:
+        table = tableL[1]
+        aDict = {}
+        id = 0
+        for tr in table.find_all('tr'):
+            id += 1
+            aDict[id] = []
+            for td in tr.find_all('td'):
+                aDict[id].append(td.get_text())
+        #-------------END reading file----------
+        keyL = aDict.keys()
+        keyL.sort()
+        for key in keyL:
+            valueL = aDict[key]
+            if len(valueL) >= 1:
+                adaptor_name = valueL[3].split('(')[0].strip()
+                if adaptor_name in adaptorD:
+                    #adaptor = findComm(valueL[0], adaptorD[adaptor_name])
+                    adaptor = adaptorD[adaptor_name]
+                    #print adaptor
                     #print '========='
-                    #print
-                else:
-                    print >>sys.stderr, file, adaptor_name, \
-                        valueL[0], adaptorD[adaptor_name]
+                    if adaptor and len(adaptor) >= 10:
+                        print ">%d %s\n%s" % (key, adaptor_name, adaptor)
+                        #print '========='
+                        #print
+                    else:
+                        print >>sys.stderr, file, adaptor_name, \
+                            valueL[0], adaptorD[adaptor_name]
+            #0--------------------
+        #--------------------------------
     #----close file handle for files-----
     if file != '-':
         fh.close()

@@ -21,10 +21,15 @@ def main():
     if lensysargv < 2:
         print >>sys.stderr, "Print the result to screen"
         print >>sys.stderr, 'Using python %s filename[- means \
-sys.stdin]' % sys.argv[0]
+sys.stdin] forParseGTF(given anything to turn on this option, optional)' % sys.argv[0]
         sys.exit(0)
     #-----------------------------------
     file = sys.argv[1]
+    if lensysargv == 3:
+        keepRows = ['exon', 'start_codon', 'stop_codon'] 
+    else:
+        keepRows = []
+
     if file == '-':
         fh = sys.stdin
     else:
@@ -32,11 +37,11 @@ sys.stdin]' % sys.argv[0]
     aDict = {}
     for line in fh:
         lineL = line.split("\t")
-        if lineL[2] != 'CDS':
+        if (keepRows and lineL[2] in keepRows) or ((not keepRows) and lineL[2] != 'CDS'):
             firstKey = lineL[0] + '.'.join(lineL[8].split("; ")[0:2])
             if firstKey not in aDict:
                 aDict[firstKey] = {}
-            secondKey = (int(lineL[3]), int(lineL[4]))
+            secondKey = (int(lineL[3]), int(lineL[4]), lineL[2])
             assert secondKey not in aDict[firstKey], \
                 (firstKey, secondKey)
             aDict[firstKey][secondKey] = line

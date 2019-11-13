@@ -265,7 +265,12 @@ def main():
             lineL  = line.split('\t')
             if head:
                 head -= 1
-                pfam_col = lineL.index('Pfam') 
+                if 'Pfam' in lineL:
+                    pfam_col = lineL.index('Pfam') 
+                elif 'PFAM' in lineL:
+                    pfam_col = lineL.index('PFAM') 
+
+                print >>sys.stderr, pfam_col
                 print "Gene\tIsoform\tFamily\tSubfamily\tPfam"
                 continue
             #--------------------------
@@ -284,6 +289,12 @@ def main():
             tfFamily = searchFamily(tfDict, tfKeysL, pfamD)
             if tfFamily:
                 print "%s\t%s\t%s\t%s" % (gene, isoform, tfFamily, pfam_m)
+            else:
+                pass
+                #print >>sys.stderr, "No TF family identified."
+                #print >>sys.stderr, tfDict
+                #print >>sys.stderr, pfamD
+                #sys.exit(1)
         #---------------------------------------------------
     #---------------------------------------------------
     elif type == 'pfam':

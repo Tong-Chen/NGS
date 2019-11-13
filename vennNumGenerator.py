@@ -74,7 +74,7 @@ samp1_samp3_common, samp2_samp3_common, samp1_samp2_samp3_common.")
 means no plotting. Accept 1 to plot. Currently only less \
 than 5-sets VennDiagram is supported.")
     parser.add_option("-p", "--output-prefix", dest="prefix",
-        help="Specify output prefix")
+        help="The tag for this analysis. Only string accepted.")
     parser.add_option("-v", "--verbose", dest="verbose",
         default=0, help="Show process information")
     parser.add_option("-d", "--debug", dest="debug",

@@ -39,7 +39,8 @@ differentially methylated loci using <methylKit> and <edmr>.
 #*****FILE CONTENT****when -s is TRUE******************
 
 ${txtbld}OPTIONS${txtrst}:
-	-f	A sample file with content described above. ${bldred}[NECESSARY]${txtrst}
+	-f	A sample file with content described above. 
+		${bldred}[NECESSARY,  the order and header line should not change]${txtrst}
 	-s	Using methyl call results instead of calling methylation from bismark.
 		${bldred}[Default FALSE]${txtrst}
 	-o	Specify the output folder.${bldred}[NECESSARY]${txtrst}

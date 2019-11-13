@@ -153,6 +153,7 @@ def get_coding_exon_intron(chr,keyL,tmpDict,name,score,strand):
     #print >>sys.stderr, keyL
     #print >>sys.stderr, tmpDict
     for ele in keyL:
+        print >>sys.stderr, ele, name
         if strand == '+':
             if tmpDict[ele] == 'exon':
                 #--------intron----------------------
@@ -322,6 +323,8 @@ def get_coding_exon_intron(chr,keyL,tmpDict,name,score,strand):
                         print '\t'.join(i)
                     #if here:
                     #exon_num -= 1
+                    print >>sys.stderr, ele
+                    print >>sys.stderr, oldEle
                     #---------------If only one exon----------------
                     if tmpLineL_218 and ele[1] <= int(tmpLineL_218[2]):
                         tmpLineL_218[2] = str(ele[1])
@@ -698,9 +701,18 @@ will be output; Otherwise only outputting inner regions]' % sys.argv[0]
             if start_end not in tmpDict[key]:
                 tmpDict[key][start_end] = region_name
             else:
-                print >>sys.stderr, "Duplicate start_end (%d, %d) \
-                    for %s" % (start_end[0], start_end[1], key)
-                sys.exit(1)
+                old_region_name = tmpDict[key][start_end]
+                codon_is_old = (old_region_name.find('codon') != -1)
+                codon_is_new = (region_name.find('codon') != -1)   
+                if codon_is_new and (not codon_is_old):
+                    tmpDict[key][start_end] = region_name
+                elif codon_is_old and (not codon_is_new):
+                    pass
+                else:
+                    print >>sys.stderr, "ERROR: Duplicate start_end (%d, %d) \
+                        for %s - %s-%s" % (start_end[0], start_end[1], key, \
+                        old_region_name, region_name)
+                    sys.exit(1)
             #--------------------------------------------------
         #--------------end filtering lines-----------------------
     #------------------end reading----------------------------

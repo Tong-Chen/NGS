@@ -30,6 +30,25 @@ import re
 
 debug = 0
 
+
+def isfloat(x):
+    try:
+        a = float(x)
+    except ValueError:
+        return Fslse
+    else:
+        return True
+#---------------------------------
+def isint(x):
+    try:
+        a = float(x)
+        b = int(a)
+    except ValueError:
+        return False
+    else:
+        return a == b
+#-------------------------------------
+
 def fprint(content):
     """ 
     This is a Google style docs.
@@ -88,8 +107,11 @@ Default <None> to read in all columns.")
         default=False, action="store_true", 
         help="Sort ascending vs. descending (default).")
     parser.add_option("-t", "--top", dest="top",
-        default=10000, type="int", 
-        help="Screen given number of top items. Default 10000.")
+        default=10000, 
+        help="Screen given number of top items or given percentage of top items. Default 10000.")
+    parser.add_option("-b", "--bottom", dest="bottom",
+        default=0, 
+        help="Screen given number of bottom items or given percentage of top items. Default 0.")
     parser.add_option("-O", "--statistics-only", dest="statistics_only", 
         default=False, action="store_true", help="[Uppercase O] Default output original matrix combined with computed statistics. Specify to output only computed statistics result.")
     parser.add_option("-o", "--outputfile", dest="output",
@@ -172,6 +194,7 @@ def main():
     assert output, "-o/--outputfile should be supplied."
     verbose = options.verbose
     top = options.top
+    bottom = options.bottom
     global debug
     debug = options.debug
     #-----------------------------------
@@ -219,6 +242,11 @@ def main():
         full = output + '.xls.gz'
         matrix.to_csv(full, sep=b"\t", compression='gzip')
     if top:
+        top_old = str(top)
+        top = float(top)
+        if top < 1:
+            top = top * total_line
+        top = int(top)
         #if top >= total_line:
         #    if uncompressed:
         #        file = output+'.xls'
@@ -231,13 +259,28 @@ def main():
         #    os.system("(cd {}; ln -sf {} {})".format(path_name, file_name, top_name))
         #    return
         if statistics_only:
-            matrix = matrix[0:top]
+            top_matrix = matrix[0:top]
         else:
-            matrix = matrix.drop(methods, axis=1)[0:top]
+            top_matrix = matrix.drop(methods, axis=1)[0:top]
         if uncompressed:
-            matrix.to_csv(output+'.'+str(top)+'.xls', sep=b"\t")
+            top_matrix.to_csv(output+'.top'+top_old+'.xls', sep=b"\t")
         else:
-            matrix.to_csv(output+'.'+str(top)+'.xls.gz', compression='gzip', sep=b"\t")
+            top_matrix.to_csv(output+'.top'+top_old+'.xls.gz', compression='gzip', sep=b"\t")
+
+    if bottom:
+        bottom_old = bottom
+        bottom = float(bottom)
+        if bottom < 1:
+            bottom = bottom * total_line
+        bottom = int(bottom)
+        if statistics_only:
+            bottom_matrix = matrix.tail(bottom)
+        else:
+            bottom_matrix = matrix.drop(methods, axis=1).tail(bottom)
+        if uncompressed:
+            bottom_matrix.to_csv(output+'.bottom'+bottom_old+'.xls', sep=b"\t")
+        else:
+            bottom_matrix.to_csv(output+'.bottom'+bottom_old+'.xls.gz', compression='gzip', sep=b"\t")
     ###--------multi-process------------------
     #pool = ThreadPool(5) # 5 represents thread_num
     #result = pool.map(func, iterable_object)

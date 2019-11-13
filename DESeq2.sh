@@ -35,6 +35,7 @@ and second column indicates the origin of each replicates.)
 
 #--------FILE content------------------------------
 #---the formula should be <conditions> which is the default
+#---The second column name must be conditions.
 Sample	conditions
 A_1	A
 A_2	A
@@ -242,6 +243,7 @@ data <- data[rowSums(data)>2,]
 sample <- read.table("${sample}", header=T, row.names=1, com='',
 	quote='', check.names=F, sep="\t", colClasses="factor")
 
+sample <- sample[match(colnames(data), rownames(sample)), ,  drop=F]
 sample_rowname <- rownames(sample)
 
 sample <- data.frame(lapply(sample, function(x) factor(x, levels=unique(x))))
@@ -316,14 +318,14 @@ sampleV
 	print(paste("DE genes between", sampleA, sampleB, sep=" "))
 	contrastV <- c("conditions", sampleA, sampleB)
 	res <- results(dds,  contrast=contrastV)
-	baseA <- counts(dds, normalized=TRUE)[, colData(dds)\$condition == sampleA]
+	baseA <- counts(dds, normalized=TRUE)[, colData(dds)\$conditions == sampleA]
 	if (is.vector(baseA)){
 		baseMeanA <- as.data.frame(baseA)
 	} else {
 		baseMeanA <- as.data.frame(rowMeans(baseA))
 	}
 	colnames(baseMeanA) <- sampleA
-	baseB <- counts(dds, normalized=TRUE)[, colData(dds)\$condition == sampleB]
+	baseB <- counts(dds, normalized=TRUE)[, colData(dds)\$conditions == sampleB]
 	if (is.vector(baseB)){
 		baseMeanB <- as.data.frame(baseB)
 	} else {
@@ -338,35 +340,39 @@ sampleV
 
 	comp314 <- paste(sampleA, "_vs_", sampleB, sep=".")
 
-	file_base <- paste("${file}${mid}", comp314,"results", sep=".")
-	write.table(as.data.frame(res), file=file_base, sep="\t", quote=F, row.names=F)
+	file_base <- paste("${file}${mid}", comp314, sep=".")
+	file_base1 <- paste(file_base, "results.xls", sep=".")
+	write.table(as.data.frame(res), file=file_base1, sep="\t", quote=F, row.names=F)
 	
 	res_de <- subset(res, res\$padj<${fdr}, select=c('ID', sampleA,
 		sampleB, 'log2FoldChange', 'padj'))
 	res_de_up <- subset(res_de, res_de\$log2FoldChange>=${log2fc})
-	file <- paste(file_base, "DE_up", sep=".")
+	file <- paste("${file}${mid}",sampleA, "_higherThan_", sampleB, 'xls', sep=".") 
 	write.table(as.data.frame(res_de_up), file=file, sep="\t", quote=F, row.names=F)
 	res_de_up_id <- subset(res_de_up, select=c("ID"))
-	file <- paste(file_base, "DE_up_id", sep=".")
+	#file <- paste(file_base, "DE_up_id", sep=".")
+	file <- paste("${file}${mid}",sampleA, "_higherThan_", sampleB,'id.xls', sep=".") 
 	write.table(as.data.frame(res_de_up_id), file=file, sep="\t", 
 		quote=F, row.names=F, col.names=F)
 	
 	if(dim(res_de_up_id)[1]>0) {
-		res_de_up_id_l <- cbind(res_de_up_id, paste(comp314, "up",sep="_"))
+		res_de_up_id_l <- cbind(res_de_up_id, paste(sampleA, "_higherThan_",sampleB, sep="."))
 		write.table(as.data.frame(res_de_up_id_l), file="${all_de}",
 		sep="\t",quote=F, row.names=F, col.names=F, append=T)
 	}
 		
 	res_de_dw <- subset(res_de, res_de\$log2FoldChange<=(-1)*${log2fc})
-	file <- paste(file_base, "DE_dw", sep=".")
+	#file <- paste(file_base, "DE_dw", sep=".")
+	file <- paste("${file}${mid}",sampleA, "_lowerThan_", sampleB, 'xls', sep=".") 
 	write.table(as.data.frame(res_de_dw), file=file, sep="\t", quote=F, row.names=F)
 	res_de_dw_id <- subset(res_de_dw, select=c("ID"))
-	file <- paste(file_base, "DE_dw_id", sep=".")
+	#file <- paste(file_base, "DE_dw_id", sep=".")
+	file <- paste("${file}${mid}",sampleA, "_lowerThan_", sampleB, 'id.xls', sep=".") 
 	write.table(as.data.frame(res_de_dw_id), file=file, sep="\t", 
 		quote=F, row.names=F, col.names=F)
 
 	if(dim(res_de_dw_id)[1]>0) {
-		res_de_dw_id_l <- cbind(res_de_dw_id, paste(comp314, "dw",sep="_"))
+		res_de_dw_id_l <- cbind(res_de_dw_id, paste(sampleA, "_lowerThan_",sampleB, sep="."))
 		write.table(as.data.frame(res_de_dw_id_l), file="${all_de}",
 		sep="\t",quote=F, row.names=F, col.names=F, append=T)
 	}
@@ -495,10 +501,12 @@ second_base
 
 	logFC <- res\$log2FoldChange
 	FDR <- res\$padj
-	png(filename=paste(file_base, "Volcano.png", sep="."))
-	plot(logFC, -1*log10(FDR), col=ifelse(FDR<=0.01, "red", "black"),
-	xlab="logFC", ylab="-1*log1o(FDR)", main="Volcano plot", pch=".")
-	dev.off()
+	logFDR <- -1*log10(FDR)
+
+	#png(filename=paste(file_base, "Volcano.png", sep="."))
+	#plot(logFC, -1*log10(FDR), col=ifelse(FDR<=0.01, "red", "black"),
+	#xlab="logFC", ylab="-1*log1o(FDR)", main="Volcano plot", pch=".")
+	#dev.off()
 }
 
 if ("${compare_mode}" == "pairwise" || "${compare_mode}" == "timeseries") {
@@ -579,7 +587,7 @@ if ("${compare_mode}" == "timeseries") {
 
 print("PCA analysis")
 formulaV <- c(${formulaV})
-pca_data <- plotPCA(rld, intgroup=formulaV, returnData=T)
+pca_data <- plotPCA(rld, intgroup=formulaV, returnData=T, ntop=5000)
 percentVar <- round(100 * attr(pca_data, "percentVar"))
 pdf("${file}${mid}.normalized.rlog.pca.pdf", pointsize=10)
 if (length(formulaV)==1) {

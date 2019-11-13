@@ -108,8 +108,16 @@ def readEnriched(*enriched):
 
             if header:
                 newLineL.insert(0, "Sample")
+                newLineL.append("Gene_name")
+                newLineL.append("Gene_alias_name")
                 header -= 1
             else:
+                '''
+                goAD = {
+                    # In this script,  only file1 is used, no file2 in goAD
+                    GO1:{file1:[geneA, geneB], file2:[geneA, geneB]}, 
+                    GO2:{file1:[geneC, geneD], file2:[geneE, geneF]}, 
+                }'''
                 goD = goAD.get(goNum, "")
                 if goD:
                     #valueL = [','.join(i) for i in goD.values() \
@@ -146,7 +154,7 @@ def readDepleted(*depleted):
             goNum = lineL[0]
             if len(lineL) < 10:
                 break
-            newLineL = [goNum, lineL[9], lineL[2], lineL[3], lineL[8]]
+            newLineL = [goNum, lineL[9], lineL[2], lineL[3], lineL[8], lineL[9]]
             if header:
                 newLineL.insert(0,"Sample")
                 header -= 1
@@ -165,12 +173,12 @@ def getTopTerm(type, prefix, top, *file):
     maxLen = 70
     file_out_n = prefix+".GOseq."+type+'.xls'
     file_out = open(file_out_n, 'w')
-    print >>file_out, "Sample\tGO\tTerm\tneg_log10pvalue\tCount\tFDR"
+    print >>file_out, "Sample\tGO\tTerm\tneg_log10pvalue\tCount\tFDR\tGene"
     for single in file:
         count = 0
         for line in open(single):
             if line.find("\t"+type) != -1:
-                lineL = line.split('\t')[:6]
+                lineL = line.split('\t')[:7]
                 lineL[0] = lineL[0][:maxLen]
                 print >>file_out, '\t'.join(lineL)
                 count += 1
@@ -227,7 +235,8 @@ def annoCluster(geneL, annoD, annoH, exprD, exprH, file_out):
     #print >>file_fh, '\t'.join(["ID", exprH, annoH])
     print >>file_fh, '\t'.join([exprH, annoH])
     for key in geneL:
-        print >>file_fh, '\t'.join([exprD[key], annoD[key]])
+        #print >>file_fh, '\t'.join([exprD[key], annoD[key]])
+        print >>file_fh, '\t'.join([exprD.get(key, ""), annoD.get(key, '')])
     file_fh.close()
 #_----------------------------------------
 

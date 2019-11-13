@@ -2,7 +2,7 @@
 
 #set -x
 set -e 
-set -u
+#set -u
 
 usage()
 {

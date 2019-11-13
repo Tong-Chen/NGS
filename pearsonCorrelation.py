@@ -22,6 +22,7 @@ timeformat = "%Y-%m-%d %H:%M:%S"
 from optparse import OptionParser as OP
 #from multiprocessing.dummy import Pool as ThreadPool
 from scipy.stats.stats import pearsonr
+#import pandas as pd
 
 debug = 0
 

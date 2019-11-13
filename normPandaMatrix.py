@@ -78,12 +78,15 @@ The row name of norm_factor should be the same as column name of data matrix (or
 normalize factor. A string <StandardScaler> or <MinMaxScaler> will do column-wise normalization as indicated.")
     parser.add_option("-s", "--scale-factor", dest="scale", type='float', 
         default=1, 
-        help="An integer or float to be multiplied by all values to avoid very small values or very larger values. Normally 1000000 should be given. Not appliable to <StandardScaler> and <StandardScaler>.")
+        help="An integer or float to be multiplied by all values to avoid very small values or very larger values. Normally 1000000 should be given. Not appliable to <StandardScaler> and <MinMaxScaler>.")
     parser.add_option("-l", "--log2-transform", dest="log2",
         default=False, action="store_true", 
-        help="Log2 transform normalized data (default no-transform). Not appliable to <StandardScaler> and <StandardScaler>.")
+        help="Log2 transform normalized data (default no-transform). Not appliable to <StandardScaler> and <MinMaxScaler>.")
+    parser.add_option("-L", "--log2-transform-before-scale", dest="log2_before",
+        default=False, action="store_true", 
+        help="Log2 transform data before normalization.")
     parser.add_option("-o", "--outputfile", dest="output",
-        help="[Lowercase o] Output file prefix. Default input file with suffix <.xls, .tsv, .csv, .txt removed if exists>. A suffix <xls.gz> will be added.")
+        help="[Lowercase o] Output file prefix. Default input file with suffix <.xls, .tsv, .csv, .txt removed if exists>. Only suffix <xls.gz> will be added.")
     parser.add_option("-u", "--uncompressed", dest="uncompressed",
         default=False, action="store_true", help="Default output gzipped file. Specify to output uncompressed result.")
     parser.add_option("-v", "--verbose", dest="verbose",
@@ -104,6 +107,7 @@ def main():
     header = 0
     scale = options.scale
     log2  = options.log2
+    log2_before = options.log2_before
     index_col = options.index_col.strip()
     if index_col != "None":
         index_col = [int(i) for i in re.split(r'[, ]*', index_col)]
@@ -138,6 +142,8 @@ def main():
     debug = options.debug
     #-----------------------------------
     matrix = pd.read_table(file, header=header, index_col=index_col, usecols=usecols)
+    if log2_before:
+        matrix = np.log2(matrix+1)
     if transpose:
         matrix = matrix.T
     matrix.index.name = "ID"
@@ -159,7 +165,9 @@ def main():
             norm_variable = matrix.sum()
         else:
             normD = pd.read_table(norm_factor, header=None, index_col=0)
-            norm_variable = normD[1]
+            #normD = normD[normD.index.isin(matrix.columns)]
+            norm_variable = normD.ix[matrix.columns, 1]
+            assert len(norm_variable) == matrix.shape[1], "In-consistent samples between norm_factor and data matrix"
         matrix = matrix * scale / norm_variable
         if log2:
             matrix_log2 = np.log2(matrix+1)

@@ -26,6 +26,8 @@ ${txtbld}OPTIONS${txtrst}:
 	-c	Specify the columns you want to do summary.
 		[${bldred}Default all colums. This paramater is unused unless
 		in the situation mentioned in -f.${txtrst}]
+	-m	Get maximum-minimum values.
+		[${bldred}Default FALSE, accept TRUE${txtrst}]
 	-z	Is there a header[${bldred}Default TRUE${txtrst}]
 		Accept FALSE.
 	-e	Execute or not[${bldred}Default TRUE${txtrst}]
@@ -39,8 +41,9 @@ header='TRUE'
 execute='TRUE'
 #cols='CTCTCT'
 cols='hahaha'
+maxmin='FALSE'
 
-while getopts "hf:k:z:e:c:" OPTION
+while getopts "hf:k:z:e:m:c:" OPTION
 do
 	case $OPTION in
 		h)
@@ -58,6 +61,9 @@ do
 			;;
 		c)
 			cols=$OPTARG
+			;;
+		m)
+			maxmin=$OPTARG
 			;;
 		e)
 			execute=$OPTARG
@@ -83,6 +89,10 @@ if ("${cols}" == "CTCTCT"){
 	x <- as.matrix(data1)
 	cv.sum <- summary(data1)
 	print(cv.sum)
+	if (${maxmin}){
+		print(paste0("MAX: ", max(max(data1))))
+		print(paste0("MIN: ", min(min(data1))))
+	}
 	#filesum <- "${file}${midname}"
 	#write.table(as.matrix(cv.sum), file=filesum, sep="\t", col.names=F, quote=F)
 }else {

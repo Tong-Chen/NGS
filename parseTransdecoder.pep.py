@@ -10,7 +10,9 @@ __author_email__ = 'chentong_biology@163.com'
 #=========================================================
 desc = '''
 Functional description:
-    This is designed to parse Transdecoder pep file to get the
+    This is designed to parse Transdecoder pep file 
+    (using Trinity assembled FASTA as input 
+    which contains both isoform and gene information in names) to get the
     complete protein or the largest protein for each gene or isoform.
 '''
 
